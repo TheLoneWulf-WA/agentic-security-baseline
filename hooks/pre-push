@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+#
+# Global pre-push hook — defense in depth
+#
+# Installed via:
+#   git config --global core.hooksPath ~/.config/git/hooks
+#
+# Skip a single push with:
+#   git push --no-verify
+#
+# Behavior:
+#   - Only enforces on pushes to main / master / production
+#   - Runs `npm audit --audit-level=critical` and BLOCKS on critical vulns
+#   - WARNS on sensitive-file changes (does not block — Claude's strict
+#     gate handles blocking when Claude is the actor)
+#   - Yields to project-local hook systems (Husky) so it doesn't break
+#     repos that manage their own pre-push hooks
+
+remote="$1"
+url="$2"
+
+ZERO_SHA="0000000000000000000000000000000000000000"
+
+# Read each ref being pushed from stdin
+while read local_ref local_sha remote_ref remote_sha; do
+    # Skip deletions
+    if [ "$local_sha" = "$ZERO_SHA" ]; then
+        continue
+    fi
+
+    # Extract branch name (refs/heads/main -> main)
+    branch="${remote_ref##refs/heads/}"
+
+    # Only enforce on protected branches
+    case "$branch" in
+        main|master|production) ;;
+        *) continue ;;
+    esac
+
+    echo "" >&2
+    echo "[pre-push] Protected branch detected: $branch" >&2
+
+    # Yield to project-local hook systems
+    if [ -f ".husky/pre-push" ]; then
+        echo "[pre-push] Husky pre-push hook detected — yielding to project-local checks" >&2
+        continue
+    fi
+
+    # Run npm audit if package.json exists and npm is available
+    if [ -f "package.json" ] && command -v npm >/dev/null 2>&1; then
+        echo "[pre-push] Running npm audit (critical level)..." >&2
+        audit_output=$(npm audit --audit-level=critical 2>&1)
+        audit_exit=$?
+        if [ $audit_exit -ne 0 ]; then
+            echo "$audit_output" | tail -25 >&2
+            echo "" >&2
+            echo "[pre-push] BLOCKED: critical vulnerabilities found" >&2
+            echo "[pre-push] Run 'npm audit' for full details" >&2
+            echo "[pre-push] Bypass this push only with: git push --no-verify" >&2
+            exit 1
+        fi
+        echo "[pre-push] npm audit clean" >&2
+    fi
+
+    # Determine diff range
+    if [ "$remote_sha" = "$ZERO_SHA" ]; then
+        # New branch on remote — diff against origin's default branch if available
+        if git rev-parse --verify origin/HEAD >/dev/null 2>&1; then
+            diff_range="origin/HEAD..$local_sha"
+        else
+            # No origin/HEAD — fall back to last commit only
+            diff_range="${local_sha}~1..${local_sha}"
+        fi
+    else
+        diff_range="$remote_sha..$local_sha"
+    fi
+
+    # Sensitive file pattern — warn only, do not block
+    # Customize this regex for your stack: add your payment processor names,
+    # auth provider names, or other patterns specific to your codebase.
+    sensitive_pattern='\.env|auth|middleware|payment|stripe|jwt|secret|credential|rls|service[_-]role|cors|callback|oauth'
+
+    sensitive_files=$(git diff --name-only "$diff_range" 2>/dev/null | grep -iE "$sensitive_pattern" || true)
+
+    if [ -n "$sensitive_files" ]; then
+        echo "" >&2
+        echo "[pre-push] WARNING: sensitive files in diff:" >&2
+        echo "$sensitive_files" | sed 's/^/  - /' >&2
+        echo "[pre-push] Push allowed (warning only — review before merging)" >&2
+    fi
+
+    echo "" >&2
+done
+
+exit 0
