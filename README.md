@@ -8,7 +8,7 @@ This repo is the implementation of a small workflow protocol I put together for 
 
 I'm not a security professional. I'm fairly technical, I read a lot, I ship things across web and app dev. The system here is what someone slightly more careful than the average AI builder would do. It's not advanced. It's just deliberate.
 
-The full reasoning is in the companion article: *[link to companion article — coming soon]*. The post explains the architecture and the trade-offs. This repo is the files.
+The full reasoning is in the companion article: ["You Can Just Do Things." But Maybe, Be Safe About It?](https://atmr.substack.com/p/you-can-just-do-things-but-maybe). The post explains the architecture and the trade-offs. This repo is the files.
 
 ## What's in here
 
