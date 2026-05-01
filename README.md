@@ -27,11 +27,11 @@ The system also relies on two things that aren't in this repo:
 
 ## Who this might help
 
-I built this for myself, but it might fit if you're:
+I built this for myself, but it might fit if you're a solo builder, indie hacker, vibe coder, small-shop founder, or non-technical person shipping with AI — especially if:
 
-- Building with Claude Code and don't yet have a system for review and enforcement
-- On a constrained budget where paid security tools are too expensive
-- Shipping payments, auth, or user data and want a baseline before you scale up
+- You're on a constrained budget where paid security tools are too expensive
+- You're shipping payments, auth, or user data and want a baseline before you scale up
+- You don't yet have a system for review and enforcement when building with Claude Code
 
 If you have a security team, SOC2 compliance, and dedicated SAST infrastructure, you probably don't need this. You have something better.
 
