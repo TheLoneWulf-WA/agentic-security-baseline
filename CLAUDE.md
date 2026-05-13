@@ -303,15 +303,62 @@ Always install exact versions (e.g. `1.14.0`), never ranges
 (`^1.14.0` or `~1.14.0`), unless the user says otherwise.
 If `~/.npmrc` has `save-exact=true`, this is automatic.
 
-### 6. Lockfile version drift (trusted-package hijack detection)
+### 6. Lockfile version drift (forensic layer)
 When running `npm install`, `npm update`, or `npm ci`, compare the
 lockfile before and after.
 - Flag any already-installed package whose version changed
 - Report which packages changed and what version they moved to
-- This catches compromised maintainer accounts pushing malicious
-  updates to trusted packages (e.g. the axios attack)
-- Do not proceed without confirmation if unexpected version changes
-  are detected
+- This is a forensic layer, not a preventive one: by the time the
+  lockfile diff appears, any malicious `postinstall` scripts have
+  already executed. It tells you WHAT changed; it does not prevent
+  the change.
+- The preventive layers for trusted-package hijacking (the attack
+  class that hit Axios, then TanStack / OpenSearch / Mistral AI /
+  Guardrails AI / UiPath / Squawk in the 2025-2026 Mini Shai-Hulud
+  campaign) are #7 and #8 below.
+- Still: do not silently accept unexpected version changes —
+  investigate.
+
+### 7. Disable install scripts by default
+Most supply chain attacks deliver their payload via `preinstall`,
+`postinstall`, or `prepare` scripts that run automatically during
+`npm install`. Disable script execution globally:
+
+```
+npm config set ignore-scripts true
+```
+
+This eliminates the install-time execution vector. Compromised
+packages become drastically less dangerous because their payload
+cannot auto-run on install.
+
+Trade-off: packages that legitimately need install scripts will fail
+on first install. Well-known cases (`sharp`, `esbuild`, `puppeteer`,
+`cypress`, `husky`, `node-gyp`, native modules) are listed in
+CUSTOMIZE.md. For those, override per-install with
+`npm install <pkg> --ignore-scripts=false` or run `npm rebuild <pkg>`
+after a normal install.
+
+### 8. Minimum release age
+Require packages to be at least N days old before npm will install
+them:
+
+```
+npm config set min-release-age 2d
+```
+
+This shifts you out of the early-installer window for every future
+supply chain attack. Security researchers typically detect malicious
+uploads within 6-24 hours; a 2-day buffer means you skip the
+exposure window by default, without needing to know in advance which
+package will be hit next.
+
+Requires npm 11+. Equivalents for pnpm, yarn, and bun are documented
+in CUSTOMIZE.md. Older npm versions silently ignore the setting —
+upgrade npm to get the protection.
+
+Trade-off: you're 2 days behind on legitimate updates. Override
+per-install when a genuine same-day release is needed.
 
 This applies to direct installs and any package added as part of a
 build task. No exceptions.

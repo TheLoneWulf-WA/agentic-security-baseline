@@ -47,6 +47,78 @@ Reports save to `~/.claude/reports/<project-name>/...` by default. Change the pa
 
 The default merge strategy is `squash + delete branch`. If your team prefers rebase or merge commits, change it in the **PR Merge Follow-up** section.
 
+## 8. Package manager configuration (npm / pnpm / yarn / bun)
+
+The `install.sh` sets two npm configs by default: `ignore-scripts=true` and `min-release-age=2d` (when supported). Both can be tuned, and equivalents for other package managers are below.
+
+### Tuning the release-age buffer
+
+The default is 2 days. Adjust upward if you want a wider margin:
+
+```
+npm config set min-release-age 3d   # 3 days
+npm config set min-release-age 7d   # one week (more conservative)
+```
+
+Two days is where most malicious uploads have been caught by community/Socket detection by the time you'd install. A week is paranoid but defensible if you ship at unusual hours when detection lag is longest.
+
+### Allowing scripts for specific packages
+
+`ignore-scripts=true` is the right default but breaks packages that need build steps. The well-known cases:
+
+- **`sharp`** — native image processing binary
+- **`esbuild`** — binary install
+- **`puppeteer`, `playwright`** — browser binary downloads
+- **`cypress`** — binary install
+- **`husky`** — git hooks setup
+- **`node-gyp`, native modules** — build steps
+
+When you hit a "command not found" or "binary not found" error after installing one of these, the fix is one of:
+
+```bash
+# Option A — install this package with scripts allowed
+npm install <pkg> --ignore-scripts=false
+
+# Option B — install normally, then run the build step manually
+npm install <pkg>
+npm rebuild <pkg>
+```
+
+Both work. Pick whichever feels less surprising in the moment.
+
+### Equivalent configs for other package managers
+
+If you use pnpm, yarn, or bun, set the equivalent on whichever you actually use:
+
+**pnpm:**
+```
+pnpm config set ignore-scripts true
+pnpm config set minimumReleaseAge 2880    # 2 days in minutes
+```
+
+**yarn (v4+):**
+```
+yarn config set enableScripts false
+yarn config set npmMinimalAgeGate "48h"
+```
+
+**bun** (in `bunfig.toml` at project root or `~/.bunfig.toml`):
+```toml
+[install]
+ignoreScripts = true
+minimumReleaseAge = 172800   # 2 days in seconds
+```
+
+The threat model is identical across all four. Only the syntax differs.
+
+### Verifying the settings stuck
+
+```
+npm config get ignore-scripts
+npm config get min-release-age
+cat ~/.npmrc                  # see the file directly
+```
+
 ## What NOT to customize
 
 A few defaults exist for safety reasons. Changing them weakens the baseline:

@@ -16,7 +16,7 @@ The full reasoning is in the companion article: ["You Can Just Do Things." But M
 - **`hooks/push-routing-gate.sh`** — A Claude Code PreToolUse hook. Fires on every `git push` Claude tries to run. If the push targets `main`, `master`, or `production`, it prompts for confirmation. Claude can't bypass it.
 - **`hooks/pre-push`** — A global git pre-push hook (configured via `core.hooksPath`). Runs on every push from the terminal regardless of whether Claude is involved. Runs `npm audit --audit-level=critical` and warns on changes to sensitive files.
 - **`settings.snippet.json`** — The Claude Code settings entry that wires the PreToolUse hook in.
-- **`install.sh`** — A shell script that places the files, substitutes paths, and configures git. Idempotent.
+- **`install.sh`** — A shell script that places the files, substitutes paths, configures git, and sets npm config for supply chain protection (`ignore-scripts`, `min-release-age` when supported). Idempotent.
 - **`docs/INSTALL.md`** — Step-by-step install. Written so an agent can follow it, or you can.
 - **`docs/CUSTOMIZE.md`** — What to adapt for your stack: payment processor names, sensitive file patterns, branch names, etc.
 

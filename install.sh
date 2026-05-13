@@ -105,6 +105,34 @@ else
     echo "    git config --global core.hooksPath \"\$HOME/.config/git/hooks\""
 fi
 
+# ---- Step 6: Configure npm for supply chain protection ----
+
+if command -v npm >/dev/null 2>&1; then
+    # ignore-scripts blocks preinstall/postinstall/prepare script execution.
+    # This is the primary defense against install-time payload execution
+    # used in the Axios, TanStack, and Mini Shai-Hulud campaigns.
+    # Works on all npm versions.
+    npm config set ignore-scripts true
+    echo "✓ Set npm ignore-scripts=true (blocks install-time script execution)"
+    echo "  Note: packages needing build scripts (sharp, esbuild, husky, etc.)"
+    echo "  may require --ignore-scripts=false per-install. See docs/CUSTOMIZE.md"
+
+    # min-release-age blocks installs of versions less than 2 days old.
+    # Requires npm 11+; we detect and skip gracefully on older versions.
+    NPM_VERSION=$(npm --version)
+    NPM_MAJOR=$(echo "$NPM_VERSION" | cut -d. -f1)
+    if [ "$NPM_MAJOR" -ge 11 ]; then
+        npm config set min-release-age 2d
+        echo "✓ Set npm min-release-age=2d (skips early-installer window)"
+    else
+        echo "⚠ Skipped min-release-age — requires npm 11+ (you have npm $NPM_VERSION)"
+        echo "  When you upgrade npm, run: npm config set min-release-age 2d"
+        echo "  Until then, ignore-scripts above provides most of the protection."
+    fi
+else
+    echo "⚠ npm not found — skipping npm config setup"
+fi
+
 # ---- Done ----
 
 echo
