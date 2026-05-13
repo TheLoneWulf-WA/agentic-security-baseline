@@ -20,6 +20,13 @@ The full reasoning is in the companion article: ["You Can Just Do Things." But M
 - **`docs/INSTALL.md`** — Step-by-step install. Written so an agent can follow it, or you can.
 - **`docs/CUSTOMIZE.md`** — What to adapt for your stack: payment processor names, sensitive file patterns, branch names, etc.
 
+The install also configures `~/.npmrc` on your machine with two supply-chain protections:
+
+- **`ignore-scripts=true`** — blocks `preinstall`/`postinstall`/`prepare` script execution, the vector used in the Axios, TanStack, and Mini Shai-Hulud supply chain attacks. Compromised packages can't auto-run their payload on install.
+- **`min-release-age=2d`** (npm 11+) — skips the early-installer window for *future* supply chain attacks by refusing to install package versions less than 2 days old. Most malicious uploads are detected by Socket and the security community within 6-24 hours; the 2-day buffer means you skip the exposure window by default.
+
+See `docs/CUSTOMIZE.md` for tuning, equivalents for pnpm/yarn/bun, and per-package overrides when you need them.
+
 The system also relies on two things that aren't in this repo:
 
 - `/security-review` and `/code-review` slash commands (Anthropic's, install separately — links in `docs/INSTALL.md`)
