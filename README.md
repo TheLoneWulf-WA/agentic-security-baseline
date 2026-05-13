@@ -64,7 +64,7 @@ A few defaults need adapting for your stack: the strict gate's payment processor
 - I'm not the deepest expert on bash hooks or settings.json internals. I had Claude write the scripts, I read them, I tested them. They've held up. If something breaks at 2am, debugging it likely involves asking Claude again.
 - Threat models differ. The defaults here reflect what I worry about. They might miss things you should worry about.
 
-## A note on the slash commands
+## A note on the slash commands (and one related tool)
 
 The two slash commands this protocol references aren't in the repo. They're Anthropic's:
 
@@ -72,6 +72,14 @@ The two slash commands this protocol references aren't in the repo. They're Anth
 - `/code-review` — from the official `code-review` plugin in [anthropics/claude-code](https://github.com/anthropics/claude-code/tree/main/plugins/code-review)
 
 Both are local slash commands. They're not the same as Anthropic's hosted Code Review service (a paid Team/Enterprise feature, billed at $15-25 per review).
+
+### Also worth knowing about: DeepSec
+
+The slash commands above run on a *diff* — your branch's pending changes or a PR. They're per-event tools. [DeepSec](https://vercel.com/blog/introducing-deepsec-find-and-fix-vulnerabilities-in-your-code-base) (Vercel, open source) is a complementary tool for *whole-codebase* audits — useful when you're doing a pre-launch sweep, a quarterly audit, or inheriting a codebase you didn't build per-commit yourself.
+
+It's BYOK (uses your existing Claude or OpenAI API keys, no new subscription) and runs locally via `npx deepsec init`. Fits the same budget thesis as the rest of this baseline. Not a replacement for the per-event review commands — a different layer entirely, for a different question (*"what's already in here?"* rather than *"should this change happen?"*).
+
+Worth knowing about for when you need it.
 
 ## License
 
