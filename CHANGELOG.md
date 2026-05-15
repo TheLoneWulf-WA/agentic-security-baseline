@@ -2,6 +2,38 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-05-15
+
+Restructured the Strict Gate and Reminder Gate (in `CLAUDE.md`'s
+Pre-Push Review Protocol) from a single flat list into a universal
+core plus per-ecosystem extensions:
+
+- **Strict Gate — Universal:** payment processing, auth/session/JWT,
+  env vars/secrets, API endpoints accepting user input. Items every
+  project gets regardless of platform.
+- **Strict Gate — Web-specific:** RLS policies, CORS, OAuth callbacks,
+  Next.js middleware, third-party scripts (the items previously
+  treated as universal but actually web-flavored).
+- **Strict Gate — Android-specific (new):** capture code paths
+  (camera/audio/image bytes via `BitmapFactory` etc.), JNI / native
+  boundaries, `allowBackup` / `dataExtractionRules`, component
+  `exported="true"` changes, WebView / JS↔Kotlin bridges
+  (`addJavascriptInterface`), external text becoming a system prompt,
+  Network Security Config / cleartext traffic, cryptographic operations
+  / `KeyStore` usage.
+- **Reminder Gate — Android-specific (new):** `targetSdkVersion` bumps,
+  release signing / ProGuard or R8 config changes, sensitive data
+  stored in plain `SharedPreferences`.
+
+The previous flat list was implicitly web-flavored. As active work
+expanded into Android, that calibration left real risk surfaces
+without coverage. The restructure scales to new ecosystems (iOS,
+Solana mobile, etc.) without further reorganization.
+
+No items were removed from the existing gate. The web-specific items
+that used to be in the universal list are now categorized but still
+fire on web projects.
+
 ## 2026-05-13
 
 Updated `CLAUDE.md`, `install.sh`, `docs/CUSTOMIZE.md`, and `README.md`:

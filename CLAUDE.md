@@ -89,18 +89,59 @@ Practical application:
 Before any `git push`, if the diff touches any of the following, run
 `/security-review` first. Do not ask. Just run it.
 
+The gate is organized as a universal core plus per-ecosystem
+extensions. Apply universal items on every project. Apply ecosystem
+additions when the project belongs to that ecosystem. New ecosystems
+get their own sub-section as the work expands (iOS, Solana mobile,
+embedded firmware, etc.).
+
+**Universal (any project):**
+
 - Payment processing (Stripe, PayPal, your payment provider —
   customize this list for your stack)
 - Authentication, session handling, JWT, or token logic
 - Environment variables, secrets, or config files (.env, firebase
   config, API keys)
 - API endpoints that accept user input
+
+**Web-specific additions:**
+
 - Database RLS policies, Supabase service role usage, or row-level
   security changes
 - CORS configuration or allowed origins
 - Redirect URLs, OAuth callbacks, or payment callback endpoints
 - Next.js middleware or route protection logic
 - Third-party script loading, iframes, or remote content embedding
+
+**Android-specific additions:**
+
+- Capture code paths that process user-supplied media — camera
+  capture, audio recording, image bytes flowing through
+  `BitmapFactory`, `MediaCodec`, file pickers via `ContentResolver`
+  / SAF. Bug class: malformed-input crashes, bitmap OOM, MIME
+  confusion. Permissions are the door; capture code is the room.
+- JNI or native-code boundaries — new entry points into native libs
+  (LiteRT-LM JNI, OpenCL, OpenGL, custom `.so` bindings). Memory-
+  corruption surface.
+- `android:allowBackup` or `android:dataExtractionRules` changes —
+  these control OS-level data exfiltration. One wrong attribute and
+  `.env`-equivalent state is backed up to Google Drive.
+- Component export changes — new `<activity>` / `<service>` /
+  `<receiver>` / `<provider>` declared `android:exported="true"`,
+  especially with `<data>` filters that accept external input.
+- WebView usage or JavaScript ↔ Kotlin bridges —
+  `addJavascriptInterface`, custom `WebChromeClient` /
+  `WebViewClient` overrides that touch data flows, file:// scheme
+  enablement. XSS in WebView plus a JS-to-native escape is full
+  app compromise.
+- External text becoming a system prompt — any string from disk,
+  network, share intent, deep link, or user input that gets
+  injected into an LLM context. Prompt-injection surface.
+- Network Security Config (`network_security_config.xml`) changes
+  or `android:usesCleartextTraffic="true"` — credential exposure.
+- Cryptographic operations or `KeyStore` usage — `Cipher`, key
+  generation/storage, IV choice, mode selection (CBC vs GCM),
+  authenticated encryption choice.
 
 **Blocking behavior:**
 - If `/security-review` reports any HIGH severity finding, do NOT
@@ -123,10 +164,25 @@ When the diff touches any of the following, remind the user to
 consider running `/security-review` before pushing. Do not run it
 automatically.
 
+**Universal:**
+
 - File uploads or media handling
 - Route changes or deep links
 - Native bridges or webview communication
 - Database schema changes
+
+**Android-specific additions:**
+
+- `targetSdkVersion` bumps — change scoped storage defaults,
+  default-allowBackup, default-exported, runtime permission rules.
+  Policy shift not directly reviewable by `/security-review` but
+  worth a beat of attention before the diff lands on main.
+- Release signing or ProGuard / R8 configuration changes — rare
+  but important; misconfigured rules can leak debug code into
+  release builds or skip obfuscation on sensitive classes.
+- Sensitive data stored in plain `SharedPreferences` rather than
+  `EncryptedSharedPreferences` — context-dependent; the
+  protocol nudges judgment rather than blocking the push.
 
 ### Skip Clauses
 
