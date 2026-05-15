@@ -6,7 +6,8 @@ Dated events in this protocol's lifecycle. Newest first.
 
 Restructured the Strict Gate and Reminder Gate (in `CLAUDE.md`'s
 Pre-Push Review Protocol) from a single flat list into a universal
-core plus per-ecosystem extensions:
+core plus per-ecosystem extensions. Added Android-specific AND
+iOS-specific extensions in the same wave:
 
 - **Strict Gate — Universal:** payment processing, auth/session/JWT,
   env vars/secrets, API endpoints accepting user input. Items every
@@ -21,14 +22,28 @@ core plus per-ecosystem extensions:
   (`addJavascriptInterface`), external text becoming a system prompt,
   Network Security Config / cleartext traffic, cryptographic operations
   / `KeyStore` usage.
+- **Strict Gate — iOS-specific (new):** capture code paths
+  (`AVCaptureSession`, `UIImagePickerController`,
+  `PHPickerViewController`, `CGImageSource`, `AVAudioRecorder`),
+  native ↔ JS bridges (`WKScriptMessageHandler`, `JSContext` /
+  `JSExport`, React Native / Expo native modules),
+  `NSFileProtectionComplete` / `excludedFromBackup` / iCloud
+  exclusion attributes, URL scheme and Universal Links handlers,
+  entitlements changes, App Transport Security (ATS) exceptions,
+  cryptographic operations / Keychain Services usage, external text
+  becoming a system prompt.
 - **Reminder Gate — Android-specific (new):** `targetSdkVersion` bumps,
   release signing / ProGuard or R8 config changes, sensitive data
   stored in plain `SharedPreferences`.
+- **Reminder Gate — iOS-specific (new):** iOS deployment target
+  bumps, release build hardening config changes, sensitive data
+  stored in plain `UserDefaults`.
 
 The previous flat list was implicitly web-flavored. As active work
-expanded into Android, that calibration left real risk surfaces
-without coverage. The restructure scales to new ecosystems (iOS,
-Solana mobile, etc.) without further reorganization.
+expanded into Android (and iOS is in-scope across multiple Expo
+projects), the protocol's calibration left real risk surfaces
+without coverage. The restructure scales to new ecosystems (Solana
+mobile, embedded, etc.) without further reorganization.
 
 No items were removed from the existing gate. The web-specific items
 that used to be in the universal list are now categorized but still

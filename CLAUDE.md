@@ -143,6 +143,39 @@ embedded firmware, etc.).
   generation/storage, IV choice, mode selection (CBC vs GCM),
   authenticated encryption choice.
 
+**iOS-specific additions:**
+
+- Capture code paths that process user-supplied media —
+  `AVCaptureSession`, `UIImagePickerController`,
+  `PHPickerViewController`, image decoding via `CGImageSource`,
+  audio via `AVAudioRecorder`. Same bug class as Android:
+  malformed-input crashes, memory exhaustion, format confusion.
+- Native ↔ JavaScript bridges — `WKWebView` with
+  `WKScriptMessageHandler`, `JSContext` / `JSExport`, React Native
+  or Expo native modules exposing methods callable from JS. Analog
+  of Android's `addJavascriptInterface`.
+- Backup / iCloud exclusion changes — `NSFileProtectionComplete`,
+  `excludedFromBackup` resource values, `NSPersistentCloudKitContainer`
+  configuration. Wrong attribute backs sensitive data to iCloud.
+- URL scheme registration, Universal Links / Associated Domains, or
+  app extension URL handlers — `application(_:open:options:)`,
+  `application(_:continue:restorationHandler:)`. Inbound URLs from
+  external apps are a classic attack surface.
+- Entitlements changes — `*.entitlements` additions (push, keychain
+  access group, app group, Sign in with Apple, app extension
+  entitlements, background modes). Entitlements grant capabilities
+  that can become exfiltration surfaces.
+- App Transport Security exceptions — `NSAppTransportSecurity` in
+  `Info.plist`, `NSAllowsArbitraryLoads`, exception domain entries.
+  iOS equivalent of Android cleartext config.
+- Cryptographic operations or Keychain Services — `SecKey*`,
+  `CommonCrypto`, `CryptoKit`, Secure Enclave bindings, key
+  generation/storage, IV/mode choices.
+- External text becoming a system prompt — any string from disk,
+  network, URL scheme, `NSItemProvider`, share extension, or user
+  input injected into an on-device (Core ML, MLX) or cloud LLM
+  context. Prompt-injection surface.
+
 **Blocking behavior:**
 - If `/security-review` reports any HIGH severity finding, do NOT
   run `git push`. Report findings and wait for the user's decision.
@@ -183,6 +216,19 @@ automatically.
 - Sensitive data stored in plain `SharedPreferences` rather than
   `EncryptedSharedPreferences` — context-dependent; the
   protocol nudges judgment rather than blocking the push.
+
+**iOS-specific additions:**
+
+- iOS deployment target bumps — change default privacy permission
+  UX, scoped storage rules, API behavior. Policy shift worth a
+  beat before merging.
+- Release build hardening config changes — Strip Debug Symbols,
+  Optimization Level, dead-code-stripping settings in the release
+  scheme. Misconfigured builds can leak debug paths or skip
+  hardening passes.
+- Sensitive data stored in plain `UserDefaults` rather than
+  Keychain Services — context-dependent; the protocol nudges
+  judgment rather than blocking the push.
 
 ### Skip Clauses
 
