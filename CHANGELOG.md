@@ -2,6 +2,37 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-05-18
+
+Added hook-enforced PR merge gate.
+
+The PR Merge Follow-up protocol was previously instruction-only —
+Claude was supposed to stop after opening a PR and wait for the user
+to say "merge it" / "ship it" before running `gh pr merge`. Like all
+instructions, that was best-effort. A Claude in a high-momentum flow
+could autonomously merge after creating a PR, skipping the explicit-
+approval step.
+
+This update adds a mechanical backstop. `hooks/push-routing-gate.sh`
+now catches any `gh pr merge` invocation and prompts the user, exactly
+like the existing protected-branch push gate.
+
+Bypass: `MERGE_GATE_BYPASS=1` env-var prefix. Claude adds the prefix
+only when the user says the **exact** phrase `"ship it through"` —
+not any paraphrase. Variations like `"ship it"`, `"merge it"`,
+`"merge the PR"`, `"send it through"`, `"just ship that"`, etc., do
+NOT trigger the bypass; those still hit the prompt. The bypass is
+per-merge, not per-session — each subsequent merge needs its own
+explicit phrase or its own confirmation.
+
+`CLAUDE.md` gained a "Hook-enforced merge gate" subsection under PR
+Merge Follow-up that documents the behavior and the bypass.
+
+The forkable hook script in this repo now includes the merge gate.
+`install.sh` is unchanged — it copies whatever hook script is in the
+repo, so users running `install.sh` after this update get the new
+hook automatically.
+
 ## 2026-05-15
 
 Restructured the Strict Gate and Reminder Gate (in `CLAUDE.md`'s

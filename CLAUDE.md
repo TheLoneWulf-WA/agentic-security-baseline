@@ -372,6 +372,34 @@ opened PR in this session.
 
 If multiple PRs are open in the session, ask which one to merge.
 
+### Hook-enforced merge gate
+
+`~/.claude/hooks/push-routing-gate.sh` (registered as a `PreToolUse`
+hook on `Bash` in `~/.claude/settings.json`) catches `gh pr merge`
+invocations and prompts for user confirmation. This is a mechanical
+backstop for the rule above — if Claude drifts past the
+"stop and wait for ship-it" step, the hook fires and surfaces a
+permission prompt.
+
+**Bypass phrase: "ship it through".** When the user says exactly this
+phrase for a specific merge, Claude prefixes the command with the
+env-var bypass:
+
+```
+MERGE_GATE_BYPASS=1 gh pr merge <pr> --squash --delete-branch
+```
+
+The hook checks for `MERGE_GATE_BYPASS=1` and allows the command
+through silently. Any other phrasing — including "ship it", "merge
+it", "merge the PR", "send it through", "just ship that", or any
+paraphrase — does NOT add the prefix. The prefix is gated on the
+literal phrase only. Use the phrase verbatim or accept the prompt.
+
+The bypass is per-merge, not per-session. Each subsequent `gh pr
+merge` needs either its own "ship it through" or its own permission
+confirmation. This is by design — defaults stay safe, the user
+re-affirms each time they want to skip.
+
 ---
 
 ## Dependency Installation Gate

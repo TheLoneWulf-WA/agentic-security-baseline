@@ -2,21 +2,45 @@
 #
 # Push Routing Gate — Claude Code PreToolUse hook
 #
-# Prompts for user confirmation when Claude attempts to push to
-# protected branches (main/master/production).
+# Prompts for user confirmation when Claude attempts to:
+#   1. Push to protected branches (main/master/production)
+#   2. Run `gh pr merge` without an explicit bypass
 #
-# Enforces Push Routing protocol from ~/.claude/CLAUDE.md:
-#   Default behavior: feature branch + PR
-#   Override: user explicitly says "push to main"
+# Enforces two protocols from ~/.claude/CLAUDE.md:
+#   - Push Routing: default = feature branch + PR; override = user says "push to main"
+#   - PR Merge Follow-up: default = stop and wait for user; override = user says
+#     "ship it through" (bypass phrase), which Claude translates into
+#     MERGE_GATE_BYPASS=1 prefixing the command.
 #
-# This is a programmatic enforcement layer — Claude cannot bypass it.
-# Only the user can confirm the push via the prompt.
+# This is a programmatic enforcement layer — Claude cannot bypass it without
+# the env-var prefix, and the env-var prefix is gated by a specific user phrase.
 #
 # Location: ~/.claude/hooks/push-routing-gate.sh
 
 input=$(cat)
 command=$(echo "$input" | jq -r '.tool_input.command // ""')
 cwd=$(echo "$input" | jq -r '.cwd // ""')
+
+# --- gh pr merge gate ---
+# Catches: gh pr merge, gh pr merge <n>, gh pr merge --squash, etc.
+# Bypassed by: MERGE_GATE_BYPASS=1 gh pr merge ...
+# Claude adds the env-var prefix only when the user has said the bypass phrase
+# ("ship it through") for the current merge. Plain "ship it" / "merge it" does
+# NOT add the prefix and so still triggers the prompt below.
+if echo "$command" | grep -qE '\bgh\s+pr\s+merge\b'; then
+    if echo "$command" | grep -qE '\bMERGE_GATE_BYPASS=1\b'; then
+        # Explicit bypass present — allow silently.
+        exit 0
+    fi
+    jq -n '{
+        hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            permissionDecision: "ask",
+            permissionDecisionReason: "gh pr merge detected. PR Merge Follow-up protocol requires user confirmation. Only confirm if you explicitly approved this merge (\"ship it\" / \"merge it\"). To skip this prompt next time, use the bypass phrase \"ship it through\"."
+        }
+    }'
+    exit 0
+fi
 
 # Not a git push? Allow immediately.
 if ! echo "$command" | grep -qE '\bgit\s+push\b'; then
