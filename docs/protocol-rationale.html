@@ -805,8 +805,9 @@
             Before any <code>git push</code>, if the diff touches a
             strict-gate surface below, run <code>/security-review</code>
             first. Don&rsquo;t ask permission; just run it.
-            <strong>Block on HIGH</strong>; proceed-and-report on MEDIUM
-            or LOW.
+            <strong>Block on HIGH</strong> &mdash; report findings and
+            wait for the user&rsquo;s decision. <strong>Proceed-and-report</strong>
+            on MEDIUM or LOW.
           </p>
           <p>
             The gate is structured as a universal core plus per-ecosystem
@@ -1154,6 +1155,27 @@
               The override is the user&rsquo;s explicit <code>"ship
               it"</code> / <code>"good enough"</code>, not Claude&rsquo;s
               judgment.
+            </p>
+          </div>
+        </div>
+
+        <div class="why why-danger">
+          <div class="why-label">Carve-out for CLAUDE.md itself</div>
+          <div class="why-body">
+            <p>
+              Review findings on <code>CLAUDE.md</code> (this file, or
+              any project-level <code>CLAUDE.md</code>) are
+              <strong>not auto-fixable</strong>. The file is the
+              rulebook; each finding is a protocol amendment, not a
+              code fix. Discuss, decide, then apply or reject.
+            </p>
+            <p>
+              Mechanically re-running review-until-clean on the
+              rulebook is the wrong loop &mdash; it can silently reword
+              obligations and drift the protocol without deliberation.
+              When <code>/code-review</code> fires on a
+              <code>CLAUDE.md</code> change, treat the findings as
+              proposals for amendment, not as defects to fix.
             </p>
           </div>
         </div>

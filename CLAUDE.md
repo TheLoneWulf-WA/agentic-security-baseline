@@ -49,8 +49,9 @@ Common limits to surface:
 ### Strict Gate — run `/security-review` automatically
 
 Before any `git push`, if the diff touches a surface below, run
-`/security-review` first. Don't ask. **Block on HIGH; proceed-and-report
-on MEDIUM/LOW.** Use the security-review skill's own severity labels.
+`/security-review` first. Don't ask. **Block on HIGH — report findings
+and wait for the user's decision. Proceed-and-report on MEDIUM/LOW.**
+Use the security-review skill's own severity labels.
 
 Universal core + per-ecosystem extensions. Apply universal items on
 every project; ecosystem additions when the project belongs there.
@@ -152,6 +153,13 @@ to confirm it was downgraded or removed, not just reworded.
 
 **Override:** explicit `"ship it"` / `"good enough"` from the user is
 the only acceptable stop signal short of a clean pass.
+
+**Carve-out — `CLAUDE.md` itself:** review findings on `CLAUDE.md`
+(this file, or any project-level `CLAUDE.md`) are **not auto-fixable**.
+The file is the rulebook; each finding is a protocol amendment, not a
+code fix. Discuss, decide, then apply or reject. Mechanically re-running
+review-until-clean on the rulebook is the wrong loop — it can silently
+reword obligations and drift the protocol without deliberation.
 
 ### Review Output Format
 
