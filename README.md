@@ -8,17 +8,19 @@ This repo is the implementation of a small workflow protocol I put together for 
 
 I'm not a security professional. I'm fairly technical, I read a lot, I ship things across web and app dev. The system here is what someone slightly more careful than the average AI builder would do. It's not advanced. It's just deliberate.
 
-The full reasoning is in the companion article: ["You Can Just Do Things." But Maybe, Be Safe About It?](https://atmr.substack.com/p/you-can-just-do-things-but-maybe). The post explains the architecture and the trade-offs. This repo is the files.
+The full reasoning is in two companion articles: ["You Can Just Do Things." But Maybe, Be Safe About It?](https://atmr.substack.com/p/you-can-just-do-things-but-maybe) (the original) and [It Is "Next Time" Already](https://atmr.substack.com/p/it-is-next-time-already) (the update, after the TanStack supply-chain attack forced changes). The posts explain the architecture and the trade-offs. This repo is the files.
 
 ## What's in here
 
-- **`CLAUDE.md`** — A workflow protocol that loads into every Claude Code session. Defines when to run `/security-review` and `/code-review`, how pushes get routed, how dependency installs are gated, and how PR merges happen.
+- **`CLAUDE.md`** — A workflow protocol that loads into every Claude Code session. Defines when to run `/security-review` and `/code-review`, how pushes get routed, how dependency installs are gated, and how PR merges happen. Lean by design — see `docs/protocol-rationale.html` for the why behind each rule.
 - **`hooks/push-routing-gate.sh`** — A Claude Code PreToolUse hook. Fires on every `git push` Claude tries to run. If the push targets `main`, `master`, or `production`, it prompts for confirmation. Claude can't bypass it.
 - **`hooks/pre-push`** — A global git pre-push hook (configured via `core.hooksPath`). Runs on every push from the terminal regardless of whether Claude is involved. Runs `npm audit --audit-level=critical` and warns on changes to sensitive files.
 - **`settings.snippet.json`** — The Claude Code settings entry that wires the PreToolUse hook in.
 - **`install.sh`** — A shell script that places the files, substitutes paths, configures git, and sets npm config for supply chain protection (`ignore-scripts`, `min-release-age` when supported). Idempotent.
 - **`docs/INSTALL.md`** — Step-by-step install. Written so an agent can follow it, or you can.
 - **`docs/CUSTOMIZE.md`** — What to adapt for your stack: payment processor names, sensitive file patterns, branch names, etc.
+- **`tools/audit.sh`** — A read-only check for the Mini Shai-Hulud / TanStack-class worm: persistence daemon, tampered `.claude`/`.vscode` configs, affected packages in lockfiles, and npm defense status.
+- **`docs/protocol-rationale.html`** — Why each rule in `CLAUDE.md` exists, with diagrams (authority hierarchy, defense stack, review loop, push routing, merge-gate mechanic, dep-gate layers). Self-contained HTML, no build step. Open locally in a browser. The companion to `CLAUDE.md` — operating manual vs. reference.
 
 The install also configures `~/.npmrc` on your machine with two supply-chain protections:
 
@@ -51,6 +53,21 @@ Two ways:
 **Or run the script.** `./install.sh` does the same thing deterministically. Same result, less back-and-forth.
 
 `docs/INSTALL.md` has the full step-by-step if you want to see what's actually happening.
+
+## Check a machine for compromise
+
+If you've installed npm packages recently and want to know whether the Mini Shai-Hulud / TanStack-class worm got you:
+
+```bash
+bash tools/audit.sh            # scans your home directory
+bash tools/audit.sh ~/code     # or point it at a specific folder
+```
+
+It's **read-only** — it inspects and reports, never modifies, deletes, or revokes anything. It checks for the persistence daemon, dropped scripts, tampered `.claude/settings.json` and `.vscode/tasks.json`, affected packages in your lockfiles, and whether your npm install-time defenses are on.
+
+**If it finds the persistence daemon, do not revoke your GitHub tokens first.** The malware watches for revocation and runs `rm -rf ~/` when it sees it. Remove the daemon, then rotate. The script prints this warning inline.
+
+The known-package list is point-in-time; [Socket's writeup](https://socket.dev/blog/tanstack-npm-packages-compromised-mini-shai-hulud-supply-chain-attack) has the authoritative current list.
 
 ## Customize before relying on it
 

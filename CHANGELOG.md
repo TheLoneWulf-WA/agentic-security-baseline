@@ -2,6 +2,50 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-05-29
+
+Compressed `CLAUDE.md` and split the rationale into a new
+`docs/protocol-rationale.html`. The operating manual (`CLAUDE.md`,
+loaded into every Claude Code session) now carries only rules, exact
+strings, paths, env vars, and thresholds. The "why each rule exists"
+prose — with inline-SVG diagrams for the authority hierarchy, defense
+stack, review-until-clean loop, push routing flow, merge-gate bypass
+mechanic, and dependency-gate layers — moved to the rationale doc.
+
+Why the split: `CLAUDE.md` is a permanent context tax, loaded every
+session. Trimming rationale-bloat from it without losing the reasoning
+required somewhere to put the reasoning. The rationale doc is
+self-contained HTML with a sticky TOC (scroll-tracking active state
+via a small `IntersectionObserver`) and embedded SVGs — fetch it when
+you want the why, ignore it when you just want the rule.
+
+Result: `CLAUDE.md` 538 → 356 lines (~34% reduction). **No rule
+removed; no exact-string, path, env-var, threshold, or behavior
+changed.** Rules that already read tersely (Skip Clauses,
+`/code-review` on every PR) are unchanged.
+
+**Maintenance discipline:** when a rule changes in `CLAUDE.md`, update
+the matching section in `docs/protocol-rationale.html` in the same
+commit. The doc's footer carries the same note inline.
+
+Also: `README.md` updated to list the new doc under "What's in here"
+and to note that `CLAUDE.md` is lean by design.
+
+## 2026-05-20
+
+Added `tools/audit.sh` — a read-only machine check for the Mini
+Shai-Hulud / TanStack-class supply-chain worm. It checks for the
+gh-token-monitor persistence daemon (macOS LaunchAgent + Linux
+systemd), dropped scripts, IOC strings in `.claude/settings.json`
+and `.vscode/tasks.json`, affected package namespaces in lockfiles,
+and whether `ignore-scripts` / `min-release-age` are set. Read-only:
+it reports, it never modifies or revokes anything. Documented in the
+README under "Check a machine for compromise."
+
+The follow-up article covering the 2026-05-13 through 2026-05-18
+changes is live: "It Is 'Next Time' Already"
+(https://atmr.substack.com/p/it-is-next-time-already).
+
 ## 2026-05-18
 
 Added hook-enforced PR merge gate.
