@@ -2,6 +2,21 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-05-20
+
+Added `tools/audit.sh` — a read-only machine check for the Mini
+Shai-Hulud / TanStack-class supply-chain worm. It checks for the
+gh-token-monitor persistence daemon (macOS LaunchAgent + Linux
+systemd), dropped scripts, IOC strings in `.claude/settings.json`
+and `.vscode/tasks.json`, affected package namespaces in lockfiles,
+and whether `ignore-scripts` / `min-release-age` are set. Read-only:
+it reports, it never modifies or revokes anything. Documented in the
+README under "Check a machine for compromise."
+
+The follow-up article covering the 2026-05-13 through 2026-05-18
+changes is live: "It Is 'Next Time' Already"
+(https://atmr.substack.com/p/it-is-next-time-already).
+
 ## 2026-05-18
 
 Added hook-enforced PR merge gate.
