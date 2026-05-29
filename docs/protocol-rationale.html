@@ -546,6 +546,7 @@
       </li>
       <li><a href="#pre-push">Review Protocol</a>
         <ol>
+          <li><a href="#layer-0">Layer 0 &middot; security-guidance plugin</a></li>
           <li><a href="#strict-gate">Strict Gate</a></li>
           <li><a href="#reminder-gate">Reminder Gate</a></li>
           <li><a href="#skip-clauses">Skip Clauses</a></li>
@@ -794,6 +795,95 @@
           </g>
         </svg>
         <div class="diagram-caption">Figure 2.0 &middot; defense in depth &mdash; what catches what, in what order</div>
+      </div>
+
+      <!-- 2.0 LAYER 0 -->
+      <div class="rule" id="layer-0">
+        <span class="rule-label">Rule 2.0 &middot; out-of-band</span>
+        <h3>Layer 0 &mdash; <code>security-guidance</code> plugin</h3>
+        <div class="rule-body">
+          <p>
+            The <code>security-guidance@claude-plugins-official</code>
+            plugin (enable at user scope) is the earliest layer of the
+            review stack and runs automatically &mdash; nothing to
+            invoke. It fires three classes of check, each at a
+            different lifecycle point:
+          </p>
+          <ul>
+            <li>
+              <strong>Per-edit:</strong> deterministic pattern match on
+              every <code>Edit</code> / <code>Write</code> /
+              <code>NotebookEdit</code> &mdash; no model call, no token
+              cost. Custom patterns at
+              <code>~/.claude/security-patterns.json</code> (global),
+              <code>&lt;project&gt;/.claude/security-patterns.json</code>
+              (project), and
+              <code>&lt;project&gt;/.claude/security-patterns.local.json</code>
+              (gitignored, personal overrides on shared repos). JSON,
+              not YAML &mdash; the plugin doesn&rsquo;t install PyYAML.
+            </li>
+            <li>
+              <strong>End-of-turn + on-commit:</strong> fresh-context
+              model-backed reviews (a <em>separate</em> Claude call,
+              not self-grading) over the turn&rsquo;s diff and over
+              commits / pushes Claude makes via its Bash tool. Commits
+              run from the <code>!</code> shell escape <em>bypass</em>
+              this layer. Findings come back as in-session fix
+              instructions.
+            </li>
+            <li>
+              <strong>Threat-model guidance:</strong>
+              <code>~/.claude/claude-security-guidance.md</code>
+              (global) +
+              <code>&lt;project&gt;/.claude/claude-security-guidance.md</code>
+              (project) +
+              <code>&lt;project&gt;/.claude/claude-security-guidance.local.md</code>
+              (gitignored, personal overrides) feed the model-backed
+              reviewer alongside its built-in checklist.
+            </li>
+          </ul>
+          <p>
+            Default model: <strong>Claude Opus 4.7</strong>. Override
+            via <code>SECURITY_REVIEW_MODEL</code> (end-of-turn) and
+            <code>SG_AGENTIC_MODEL</code> (on-commit) in
+            <code>~/.claude/settings.json</code> if you want to bound
+            per-PR token spend with a smaller model.
+          </p>
+          <p>
+            <strong>Canonical docs:</strong>
+            <a href="https://code.claude.com/docs/en/security-guidance">https://code.claude.com/docs/en/security-guidance</a>
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              Out-of-band means it doesn&rsquo;t cost session context
+              tax. Its rule files don&rsquo;t load into your session;
+              the plugin reads them itself. It catches the cheap,
+              high-frequency stuff &mdash; secrets, unsafe DOM APIs,
+              <code>eval</code>, exported components, the IOC patterns
+              you teach it &mdash; while you&rsquo;re writing, so the
+              strict gate at push time only has to think about what
+              slipped past.
+            </p>
+            <p>
+              <strong>It does NOT replace the gates below.</strong>
+              Non-blocking, security-only, can miss things &mdash; it
+              <em>reduces</em> what reaches the gates; it does not
+              satisfy any of them. Strict Gate still blocks on HIGH;
+              <code>/code-review --comment</code> still runs on every
+              PR.
+            </p>
+            <p>
+              Plugin findings are <strong>not</strong> subject to the
+              "ignore platform auto-suggestions" rule from Session
+              Behavior &mdash; they&rsquo;re security findings, not
+              pattern-matched tech-stack suggestions. Treat them as
+              real signal, not noise.
+            </p>
+          </div>
+        </div>
       </div>
 
       <!-- 2.1 STRICT GATE -->
