@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agentic-security-baseline · protocol rationale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0b;
+    --bg-deep: #050505;
+    --bg-card: #131313;
+    --bg-card-warm: #161513;
+    --bg-code: #0a0a0a;
+    --border: #232323;
+    --border-light: #2a2a2a;
+    --border-accent: rgba(201, 184, 150, 0.40);
+    --border-danger: rgba(210, 103, 79, 0.45);
+    --text: #ededed;
+    --text-2: #a8a8a8;
+    --text-3: #6a6a6a;
+    --text-4: #4a4a4a;
+    --accent: #c9b896;
+    --danger: #d2674f;
+    --gold-soft: #b89a3e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse 1200px 800px at 15% 0%, #161616 0%, transparent 55%),
+      radial-gradient(ellipse 1000px 800px at 85% 100%, #131313 0%, transparent 50%),
+      var(--bg);
+    min-height: 100vh;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.05;
+    mix-blend-mode: screen;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* layout */
+  .shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 56px;
+  }
+
+  /* header */
+  .hero {
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+
+  .breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  .breadcrumb a {
+    color: var(--text-2);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 1px;
+  }
+
+  .breadcrumb a:hover { color: var(--accent); border-color: var(--accent); }
+
+  .hero h1 {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+
+  .hero h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+
+  .hero .subtitle {
+    font-size: 18px;
+    color: var(--text-2);
+    max-width: 720px;
+    line-height: 1.55;
+    margin-bottom: 24px;
+  }
+
+  .hero .meta {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hero .meta span { display: inline-flex; align-items: center; gap: 8px; }
+  .hero .meta i {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); display: inline-block;
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 32px;
+    align-self: start;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+
+  .toc-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc ol { list-style: none; padding: 0; counter-reset: toc; }
+  .toc > ol > li { counter-increment: toc; margin-bottom: 6px; }
+  .toc > ol > li > a {
+    display: block;
+    font-size: 13px;
+    color: var(--text-2);
+    text-decoration: none;
+    padding: 5px 0 5px 28px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .toc > ol > li > a::before {
+    content: counter(toc, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-4);
+    letter-spacing: 0.04em;
+  }
+  .toc > ol > li > a:hover { color: var(--accent); }
+  .toc > ol > li > a:hover::before { color: var(--accent); }
+
+  .toc ol ol { padding: 4px 0 4px 28px; }
+  .toc ol ol li { margin-bottom: 2px; }
+  .toc ol ol li a {
+    display: block;
+    font-size: 12px;
+    color: var(--text-3);
+    text-decoration: none;
+    padding: 3px 0;
+    line-height: 1.35;
+  }
+  .toc ol ol li a:hover { color: var(--text); }
+
+  /* active section/rule highlight as you scroll */
+  .toc a.active { color: var(--accent); }
+  .toc > ol > li > a.active::before { color: var(--accent); }
+  .toc > ol > li > a.in-section { color: var(--text-2); }
+  .toc > ol > li > a.in-section::before { color: var(--text-2); }
+  .toc ol ol li a.active {
+    color: var(--accent);
+    position: relative;
+  }
+  .toc ol ol li a.active::after {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+  }
+
+  /* main column */
+  main { min-width: 0; }
+
+  section {
+    margin-bottom: 96px;
+    scroll-margin-top: 32px;
+  }
+
+  .rule[id] { scroll-margin-top: 32px; }
+
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+
+  .section-blurb {
+    font-size: 16px;
+    color: var(--text-2);
+    max-width: 720px;
+    margin-bottom: 36px;
+    line-height: 1.6;
+  }
+
+  /* rule blocks */
+  .rule {
+    margin-bottom: 44px;
+    padding: 28px 30px 30px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    position: relative;
+  }
+
+  .rule.rule-accent { border-color: var(--border-accent); background: var(--bg-card-warm); }
+
+  .rule-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .rule.rule-accent .rule-label { color: var(--accent); }
+
+  .rule h3 {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 14px;
+    letter-spacing: -0.005em;
+  }
+
+  .rule-body {
+    font-size: 15px;
+    color: var(--text-2);
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+
+  .rule-body p { margin-bottom: 10px; }
+  .rule-body p:last-child { margin-bottom: 0; }
+
+  .rule-body code, .rule-body kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .rule-body ul, .rule-body ol {
+    margin: 12px 0 12px 20px;
+    color: var(--text-2);
+  }
+
+  .rule-body li { margin-bottom: 6px; line-height: 1.55; }
+
+  /* why callout */
+  .why {
+    margin-top: 18px;
+    padding: 18px 22px;
+    background: rgba(201, 184, 150, 0.04);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+  }
+
+  .why-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .why-body {
+    font-size: 14.5px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .why-body p { margin-bottom: 8px; }
+  .why-body p:last-child { margin-bottom: 0; }
+
+  .why-body code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--accent);
+  }
+
+  /* danger variant for callouts */
+  .why.why-danger {
+    background: rgba(210, 103, 79, 0.05);
+    border-left-color: var(--danger);
+  }
+  .why.why-danger .why-label { color: var(--danger); }
+
+  /* code blocks */
+  pre.code {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: #d4d4d4;
+    overflow-x: auto;
+    margin: 14px 0;
+    line-height: 1.6;
+  }
+
+  pre.code .c { color: var(--text-4); font-style: italic; }
+  pre.code .k { color: var(--accent); }
+  pre.code .s { color: #9ec597; }
+  pre.code .v { color: #d2a06b; }
+
+  /* surface list (Strict Gate items) */
+  .surfaces {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0;
+    border-top: 1px solid var(--border);
+  }
+  .surfaces li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 18px;
+    align-items: baseline;
+  }
+  .surfaces li:last-child { border-bottom: none; }
+  .surfaces .surface-name {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .surfaces .surface-name code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--accent);
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+  .surfaces .surface-why {
+    font-size: 13.5px;
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+
+  /* ecosystem header */
+  .eco-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin: 28px 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* diagram wrapper */
+  .diagram {
+    margin: 22px 0 8px;
+    padding: 24px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+
+  .diagram-caption {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* footer */
+  footer {
+    margin-top: 64px;
+    padding: 36px 0 0;
+    border-top: 1px solid var(--border);
+    font-size: 13.5px;
+    color: var(--text-3);
+    line-height: 1.65;
+  }
+
+  footer .foot-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+    margin-bottom: 28px;
+  }
+
+  footer .foot-grid h4 {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  footer .foot-grid p { margin-bottom: 10px; color: var(--text-2); }
+  footer .foot-grid ul { list-style: none; padding: 0; }
+  footer .foot-grid li { margin-bottom: 6px; }
+  footer .foot-grid a { color: var(--text-2); text-decoration: none; border-bottom: 1px solid var(--border-light); padding-bottom: 1px; }
+  footer .foot-grid a:hover { color: var(--accent); border-color: var(--accent); }
+
+  footer .colophon {
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--text-4);
+    text-transform: uppercase;
+  }
+
+  /* mobile */
+  @media (max-width: 920px) {
+    .shell { padding: 40px 20px 64px; }
+    .layout {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .toc {
+      position: static;
+      max-height: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 22px;
+    }
+    .hero h1 { font-size: 30px; }
+    .hero .subtitle { font-size: 16px; }
+    .rule { padding: 22px 20px; }
+    .surfaces li { grid-template-columns: 1fr; gap: 4px; }
+    .surfaces .surface-name { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="../README.md">← README</a> &nbsp;·&nbsp;
+      <a href="../CLAUDE.md">CLAUDE.md</a> &nbsp;·&nbsp;
+      <a href="../CHANGELOG.md">CHANGELOG</a> &nbsp;·&nbsp;
+      <a href="https://atmr.substack.com/p/you-can-just-do-things-but-maybe">Article 1</a> &nbsp;·&nbsp;
+      <a href="https://atmr.substack.com/p/it-is-next-time-already">Article 2</a>
+    </div>
+    <h1>Protocol rationale &mdash; <em>why each rule exists</em></h1>
+    <p class="subtitle">
+      <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--accent);background:var(--bg-code);border:1px solid var(--border);border-radius:3px;padding:1px 6px;">CLAUDE.md</code>
+      is the operating manual &mdash; what to do, exact strings, paths, thresholds.
+      This is the companion: why each rule is there, what it prevents, and how the layers
+      compose. Reach for it when you&rsquo;re wondering "wait, why do we do that?" before
+      changing or skipping a rule.
+    </p>
+    <div class="meta">
+      <span><i></i>Mirrors <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">CLAUDE.md</code></span>
+      <span><i></i>Self-contained &middot; no build step</span>
+      <span><i></i>Open locally or commit alongside the repo</span>
+    </div>
+  </div>
+
+  <div class="layout">
+
+  <!-- TOC -->
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-label">Contents</div>
+    <ol>
+      <li><a href="#session-behavior">Session Behavior</a>
+        <ol>
+          <li><a href="#supremacy">Project CLAUDE.md supremacy</a></li>
+          <li><a href="#capability-limits">State capability limits upfront</a></li>
+        </ol>
+      </li>
+      <li><a href="#pre-push">Pre-Push Review Protocol</a>
+        <ol>
+          <li><a href="#strict-gate">Strict Gate</a></li>
+          <li><a href="#reminder-gate">Reminder Gate</a></li>
+          <li><a href="#skip-clauses">Skip Clauses</a></li>
+          <li><a href="#code-review">/code-review on every PR</a></li>
+          <li><a href="#review-until-clean">Review-until-clean</a></li>
+          <li><a href="#review-output">Review output format</a></li>
+        </ol>
+      </li>
+      <li><a href="#push-routing">Push Routing</a>
+        <ol>
+          <li><a href="#routing-default">Default routing</a></li>
+          <li><a href="#routing-overrides">Explicit overrides</a></li>
+          <li><a href="#branch-naming">Branch naming</a></li>
+          <li><a href="#graceful-degradation">Graceful degradation</a></li>
+        </ol>
+      </li>
+      <li><a href="#pr-merge">PR Merge Follow-up</a>
+        <ol>
+          <li><a href="#merge-default">Default merge handling</a></li>
+          <li><a href="#merge-gate">Hook-enforced merge gate</a></li>
+        </ol>
+      </li>
+      <li><a href="#dep-gate">Dependency Installation Gate</a>
+        <ol>
+          <li><a href="#dep-1">1. Check the package</a></li>
+          <li><a href="#dep-2">2. Flag and stop</a></li>
+          <li><a href="#dep-3">3. Report before proceeding</a></li>
+          <li><a href="#dep-4">4. After any change</a></li>
+          <li><a href="#dep-5">5. Version pinning</a></li>
+          <li><a href="#dep-6">6. Lockfile drift (forensic)</a></li>
+          <li><a href="#dep-7">7. Disable install scripts</a></li>
+          <li><a href="#dep-8">8. Minimum release age</a></li>
+        </ol>
+      </li>
+      <li><a href="#media-gate">Media Pre-Commit Gate</a></li>
+      <li><a href="#git-hook">Global Pre-Push Git Hook</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ===================== SESSION BEHAVIOR ===================== -->
+    <section id="session-behavior">
+      <span class="section-num">Section 01</span>
+      <h2>Session Behavior</h2>
+      <p class="section-blurb">
+        How Claude reads competing signals and how it talks about what it
+        actually can and can&rsquo;t do. The two foundational rules below
+        shape everything else &mdash; the rest of the protocol assumes
+        Claude is reasoning from documented decisions and stating its
+        limits before bluffing.
+      </p>
+
+      <!-- 1.1 SUPREMACY -->
+      <div class="rule" id="supremacy">
+        <span class="rule-label">Rule 1.1</span>
+        <h3>Project <code>CLAUDE.md</code> supremacy over platform auto-suggestions</h3>
+        <div class="rule-body">
+          <p>
+            When a platform plugin or hook (Vercel plugin, framework
+            skill, tool-validation hook, etc.) auto-injects a suggestion
+            that conflicts with a deliberate, documented decision in the
+            project&rsquo;s <code>CLAUDE.md</code>, <strong>silently
+            ignore it</strong>. Don&rsquo;t surface it, don&rsquo;t
+            reason through it, don&rsquo;t suggest the migration.
+          </p>
+          <p>
+            <strong>Scope.</strong> Architectural and tech-stack choices
+            only. This rule does <em>not</em> override safety rules
+            (Pre-Push Review, Dependency Gate, Push Routing, Merge Gate).
+            Those apply uniformly regardless of project context.
+          </p>
+        </div>
+
+        <div class="diagram">
+          <!-- authority hierarchy SVG -->
+          <svg viewBox="0 0 760 280" width="100%" style="display:block" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#c9b896" stop-opacity="0.15"/>
+                <stop offset="1" stop-color="#c9b896" stop-opacity="0.02"/>
+              </linearGradient>
+            </defs>
+            <!-- top tier: user in chat -->
+            <rect x="80" y="20" width="600" height="60" rx="8" fill="url(#userGrad)" stroke="#c9b896" stroke-opacity="0.5"/>
+            <text x="100" y="44" font-family="JetBrains Mono, monospace" font-size="10" fill="#c9b896" letter-spacing="2">HIGHEST AUTHORITY</text>
+            <text x="100" y="65" font-family="Inter, sans-serif" font-size="15" fill="#ededed" font-weight="600">User (in chat)</text>
+            <text x="660" y="65" text-anchor="end" font-family="Inter, sans-serif" font-size="13" fill="#a8a8a8" font-style="italic">explicit, in-the-moment</text>
+            <!-- arrow 1 -->
+            <line x1="380" y1="86" x2="380" y2="114" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="380,118 376,110 384,110" fill="#4a4a4a"/>
+            <!-- mid tier: project claude.md -->
+            <rect x="80" y="120" width="600" height="60" rx="8" fill="#131313" stroke="#2a2a2a"/>
+            <text x="100" y="144" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a6a6a" letter-spacing="2">DELIBERATE, DOCUMENTED</text>
+            <text x="100" y="165" font-family="Inter, sans-serif" font-size="15" fill="#ededed" font-weight="600">Project CLAUDE.md</text>
+            <text x="660" y="165" text-anchor="end" font-family="Inter, sans-serif" font-size="13" fill="#a8a8a8" font-style="italic">durable, context-rich</text>
+            <!-- arrow 2 -->
+            <line x1="380" y1="186" x2="380" y2="214" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="380,218 376,210 384,210" fill="#4a4a4a"/>
+            <!-- bottom tier: plugins -->
+            <rect x="80" y="220" width="600" height="50" rx="8" fill="#0e0e0e" stroke="#232323"/>
+            <text x="100" y="240" font-family="JetBrains Mono, monospace" font-size="10" fill="#4a4a4a" letter-spacing="2">PATTERN-MATCHED, CONTEXT-FREE</text>
+            <text x="100" y="259" font-family="Inter, sans-serif" font-size="14" fill="#8a8a8a" font-weight="500">Platform plugins &middot; hooks &middot; skills</text>
+            <text x="660" y="259" text-anchor="end" font-family="Inter, sans-serif" font-size="12.5" fill="#6a6a6a" font-style="italic">guesses, no business context</text>
+          </svg>
+          <div class="diagram-caption">Figure 1.1 &middot; authority hierarchy &mdash; what outranks what</div>
+        </div>
+
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              A plugin pattern-matching on <code>pages/</code> can&rsquo;t
+              know <em>why</em> the project is on Next.js Pages Router and
+              not App Router. The reason might be inherited codebase,
+              migration cost, a third-party SDK that doesn&rsquo;t support
+              App Router yet, team familiarity, or a deadline. The
+              project&rsquo;s <code>CLAUDE.md</code> captures that
+              context; the plugin&rsquo;s auto-suggestion is a guess from
+              a system that can&rsquo;t see any of it.
+            </p>
+            <p>
+              The scope carve-out matters. Tech-stack opinions are
+              user-by-user judgment calls. Safety rules (no force push to
+              main, run the security review, gate the install) are not
+              &mdash; they apply uniformly because the cost of skipping
+              them is catastrophic and the cost of running them is small.
+              A plugin shouldn&rsquo;t override your stack choice, but
+              your stack choice shouldn&rsquo;t override a safety rule
+              either.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1.2 CAPABILITY LIMITS -->
+      <div class="rule" id="capability-limits">
+        <span class="rule-label">Rule 1.2</span>
+        <h3>State capability limits upfront</h3>
+        <div class="rule-body">
+          <p>
+            Before engaging with a request that may be outside actual
+            capabilities, <strong>say what can and can&rsquo;t be done
+            first</strong>, then proceed with what can. Don&rsquo;t bury
+            the limit at the end. Don&rsquo;t skip it.
+          </p>
+          <p>Common limits worth surfacing immediately:</p>
+          <ul>
+            <li>Can&rsquo;t watch video &mdash; metadata and stills only.</li>
+            <li>Can&rsquo;t hear audio.</li>
+            <li>Can&rsquo;t render RAW image formats (<code>.dng</code>,
+              <code>.cr2</code>, <code>.arw</code>) without conversion.</li>
+            <li>Can&rsquo;t evaluate subjective "feel" without a concrete
+              artifact (screenshot, example).</li>
+            <li>Can&rsquo;t evaluate real-time behavior without a dev
+              server plus a browser automation tool.</li>
+          </ul>
+        </div>
+
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              Bluffing is the failure mode. An AI guessing at work outside
+              its capabilities produces confident-sounding answers that
+              may be entirely fabricated. The user can&rsquo;t correct for
+              false confidence they don&rsquo;t know is false. Surfacing
+              the limit before working means the user knows what
+              they&rsquo;re actually getting.
+            </p>
+            <p>
+              Honesty before work, not during it. A mid-response
+              "actually, I can&rsquo;t do this part" is much worse than
+              a one-line upfront "here&rsquo;s what I can and can&rsquo;t
+              do, want to proceed?"
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PRE-PUSH ===================== -->
+    <section id="pre-push">
+      <span class="section-num">Section 02</span>
+      <h2>Pre-Push Review Protocol</h2>
+      <p class="section-blurb">
+        A layered review stack that runs before code reaches a PR or
+        production. No single layer catches everything; each catches
+        what the next can&rsquo;t. The strict gate blocks; the reminder
+        gate flags; <code>/code-review</code> runs on every PR; and
+        review-until-clean ensures a fix doesn&rsquo;t silently
+        introduce its own bugs.
+      </p>
+
+      <div class="diagram">
+        <!-- defense in depth diagram -->
+        <svg viewBox="0 0 980 240" width="100%" style="display:block">
+          <!-- timeline -->
+          <line x1="60" y1="200" x2="920" y2="200" stroke="#2a2a2a" stroke-width="1"/>
+          <!-- markers -->
+          <circle cx="160" cy="200" r="4" fill="#c9b896"/>
+          <circle cx="400" cy="200" r="4" fill="#c9b896"/>
+          <circle cx="640" cy="200" r="4" fill="#c9b896"/>
+          <circle cx="860" cy="200" r="4" fill="#c9b896"/>
+          <!-- labels under markers -->
+          <text x="160" y="222" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a6a6a" letter-spacing="1.5">EACH EDIT</text>
+          <text x="400" y="222" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a6a6a" letter-spacing="1.5">BEFORE PUSH</text>
+          <text x="640" y="222" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a6a6a" letter-spacing="1.5">ON PR</text>
+          <text x="860" y="222" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a6a6a" letter-spacing="1.5">AFTER FIX</text>
+          <!-- cards -->
+          <g>
+            <rect x="60" y="40" width="200" height="130" rx="8" fill="#131313" stroke="#2a2a2a"/>
+            <text x="78" y="62" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#6a6a6a" letter-spacing="1.5">LAYER A</text>
+            <text x="78" y="83" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">Plugin /</text>
+            <text x="78" y="99" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">in-session</text>
+            <text x="78" y="124" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Pattern match +</text>
+            <text x="78" y="139" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">fresh-context review</text>
+            <text x="78" y="155" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">on every edit/turn.</text>
+          </g>
+          <g>
+            <rect x="300" y="40" width="200" height="130" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.5"/>
+            <text x="318" y="62" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#c9b896" letter-spacing="1.5">LAYER B</text>
+            <text x="318" y="83" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">Strict gate</text>
+            <text x="318" y="99" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">/security-review</text>
+            <text x="318" y="124" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Blocks push on HIGH;</text>
+            <text x="318" y="139" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">reports MED/LOW.</text>
+            <text x="318" y="155" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Auto-run on triggers.</text>
+          </g>
+          <g>
+            <rect x="540" y="40" width="200" height="130" rx="8" fill="#131313" stroke="#2a2a2a"/>
+            <text x="558" y="62" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#6a6a6a" letter-spacing="1.5">LAYER C</text>
+            <text x="558" y="83" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">/code-review</text>
+            <text x="558" y="99" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">--comment</text>
+            <text x="558" y="124" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Correctness, style,</text>
+            <text x="558" y="139" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">type loosening,</text>
+            <text x="558" y="155" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">project conventions.</text>
+          </g>
+          <g>
+            <rect x="780" y="40" width="160" height="130" rx="8" fill="#131313" stroke="#2a2a2a"/>
+            <text x="798" y="62" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#6a6a6a" letter-spacing="1.5">LAYER D</text>
+            <text x="798" y="83" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">Review</text>
+            <text x="798" y="99" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">until clean</text>
+            <text x="798" y="124" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Re-run after each</text>
+            <text x="798" y="139" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">fix. A fix is not</text>
+            <text x="798" y="155" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">a verified fix.</text>
+          </g>
+        </svg>
+        <div class="diagram-caption">Figure 2.0 &middot; defense in depth &mdash; what catches what, in what order</div>
+      </div>
+
+      <!-- 2.1 STRICT GATE -->
+      <div class="rule rule-accent" id="strict-gate">
+        <span class="rule-label">Rule 2.1 &middot; blocking</span>
+        <h3>Strict Gate &mdash; run <code>/security-review</code> automatically</h3>
+        <div class="rule-body">
+          <p>
+            Before any <code>git push</code>, if the diff touches a
+            strict-gate surface below, run <code>/security-review</code>
+            first. Don&rsquo;t ask permission; just run it.
+            <strong>Block on HIGH</strong>; proceed-and-report on MEDIUM
+            or LOW.
+          </p>
+          <p>
+            The gate is structured as a universal core plus per-ecosystem
+            extensions. New ecosystems (Solana mobile, embedded firmware,
+            etc.) get their own sub-section as work expands rather than
+            forcing one flat list.
+          </p>
+
+          <div class="eco-header">Universal &middot; any project</div>
+          <ul class="surfaces">
+            <li>
+              <div class="surface-name">Payment processing</div>
+              <div class="surface-why">Money flows are zero-tolerance. A subtle bug here is a refund line item or a regulator letter, not a typo.</div>
+            </li>
+            <li>
+              <div class="surface-name">Auth / session / JWT / token logic</div>
+              <div class="surface-why">Auth bugs are blast-radius bugs. A weakened check on one route can compromise every protected route.</div>
+            </li>
+            <li>
+              <div class="surface-name">Env vars, secrets, config files</div>
+              <div class="surface-why">A secret in the wrong place &mdash; logs, errors, client bundle, a committed <code>.env</code> &mdash; is exfiltration. Cleanup after the fact rarely cleans up everywhere.</div>
+            </li>
+            <li>
+              <div class="surface-name">API endpoints accepting user input</div>
+              <div class="surface-why">Every endpoint is an attack surface until proven otherwise. Inputs need validation, size caps, and shape checks at the boundary.</div>
+            </li>
+          </ul>
+
+          <div class="eco-header">Web-specific additions</div>
+          <ul class="surfaces">
+            <li>
+              <div class="surface-name">Database RLS policies &middot; Supabase service role</div>
+              <div class="surface-why">RLS is the only thing standing between one user and another&rsquo;s data. A policy change without review is a class-wide breach risk.</div>
+            </li>
+            <li>
+              <div class="surface-name">CORS configuration &middot; allowed origins</div>
+              <div class="surface-why">A wildcard or accidental subdomain inclusion opens the API to anyone&rsquo;s frontend.</div>
+            </li>
+            <li>
+              <div class="surface-name">Redirect URLs &middot; OAuth callbacks &middot; payment callbacks</div>
+              <div class="surface-why">Misconfigured redirects are how token theft happens. The callback URL is part of the trust boundary.</div>
+            </li>
+            <li>
+              <div class="surface-name">Next.js middleware &middot; route protection</div>
+              <div class="surface-why">Middleware runs before route handlers. A bypass here bypasses every downstream check.</div>
+            </li>
+            <li>
+              <div class="surface-name">Third-party scripts &middot; iframes &middot; remote embeds</div>
+              <div class="surface-why">External code runs with your origin&rsquo;s permissions. CSP and integrity matter here.</div>
+            </li>
+          </ul>
+
+          <div class="eco-header">Android-specific additions</div>
+          <ul class="surfaces">
+            <li>
+              <div class="surface-name">User-media decode paths<br><code>BitmapFactory</code>, <code>MediaCodec</code>, <code>ContentResolver</code>/SAF</div>
+              <div class="surface-why">Malformed-input class: crashes, bitmap OOM, MIME confusion. Permissions are the door; capture code is the room.</div>
+            </li>
+            <li>
+              <div class="surface-name">JNI / native-lib boundaries</div>
+              <div class="surface-why">Memory-corruption surface. Buffer-length and ownership errors crossing the JNI boundary are full-process compromise.</div>
+            </li>
+            <li>
+              <div class="surface-name"><code>android:allowBackup</code>, <code>dataExtractionRules</code></div>
+              <div class="surface-why">Controls OS-level data exfiltration. One wrong attribute and <code>.env</code>-equivalent state is backed up to Google Drive.</div>
+            </li>
+            <li>
+              <div class="surface-name">Exported components<br><code>android:exported="true"</code></div>
+              <div class="surface-why">Especially with <code>&lt;data&gt;</code> filters &mdash; any other app on the device can call in. Validate every inbound extra and URI.</div>
+            </li>
+            <li>
+              <div class="surface-name">WebView / JS&harr;Kotlin bridges<br><code>addJavascriptInterface</code></div>
+              <div class="surface-why">XSS in WebView plus a JS-to-native escape is full app compromise. Custom <code>WebViewClient</code>/<code>WebChromeClient</code> overrides touching data flows count.</div>
+            </li>
+            <li>
+              <div class="surface-name">External text &rarr; LLM prompt</div>
+              <div class="surface-why">Any string from disk, network, share intent, deep link, or user input that lands in an LLM context is prompt-injection surface.</div>
+            </li>
+            <li>
+              <div class="surface-name">Network Security Config / <code>usesCleartextTraffic</code></div>
+              <div class="surface-why">Credential exposure. Prefer scoped exception domains over a global allow.</div>
+            </li>
+            <li>
+              <div class="surface-name">Crypto / <code>KeyStore</code></div>
+              <div class="surface-why">Authenticated encryption choice (GCM vs bare CBC), IV choice, key generation/storage. Hand-rolled crypto is almost always wrong.</div>
+            </li>
+          </ul>
+
+          <div class="eco-header">iOS-specific additions</div>
+          <ul class="surfaces">
+            <li>
+              <div class="surface-name">User-media decode<br><code>AVCaptureSession</code>, <code>UIImagePickerController</code>, <code>PHPickerViewController</code>, <code>CGImageSource</code>, <code>AVAudioRecorder</code></div>
+              <div class="surface-why">Same malformed-input / OOM / format-confusion class as Android. Decode defensively, cap size before allocation.</div>
+            </li>
+            <li>
+              <div class="surface-name">Native &harr; JS bridges<br><code>WKScriptMessageHandler</code>, <code>JSContext</code>/<code>JSExport</code>, RN/Expo native modules</div>
+              <div class="surface-why">Analog of Android&rsquo;s <code>addJavascriptInterface</code>. Validate everything crossing in.</div>
+            </li>
+            <li>
+              <div class="surface-name">Backup / iCloud exclusion<br><code>NSFileProtectionComplete</code>, <code>excludedFromBackup</code>, CloudKit config</div>
+              <div class="surface-why">Wrong attribute backs sensitive data to iCloud where it&rsquo;s out of your control.</div>
+            </li>
+            <li>
+              <div class="surface-name">URL schemes / Universal Links / extensions<br><code>application(_:open:)</code>, <code>continue userActivity</code></div>
+              <div class="surface-why">Inbound URLs and share-extension <code>NSItemProvider</code> items are classic external attack surfaces.</div>
+            </li>
+            <li>
+              <div class="surface-name">Entitlements (<code>*.entitlements</code>)</div>
+              <div class="surface-why">New entitlements grant capabilities (keychain group, app group, push, background modes) that can become exfiltration surfaces.</div>
+            </li>
+            <li>
+              <div class="surface-name">App Transport Security exceptions<br><code>NSAppTransportSecurity</code>, <code>NSAllowsArbitraryLoads</code></div>
+              <div class="surface-why">iOS equivalent of Android cleartext config. Prefer scoped exception domains.</div>
+            </li>
+            <li>
+              <div class="surface-name">Crypto / Keychain<br><code>SecKey*</code>, <code>CryptoKit</code>, <code>CommonCrypto</code>, Secure Enclave</div>
+              <div class="surface-why">Same authenticated-encryption + IV + key-storage rules as Android.</div>
+            </li>
+            <li>
+              <div class="surface-name">External text &rarr; LLM prompt (on-device or cloud)</div>
+              <div class="surface-why">Core ML, MLX, or cloud &mdash; any string from disk, URL scheme, <code>NSItemProvider</code>, share extension or user input injected into an LLM context is prompt-injection surface.</div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              Sensitive surfaces have asymmetric blast radius. A subtle
+              slip in auth, payments, secrets, exported components, or
+              capture paths becomes a class-wide breach, not a single
+              bug. The cost of a 2-minute automated review is much less
+              than the cost of the bug, every time.
+            </p>
+            <p>
+              The universal-core-plus-extension structure scales without
+              rewrites. New ecosystems (iOS shipping in 2026, Solana
+              mobile shortly after) add their own sub-section instead of
+              forcing one giant flat list that&rsquo;s 80% irrelevant per
+              project.
+            </p>
+            <p>
+              <strong>Blocking on HIGH only</strong> &mdash; not on MED or
+              LOW &mdash; because the gate has to be useful, not noisy.
+              MED/LOW report-and-proceed means the user sees the finding
+              without being stopped for things that are usually safe.
+              Push-gate caching (don&rsquo;t re-run on the same branch
+              unless new commits touch a new strict surface) keeps the
+              cost reasonable on iterative push cycles.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2.2 REMINDER GATE -->
+      <div class="rule" id="reminder-gate">
+        <span class="rule-label">Rule 2.2 &middot; flag, don&rsquo;t auto-run</span>
+        <h3>Reminder Gate</h3>
+        <div class="rule-body">
+          <p>
+            For borderline surfaces, remind the user to consider running
+            <code>/security-review</code> before pushing. Don&rsquo;t
+            auto-run.
+          </p>
+          <div class="eco-header">Universal</div>
+          <ul class="surfaces">
+            <li><div class="surface-name">File uploads &middot; media handling</div><div class="surface-why">Often safe; sometimes a path-traversal or upload-as-script vector.</div></li>
+            <li><div class="surface-name">Route changes &middot; deep links</div><div class="surface-why">New external surfaces appear silently; worth a beat.</div></li>
+            <li><div class="surface-name">Native bridges &middot; webview communication</div><div class="surface-why">Bridge changes can re-shape the trust boundary.</div></li>
+            <li><div class="surface-name">Database schema changes</div><div class="surface-why">Mostly mechanical, occasionally policy-affecting.</div></li>
+          </ul>
+          <div class="eco-header">Android-specific additions</div>
+          <ul class="surfaces">
+            <li><div class="surface-name"><code>targetSdkVersion</code> bumps</div><div class="surface-why">Shifts defaults &mdash; scoped storage, default-allowBackup, default-exported, runtime permissions. Policy change worth attention.</div></li>
+            <li><div class="surface-name">Release signing / ProGuard / R8 config</div><div class="surface-why">Misconfigured rules can leak debug code into release or skip obfuscation on sensitive classes.</div></li>
+            <li><div class="surface-name">Plain <code>SharedPreferences</code> for sensitive data</div><div class="surface-why">Should be <code>EncryptedSharedPreferences</code>; context-dependent, nudge rather than block.</div></li>
+          </ul>
+          <div class="eco-header">iOS-specific additions</div>
+          <ul class="surfaces">
+            <li><div class="surface-name">Deployment target bumps</div><div class="surface-why">Changes default privacy UX, scoped storage rules, API behavior. Policy shift.</div></li>
+            <li><div class="surface-name">Release-build hardening config</div><div class="surface-why">Strip Debug Symbols, optimization level, dead-code stripping. Misconfigured builds leak debug paths.</div></li>
+            <li><div class="surface-name">Plain <code>UserDefaults</code> for sensitive data</div><div class="surface-why">Should be Keychain Services; nudge rather than block.</div></li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Some surfaces are worth thinking about but not always a hard
+            block. Running <code>/security-review</code> on every schema
+            bump or SDK bump is overkill and trains the user to mute the
+            review. Nudging once, then trusting the user&rsquo;s judgment,
+            keeps the signal high.
+          </div>
+        </div>
+      </div>
+
+      <!-- 2.3 SKIP CLAUSES -->
+      <div class="rule" id="skip-clauses">
+        <span class="rule-label">Rule 2.3 &middot; user override</span>
+        <h3>Skip Clauses</h3>
+        <div class="rule-body">
+          <p>
+            If the user says <code>"skip review"</code>, <code>"just
+            push"</code>, or <code>"no review needed"</code>, bypass the
+            strict gate for that one push. <strong>Don&rsquo;t ask for
+            confirmation. Trust the override.</strong>
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Override should be friction-free when the user knows what
+            they&rsquo;re doing. Asking "are you sure?" after the user
+            said "skip review" is anti-helpful &mdash; it trains the
+            user to ignore the prompt, which weakens every future prompt.
+            The skip is per-push, not per-session, so the cost of being
+            wrong is bounded.
+          </div>
+        </div>
+      </div>
+
+      <!-- 2.4 CODE-REVIEW -->
+      <div class="rule" id="code-review">
+        <span class="rule-label">Rule 2.4 &middot; on every PR</span>
+        <h3>Always &mdash; <code>/code-review --comment</code> on every PR</h3>
+        <div class="rule-body">
+          <p>
+            Before requesting human review on any PR, run
+            <code>/code-review --comment</code>.
+          </p>
+          <p>In addition to what <code>/code-review</code> already checks, also flag:</p>
+          <ul>
+            <li><code>any</code> types, <code>@ts-ignore</code>, loosened TypeScript strictness</li>
+            <li>Empty catch blocks, swallowed errors, generic error handling that hides failures</li>
+            <li><code>console.log</code>, commented-out code, TODO hacks, hardcoded test values</li>
+            <li>Performance issues: unoptimized queries, missing indexes, client-side fetching that should be server-side, unnecessary re-renders</li>
+            <li>Violations of project-level <code>CLAUDE.md</code> conventions</li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Free signal vs. requiring teammates to flag <code>console.log</code>s
+            by hand. The point of automated review is to let humans
+            review what only humans can &mdash; product judgment,
+            architectural fit, "does this actually solve the
+            problem" &mdash; instead of nitpicking style. Posting as a
+            PR comment makes the findings durable so the next session can
+            read them.
+          </div>
+        </div>
+      </div>
+
+      <!-- 2.5 REVIEW UNTIL CLEAN -->
+      <div class="rule rule-accent" id="review-until-clean">
+        <span class="rule-label">Rule 2.5 &middot; mandatory loop</span>
+        <h3>Review-until-clean &mdash; do NOT assume a fix worked</h3>
+        <div class="rule-body">
+          <p>
+            Applies to <code>/security-review</code>,
+            <code>/code-review</code>, and any ad-hoc review-agent
+            invocation. After applying a fix, <strong>re-run the
+            review on the updated code</strong>. A passing TypeScript
+            check is not a verified fix.
+          </p>
+          <p><strong>The loop:</strong></p>
+          <ol>
+            <li>Run the review</li>
+            <li>Apply fixes for any findings</li>
+            <li>Commit + push the fixes</li>
+            <li><strong>Re-run the same review on the new state</strong></li>
+            <li>If new findings &mdash; repeat from step 2</li>
+            <li>Stop only when a pass returns "no issues found"</li>
+          </ol>
+        </div>
+
+        <div class="diagram">
+          <!-- review-until-clean loop SVG -->
+          <svg viewBox="0 0 760 280" width="100%" style="display:block">
+            <!-- nodes -->
+            <g>
+              <rect x="50" y="100" width="140" height="80" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.5"/>
+              <text x="120" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#c9b896" letter-spacing="1.5">STEP 1</text>
+              <text x="120" y="151" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" fill="#ededed" font-weight="600">Run review</text>
+              <text x="120" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" fill="#8a8a8a">on current state</text>
+            </g>
+            <!-- arrow -->
+            <line x1="190" y1="140" x2="225" y2="140" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="230,140 222,136 222,144" fill="#4a4a4a"/>
+            <!-- decision -->
+            <g>
+              <polygon points="305,100 380,140 305,180 230,140" fill="#131313" stroke="#2a2a2a"/>
+              <text x="305" y="135" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#6a6a6a" letter-spacing="1.5">FINDINGS?</text>
+              <text x="305" y="153" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#a8a8a8">yes / no</text>
+            </g>
+            <!-- branch: yes goes down to fix-and-commit -->
+            <line x1="305" y1="180" x2="305" y2="222" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="305,228 301,220 309,220" fill="#4a4a4a"/>
+            <text x="316" y="208" font-family="JetBrains Mono, monospace" font-size="10" fill="#c9b896" letter-spacing="1.5">YES</text>
+            <!-- fix-and-commit -->
+            <g>
+              <rect x="230" y="228" width="150" height="44" rx="6" fill="#131313" stroke="#2a2a2a"/>
+              <text x="305" y="248" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" fill="#ededed" font-weight="500">Apply fix</text>
+              <text x="305" y="263" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" fill="#8a8a8a">commit + push</text>
+            </g>
+            <!-- loop arrow back up to step 1 -->
+            <path d="M 230 250 Q 90 250 90 180" fill="none" stroke="#c9b896" stroke-opacity="0.55" stroke-width="1.5"/>
+            <polygon points="86,180 90,170 94,180" fill="#c9b896" fill-opacity="0.75"/>
+            <text x="105" y="246" font-family="JetBrains Mono, monospace" font-size="10" fill="#c9b896" letter-spacing="1.5">LOOP</text>
+            <!-- branch: no goes right to stop -->
+            <line x1="380" y1="140" x2="540" y2="140" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="546,140 538,136 538,144" fill="#4a4a4a"/>
+            <text x="460" y="130" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a6a6a" letter-spacing="1.5">NO</text>
+            <!-- stop -->
+            <g>
+              <rect x="540" y="100" width="170" height="80" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.55"/>
+              <text x="625" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#c9b896" letter-spacing="1.5">DONE</text>
+              <text x="625" y="151" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" fill="#ededed" font-weight="600">Stop</text>
+              <text x="625" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">a clean pass &mdash; the bar</text>
+            </g>
+          </svg>
+          <div class="diagram-caption">Figure 2.5 &middot; review-until-clean loop &mdash; the only exit is a clean pass</div>
+        </div>
+
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              The failure mode is stopping after pass 1 because the fix
+              "looks obvious." It often isn&rsquo;t. A fix can introduce
+              its own bugs. The reviewer&rsquo;s fresh context on the
+              updated code surfaces things the original pass missed,
+              including issues in related files the fix touched
+              implicitly.
+            </p>
+            <p>
+              <strong>For security findings the bar is higher:</strong>
+              checking the severity-review label after the fix confirms
+              the finding was downgraded or removed, not just reworded.
+              A re-run that comes back with the same finding at the same
+              severity is not a fix.
+            </p>
+            <p>
+              The override is the user&rsquo;s explicit <code>"ship
+              it"</code> / <code>"good enough"</code>, not Claude&rsquo;s
+              judgment.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2.6 OUTPUT FORMAT -->
+      <div class="rule" id="review-output">
+        <span class="rule-label">Rule 2.6 &middot; reporting</span>
+        <h3>Review output format</h3>
+        <div class="rule-body">
+          <p>
+            <strong>Inline:</strong> short summary, one screen max
+            &mdash; finding count by severity, top 3 issues, recommended
+            action.
+          </p>
+          <p>
+            <strong>Full report:</strong> saved to
+            <code>~/.claude/reports/&lt;project-name&gt;/security-review-&lt;branch&gt;-&lt;date&gt;.md</code>
+            for later inspection. Same pattern for code-review output.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Reduces visible noise in the session while persisting the
+            detail. Inline summary is what the user needs to decide; the
+            full report is what they need later when investigating
+            something that landed.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PUSH ROUTING ===================== -->
+    <section id="push-routing">
+      <span class="section-num">Section 03</span>
+      <h2>Push Routing</h2>
+      <p class="section-blurb">
+        How an unqualified "push this" gets routed. The default is
+        strict &mdash; feature branch + PR + review + wait for ship-it
+        &mdash; uniformly across every project, with explicit overrides
+        for the hotfix case. There is no project class that gets less
+        protection.
+      </p>
+
+      <!-- 3.0 DEFAULT -->
+      <div class="rule rule-accent" id="routing-default">
+        <span class="rule-label">Rule 3.0 &middot; default flow</span>
+        <h3>Unqualified push &rarr; feature branch + PR + wait</h3>
+        <div class="rule-body">
+          <p>
+            When the user says <code>"push this"</code>, <code>"push
+            it"</code>, <code>"make a push"</code>, or any push command
+            without specifying a target:
+          </p>
+          <ol>
+            <li>Create a new feature branch from the current branch</li>
+            <li>Push the branch to origin</li>
+            <li>Open a PR via <code>gh pr create</code></li>
+            <li>Run <code>/code-review --comment</code> on the PR</li>
+            <li>Stop and prompt the user to merge</li>
+          </ol>
+          <p>The strict gate runs before the push, exactly as specified in Rule 2.1.</p>
+        </div>
+
+        <div class="diagram">
+          <!-- push routing flow -->
+          <svg viewBox="0 0 920 200" width="100%" style="display:block">
+            <!-- trigger -->
+            <g>
+              <rect x="20" y="70" width="150" height="60" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.5"/>
+              <text x="95" y="94" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#c9b896" letter-spacing="1.5">USER</text>
+              <text x="95" y="113" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" fill="#ededed" font-weight="500">"push this"</text>
+            </g>
+            <!-- arrow -->
+            <line x1="170" y1="100" x2="195" y2="100" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="200,100 192,96 192,104" fill="#4a4a4a"/>
+            <!-- step 1 branch -->
+            <g>
+              <rect x="200" y="70" width="120" height="60" rx="8" fill="#131313" stroke="#2a2a2a"/>
+              <text x="260" y="92" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#6a6a6a" letter-spacing="1.5">1</text>
+              <text x="260" y="111" text-anchor="middle" font-family="Inter, sans-serif" font-size="12.5" fill="#ededed">Create branch</text>
+              <text x="260" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#8a8a8a">claude/&lt;slug&gt;</text>
+            </g>
+            <line x1="320" y1="100" x2="345" y2="100" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="350,100 342,96 342,104" fill="#4a4a4a"/>
+            <!-- step 2 push -->
+            <g>
+              <rect x="350" y="70" width="120" height="60" rx="8" fill="#131313" stroke="#2a2a2a"/>
+              <text x="410" y="92" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#6a6a6a" letter-spacing="1.5">2</text>
+              <text x="410" y="111" text-anchor="middle" font-family="Inter, sans-serif" font-size="12.5" fill="#ededed">Push branch</text>
+              <text x="410" y="124" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" fill="#8a8a8a">to origin</text>
+            </g>
+            <line x1="470" y1="100" x2="495" y2="100" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="500,100 492,96 492,104" fill="#4a4a4a"/>
+            <!-- step 3 pr -->
+            <g>
+              <rect x="500" y="70" width="120" height="60" rx="8" fill="#131313" stroke="#2a2a2a"/>
+              <text x="560" y="92" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#6a6a6a" letter-spacing="1.5">3</text>
+              <text x="560" y="111" text-anchor="middle" font-family="Inter, sans-serif" font-size="12.5" fill="#ededed">Open PR</text>
+              <text x="560" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#8a8a8a">gh pr create</text>
+            </g>
+            <line x1="620" y1="100" x2="645" y2="100" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="650,100 642,96 642,104" fill="#4a4a4a"/>
+            <!-- step 4 review -->
+            <g>
+              <rect x="650" y="70" width="120" height="60" rx="8" fill="#131313" stroke="#2a2a2a"/>
+              <text x="710" y="92" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#6a6a6a" letter-spacing="1.5">4</text>
+              <text x="710" y="111" text-anchor="middle" font-family="Inter, sans-serif" font-size="12.5" fill="#ededed">Review</text>
+              <text x="710" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#8a8a8a">/code-review</text>
+            </g>
+            <line x1="770" y1="100" x2="795" y2="100" stroke="#4a4a4a" stroke-width="1.5"/>
+            <polygon points="800,100 792,96 792,104" fill="#4a4a4a"/>
+            <!-- step 5 wait -->
+            <g>
+              <rect x="800" y="70" width="110" height="60" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.5"/>
+              <text x="855" y="92" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#c9b896" letter-spacing="1.5">5</text>
+              <text x="855" y="111" text-anchor="middle" font-family="Inter, sans-serif" font-size="12.5" fill="#ededed" font-weight="500">Wait</text>
+              <text x="855" y="124" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" fill="#c9b896">for "ship it"</text>
+            </g>
+            <!-- gate notation under arrow 2 -->
+            <text x="410" y="160" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#d2674f" letter-spacing="1.5">STRICT GATE</text>
+            <text x="410" y="175" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" fill="#a8a8a8" font-style="italic">/security-review before push if surface touched</text>
+          </svg>
+          <div class="diagram-caption">Figure 3.0 &middot; default routing &mdash; the unqualified-push path</div>
+        </div>
+
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              Default-safe. The most dangerous push is the unintended
+              push to <code>main</code>. Defaulting to feature-branch +
+              PR catches it &mdash; if the user really wanted to push to
+              main, they&rsquo;ll say so. Uniform protection across all
+              projects means there&rsquo;s no "personal project"
+              category that gets less rigor (a "personal project" today
+              can become a serious one tomorrow without the protocol
+              catching up).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.1 OVERRIDES -->
+      <div class="rule" id="routing-overrides">
+        <span class="rule-label">Rule 3.1 &middot; user override</span>
+        <h3>Explicit overrides (always honored)</h3>
+        <div class="rule-body">
+          <ul>
+            <li><code>"push to main"</code> / <code>"push to master"</code> &rarr; push directly to main, no PR. The hotfix escape hatch.</li>
+            <li><code>"push to &lt;branch-name&gt;"</code> &rarr; push to that branch, no PR creation unless requested.</li>
+            <li><code>"skip review"</code> / <code>"just push"</code> / <code>"no review needed"</code> &rarr; bypass the strict gate (per Rule 2.3).</li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Explicit user intent should be honored without friction. The
+            override is the user&rsquo;s responsibility. The protocol
+            is opinionated by default and unopinionated when told to be.
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.2 BRANCH NAMING -->
+      <div class="rule" id="branch-naming">
+        <span class="rule-label">Rule 3.2 &middot; convention</span>
+        <h3>Branch naming default</h3>
+        <div class="rule-body">
+          <p>Default branch name: <code>claude/&lt;short-slug-from-commit-message&gt;</code>.</p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Self-documenting &mdash; clear at a glance which branches
+            were AI-initiated. Keeps the user&rsquo;s normal
+            <code>feat/</code> namespace clean. Useful when scanning
+            <code>git branch -a</code> a month later trying to remember
+            what you actually wrote vs. what Claude generated.
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.3 GRACEFUL DEGRADATION -->
+      <div class="rule" id="graceful-degradation">
+        <span class="rule-label">Rule 3.3 &middot; environment-aware</span>
+        <h3>Graceful degradation</h3>
+        <div class="rule-body">
+          <ul>
+            <li>No <code>origin</code> remote &rarr; push to local branch only, tell the user the situation.</li>
+            <li>No <code>gh</code> CLI / unauthenticated &rarr; push to origin but skip PR creation. Tell the user so they can open the PR manually.</li>
+            <li><strong>Never silently install tools or modify git config</strong> to make this work.</li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Silently fixing environment gaps hides what&rsquo;s actually
+            happening on the user&rsquo;s machine. A side effect today
+            is a "why is my git config different?" mystery tomorrow.
+            Transparent degradation &mdash; do what you can, tell the
+            user what you couldn&rsquo;t &mdash; preserves the
+            user&rsquo;s mental model.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PR MERGE ===================== -->
+    <section id="pr-merge">
+      <span class="section-num">Section 04</span>
+      <h2>PR Merge Follow-up</h2>
+      <p class="section-blurb">
+        Opening a PR and merging it are separate decisions. The merge
+        gate enforces that separation both at the instruction layer
+        and at the hook layer &mdash; because instructions alone are
+        best-effort.
+      </p>
+
+      <!-- 4.0 DEFAULT -->
+      <div class="rule" id="merge-default">
+        <span class="rule-label">Rule 4.0 &middot; default behavior</span>
+        <h3>Do not auto-merge &mdash; stop and prompt</h3>
+        <div class="rule-body">
+          <p>
+            After a PR is created and local reviews complete,
+            <strong>do not auto-merge</strong>. Stop and tell the user:
+          </p>
+          <pre class="code">PR opened at &lt;url&gt;. Local checks passed (&lt;summary&gt;).
+Say 'merge it' / 'ship it' / 'merge the PR' when you're ready.</pre>
+          <p>
+            Run <code>gh pr merge --squash --delete-branch</code> on
+            the most recently opened PR when the user says
+            <code>"merge it"</code> / <code>"ship it"</code> /
+            <code>"merge the PR"</code> / <code>"merge that"</code>.
+          </p>
+          <p><strong>Strategy overrides:</strong></p>
+          <ul>
+            <li><code>"merge as rebase"</code> &rarr; <code>--rebase</code></li>
+            <li><code>"merge as merge commit"</code> &rarr; <code>--merge</code></li>
+            <li><code>"merge but keep the branch"</code> &rarr; omit <code>--delete-branch</code></li>
+          </ul>
+          <p>If multiple PRs are open in the session, ask which one to merge.</p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            PR creation and merge are separate decisions. Auto-merging
+            skips the window where you (or a teammate) would actually
+            read the PR. The squash + delete-branch default keeps
+            history clean and avoids stale-branch sprawl.
+          </div>
+        </div>
+      </div>
+
+      <!-- 4.1 HOOK GATE -->
+      <div class="rule rule-accent" id="merge-gate">
+        <span class="rule-label">Rule 4.1 &middot; mechanical backstop</span>
+        <h3>Hook-enforced merge gate</h3>
+        <div class="rule-body">
+          <p>
+            <code>~/.claude/hooks/push-routing-gate.sh</code> (registered
+            as a <code>PreToolUse</code> hook on <code>Bash</code> in
+            <code>~/.claude/settings.json</code>) catches every
+            <code>gh pr merge</code> invocation and prompts for user
+            confirmation.
+          </p>
+          <p>
+            <strong>Bypass phrase: <code>"ship it through"</code></strong>
+            (literal). When the user says exactly this phrase for a
+            specific merge, Claude prefixes the command with the env-var
+            bypass:
+          </p>
+          <pre class="code">MERGE_GATE_BYPASS=1 gh pr merge &lt;pr&gt; --squash --delete-branch</pre>
+          <p>
+            Any other phrasing &mdash; <code>"ship it"</code>,
+            <code>"merge it"</code>, <code>"merge the PR"</code>,
+            <code>"send it through"</code>, <code>"just ship that"</code>,
+            or any paraphrase &mdash; does <strong>not</strong> add the
+            prefix. The bypass is per-merge, not per-session: each
+            subsequent merge needs its own explicit phrase or its own
+            confirmation.
+          </p>
+        </div>
+
+        <div class="diagram">
+          <!-- bypass mechanic SVG -->
+          <svg viewBox="0 0 920 280" width="100%" style="display:block">
+            <!-- left: any phrase -->
+            <g>
+              <rect x="30" y="20" width="400" height="240" rx="10" fill="#131313" stroke="#2a2a2a"/>
+              <text x="50" y="48" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#6a6a6a" letter-spacing="1.5">PATH A &middot; ANY OTHER PHRASE</text>
+              <text x="50" y="75" font-family="Inter, sans-serif" font-size="15" fill="#ededed" font-weight="500">"ship it" &middot; "merge it"</text>
+              <text x="50" y="93" font-family="Inter, sans-serif" font-size="15" fill="#ededed" font-weight="500">"merge the PR" &middot; "merge that"</text>
+              <line x1="50" y1="110" x2="410" y2="110" stroke="#2a2a2a"/>
+              <!-- arrow down -->
+              <line x1="230" y1="120" x2="230" y2="142" stroke="#4a4a4a" stroke-width="1.5"/>
+              <polygon points="230,146 226,138 234,138" fill="#4a4a4a"/>
+              <!-- command -->
+              <rect x="50" y="148" width="360" height="36" rx="4" fill="#0a0a0a" stroke="#232323"/>
+              <text x="65" y="171" font-family="JetBrains Mono, monospace" font-size="11.5" fill="#9a9a9a">gh pr merge 42 --squash --delete-branch</text>
+              <!-- arrow to hook -->
+              <line x1="230" y1="188" x2="230" y2="210" stroke="#4a4a4a" stroke-width="1.5"/>
+              <polygon points="230,214 226,206 234,206" fill="#4a4a4a"/>
+              <!-- result -->
+              <rect x="50" y="216" width="360" height="36" rx="4" fill="#1c1411" stroke="#d2674f" stroke-opacity="0.5"/>
+              <text x="65" y="240" font-family="JetBrains Mono, monospace" font-size="11" fill="#d2674f" letter-spacing="0.5">HOOK PROMPTS USER &middot; merge waits</text>
+            </g>
+
+            <!-- right: literal phrase -->
+            <g>
+              <rect x="490" y="20" width="400" height="240" rx="10" fill="#161513" stroke="#c9b896" stroke-opacity="0.5"/>
+              <text x="510" y="48" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#c9b896" letter-spacing="1.5">PATH B &middot; THE LITERAL PHRASE</text>
+              <text x="510" y="75" font-family="Inter, sans-serif" font-size="15" fill="#ededed" font-weight="500">"ship it through"</text>
+              <text x="510" y="95" font-family="Inter, sans-serif" font-size="11" fill="#c9b896" font-style="italic">(verbatim &mdash; no paraphrase counts)</text>
+              <line x1="510" y1="110" x2="870" y2="110" stroke="#2a2a2a"/>
+              <line x1="690" y1="120" x2="690" y2="142" stroke="#4a4a4a" stroke-width="1.5"/>
+              <polygon points="690,146 686,138 694,138" fill="#4a4a4a"/>
+              <!-- command with prefix -->
+              <rect x="510" y="148" width="360" height="36" rx="4" fill="#0a0a0a" stroke="#232323"/>
+              <text x="525" y="171" font-family="JetBrains Mono, monospace" font-size="11" fill="#9a9a9a"><tspan fill="#c9b896">MERGE_GATE_BYPASS=1</tspan> gh pr merge 42 ...</text>
+              <line x1="690" y1="188" x2="690" y2="210" stroke="#4a4a4a" stroke-width="1.5"/>
+              <polygon points="690,214 686,206 694,206" fill="#4a4a4a"/>
+              <rect x="510" y="216" width="360" height="36" rx="4" fill="#141513" stroke="#c9b896" stroke-opacity="0.55"/>
+              <text x="525" y="240" font-family="JetBrains Mono, monospace" font-size="11" fill="#c9b896" letter-spacing="0.5">HOOK SEES ENV &middot; merge runs</text>
+            </g>
+          </svg>
+          <div class="diagram-caption">Figure 4.1 &middot; bypass mechanic &mdash; the literal phrase is the only key</div>
+        </div>
+
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              Instructions are best-effort. Even with the
+              "stop-and-wait-for-ship-it" rule in
+              <code>CLAUDE.md</code>, a Claude in a high-momentum flow
+              can drift past it and auto-merge. The hook is a mechanical
+              backstop that doesn&rsquo;t depend on the model choosing
+              to follow the rule.
+            </p>
+            <p>
+              <strong>Why the bypass is a literal phrase, not a paraphrase
+              set:</strong> the prefix has to be Claude&rsquo;s explicit
+              decision, not an inference from "they said ship-related
+              words." A literal trigger means Claude can&rsquo;t
+              accidentally bypass by reading too much into normal merge
+              phrasing. Per-merge (not per-session) bypass means defaults
+              stay safe; each skip is re-affirmed.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== DEP GATE ===================== -->
+    <section id="dep-gate">
+      <span class="section-num">Section 05</span>
+      <h2>Dependency Installation Gate</h2>
+      <p class="section-blurb">
+        Eight layers, from preventive to forensic. The first six are
+        about choosing well; the last two are the structural defenses
+        that closed the install-time execution gap exposed by the 2025
+        Axios attack and the 2026 TanStack / Mini Shai-Hulud campaign.
+      </p>
+
+      <div class="diagram">
+        <!-- dep gate layered timeline -->
+        <svg viewBox="0 0 920 320" width="100%" style="display:block">
+          <!-- timeline axis -->
+          <line x1="60" y1="280" x2="880" y2="280" stroke="#2a2a2a" stroke-width="1"/>
+          <text x="60" y="305" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a6a6a" letter-spacing="1">BEFORE INSTALL</text>
+          <text x="880" y="305" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#6a6a6a" letter-spacing="1">AFTER INSTALL</text>
+          <!-- markers -->
+          <circle cx="160" cy="280" r="4" fill="#c9b896"/>
+          <circle cx="320" cy="280" r="4" fill="#c9b896"/>
+          <circle cx="480" cy="280" r="4" fill="#c9b896"/>
+          <circle cx="640" cy="280" r="4" fill="#c9b896"/>
+          <circle cx="800" cy="280" r="4" fill="#c9b896"/>
+          <!-- layer cards -->
+          <g>
+            <rect x="60" y="40" width="200" height="100" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.5"/>
+            <text x="78" y="60" font-family="JetBrains Mono, monospace" font-size="9" fill="#c9b896" letter-spacing="1.5">#7 PREVENTIVE</text>
+            <text x="78" y="80" font-family="Inter, sans-serif" font-size="13" fill="#ededed" font-weight="600">ignore-scripts</text>
+            <text x="78" y="98" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Disables postinstall</text>
+            <text x="78" y="112" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">at install time.</text>
+            <text x="78" y="129" font-family="Inter, sans-serif" font-size="11" fill="#c9b896" font-style="italic">Kills the vector.</text>
+          </g>
+          <g>
+            <rect x="220" y="40" width="200" height="100" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.5"/>
+            <text x="238" y="60" font-family="JetBrains Mono, monospace" font-size="9" fill="#c9b896" letter-spacing="1.5">#8 PREVENTIVE</text>
+            <text x="238" y="80" font-family="Inter, sans-serif" font-size="13" fill="#ededed" font-weight="600">min-release-age</text>
+            <text x="238" y="98" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">2-day buffer skips</text>
+            <text x="238" y="112" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">the early-installer</text>
+            <text x="238" y="129" font-family="Inter, sans-serif" font-size="11" fill="#c9b896" font-style="italic">window.</text>
+          </g>
+          <g>
+            <rect x="380" y="160" width="200" height="100" rx="8" fill="#131313" stroke="#2a2a2a"/>
+            <text x="398" y="180" font-family="JetBrains Mono, monospace" font-size="9" fill="#6a6a6a" letter-spacing="1.5">#1-#3 VETTING</text>
+            <text x="398" y="200" font-family="Inter, sans-serif" font-size="13" fill="#ededed" font-weight="600">Pre-install checks</text>
+            <text x="398" y="218" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Downloads, age,</text>
+            <text x="398" y="232" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">advisories, scripts.</text>
+            <text x="398" y="249" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a" font-style="italic">Catch obvious bad.</text>
+          </g>
+          <g>
+            <rect x="540" y="40" width="200" height="100" rx="8" fill="#131313" stroke="#2a2a2a"/>
+            <text x="558" y="60" font-family="JetBrains Mono, monospace" font-size="9" fill="#6a6a6a" letter-spacing="1.5">#4 DETECTIVE</text>
+            <text x="558" y="80" font-family="Inter, sans-serif" font-size="13" fill="#ededed" font-weight="600">npm audit + lockfile</text>
+            <text x="558" y="98" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Surfaces known CVEs</text>
+            <text x="558" y="112" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">+ unexpected version</text>
+            <text x="558" y="129" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a" font-style="italic">drift.</text>
+          </g>
+          <g>
+            <rect x="700" y="160" width="200" height="100" rx="8" fill="#1c1411" stroke="#d2674f" stroke-opacity="0.45"/>
+            <text x="718" y="180" font-family="JetBrains Mono, monospace" font-size="9" fill="#d2674f" letter-spacing="1.5">#6 FORENSIC</text>
+            <text x="718" y="200" font-family="Inter, sans-serif" font-size="13" fill="#f0ddd5" font-weight="600">Lockfile drift</text>
+            <text x="718" y="218" font-family="Inter, sans-serif" font-size="11" fill="#c79b8e">Tells you WHAT</text>
+            <text x="718" y="232" font-family="Inter, sans-serif" font-size="11" fill="#c79b8e">changed, not what</text>
+            <text x="718" y="249" font-family="Inter, sans-serif" font-size="11" fill="#c79b8e" font-style="italic">it already did.</text>
+          </g>
+        </svg>
+        <div class="diagram-caption">Figure 5.0 &middot; dependency gate layers &mdash; preventive (cream) come first; forensic (terracotta) runs after the payload already executed</div>
+      </div>
+
+      <!-- 5.1 -->
+      <div class="rule" id="dep-1">
+        <span class="rule-label">Rule 5.1 &middot; vetting</span>
+        <h3>Check the package first</h3>
+        <div class="rule-body">
+          <p>Before <code>npm install</code> / <code>npm add</code> / <code>npx &lt;new-package&gt;</code> / <code>pip install</code> / equivalent:</p>
+          <ul>
+            <li>Look up weekly downloads</li>
+            <li>Check <strong>first publish date</strong> (not last update date)</li>
+            <li>Check for known security advisories</li>
+            <li>Check if the package is deprecated or archived on GitHub</li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Most bad packages are detectable with simple signals.
+            First-publish date matters more than last-update date because
+            recently-created packages with high downloads are the
+            typosquat pattern. A package "updated yesterday" that
+            existed for five years is much safer than one that appeared
+            yesterday with the same name as a popular library.
+          </div>
+        </div>
+      </div>
+
+      <!-- 5.2 -->
+      <div class="rule" id="dep-2">
+        <span class="rule-label">Rule 5.2 &middot; veto signals</span>
+        <h3>Flag and stop if any are true</h3>
+        <div class="rule-body">
+          <ul>
+            <li>Weekly downloads &lt; 1,000</li>
+            <li>First published less than 30 days ago</li>
+            <li>Package name similar to a popular package (typosquat risk)</li>
+            <li>Ownership recently transferred</li>
+            <li>Package has <code>postinstall</code>, <code>preinstall</code>, or <code>prepare</code> scripts</li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Each signal individually is suggestive; combined they&rsquo;re
+            disqualifying. The script-presence flag is the most
+            important one &mdash; it&rsquo;s the install-time execution
+            vector that Rule 5.7 closes globally, but a per-package
+            heads-up still matters when overriding <code>ignore-scripts</code>
+            for a specific install.
+          </div>
+        </div>
+      </div>
+
+      <!-- 5.3 -->
+      <div class="rule" id="dep-3">
+        <span class="rule-label">Rule 5.3 &middot; user in loop</span>
+        <h3>Report findings before proceeding</h3>
+        <div class="rule-body">
+          <p>Don&rsquo;t install without the user&rsquo;s confirmation when findings come back.</p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Ambiguous cases are where the user&rsquo;s judgment matters
+            most. A 900-weekly-downloads package might be a legit niche
+            tool or a typosquat; only the user knows which.
+          </div>
+        </div>
+      </div>
+
+      <!-- 5.4 -->
+      <div class="rule" id="dep-4">
+        <span class="rule-label">Rule 5.4 &middot; post-install</span>
+        <h3>After any dependency change</h3>
+        <div class="rule-body">
+          <ul>
+            <li>Run <code>npm audit</code> (or equivalent) and report results</li>
+            <li>Flag unexpected changes in <code>package-lock.json</code>: packages not explicitly requested, changed integrity hashes</li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Audit catches known vulns; the lockfile diff catches
+            transitive surprises (a package you didn&rsquo;t install
+            showing up because a direct dep pulled it in).
+          </div>
+        </div>
+      </div>
+
+      <!-- 5.5 -->
+      <div class="rule" id="dep-5">
+        <span class="rule-label">Rule 5.5 &middot; reproducibility</span>
+        <h3>Version pinning</h3>
+        <div class="rule-body">
+          <p>
+            Always install exact versions (<code>1.14.0</code>), never
+            ranges (<code>^1.14.0</code> or <code>~1.14.0</code>), unless
+            the user says otherwise. If <code>~/.npmrc</code> has
+            <code>save-exact=true</code>, this is automatic.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Range specifiers silently pull in patches between machines
+            and over time. Pinning to exact makes reproducibility the
+            default and lets you deliberately bump when you want to,
+            not silently when a patch happens to land.
+          </div>
+        </div>
+      </div>
+
+      <!-- 5.6 -->
+      <div class="rule" id="dep-6">
+        <span class="rule-label">Rule 5.6 &middot; forensic layer</span>
+        <h3>Lockfile version drift</h3>
+        <div class="rule-body">
+          <p>
+            When running <code>npm install</code> / <code>npm update</code>
+            / <code>npm ci</code>, compare the lockfile before and
+            after.
+          </p>
+          <ul>
+            <li>Flag any already-installed package whose version changed</li>
+            <li>Report which packages changed and what version they moved to</li>
+          </ul>
+        </div>
+        <div class="why why-danger">
+          <div class="why-label">Why this exists &mdash; and what it does NOT do</div>
+          <div class="why-body">
+            <p>
+              <strong>This is a forensic layer, not a preventive one.</strong>
+              By the time the lockfile diff appears, any malicious
+              <code>postinstall</code> script has already executed. It
+              tells you <em>what</em> changed; it does not prevent the
+              change.
+            </p>
+            <p>
+              The preventive layers for trusted-package hijacking &mdash;
+              the attack class that hit Axios in 2025, then the
+              <code>@tanstack/</code> namespace plus
+              <code>@opensearch-project/</code>, <code>@mistralai/</code>,
+              <code>guardrails-ai</code>, <code>@uipath/</code>, and
+              <code>squawk</code> in the 2026 Mini Shai-Hulud campaign
+              &mdash; are Rules 5.7 and 5.8 below.
+            </p>
+            <p>Still: don&rsquo;t silently accept unexpected version changes. Investigate.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5.7 -->
+      <div class="rule rule-accent" id="dep-7">
+        <span class="rule-label">Rule 5.7 &middot; structural defense</span>
+        <h3>Disable install scripts by default</h3>
+        <div class="rule-body">
+          <p>
+            Most supply chain attacks deliver their payload via
+            <code>preinstall</code>, <code>postinstall</code>, or
+            <code>prepare</code> scripts that run automatically during
+            <code>npm install</code>. Disable script execution globally:
+          </p>
+          <pre class="code">npm config set ignore-scripts true</pre>
+          <p>
+            This eliminates the install-time execution vector.
+            Compromised packages become drastically less dangerous
+            because their payload can&rsquo;t auto-run on install.
+          </p>
+          <p>
+            <strong>Trade-off:</strong> packages that legitimately need
+            install scripts will fail on first install. Common cases
+            (<code>sharp</code>, <code>esbuild</code>, <code>puppeteer</code>,
+            <code>cypress</code>, <code>husky</code>, <code>node-gyp</code>,
+            native modules) are listed in
+            <code>docs/CUSTOMIZE.md</code>. Override per-install with
+            <code>npm install &lt;pkg&gt; --ignore-scripts=false</code> or
+            run <code>npm rebuild &lt;pkg&gt;</code> after a normal
+            install.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              The lockfile-drift check (Rule 5.6) is forensic &mdash; it
+              runs after the payload already executed. The preventive
+              fix is to remove the execution surface entirely. The
+              trade-off is real (per-install overrides for legit
+              cases), but the asymmetry is correct: a five-second
+              annoyance during a deliberate <code>sharp</code> install
+              vs. a worm running on every install.
+            </p>
+            <p>
+              This is the layer that would have stopped the 2026 Mini
+              Shai-Hulud campaign at the install boundary on machines
+              where it was set. The payload couldn&rsquo;t auto-execute,
+              so the persistence daemon never got planted.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5.8 -->
+      <div class="rule rule-accent" id="dep-8">
+        <span class="rule-label">Rule 5.8 &middot; structural defense</span>
+        <h3>Minimum release age</h3>
+        <div class="rule-body">
+          <p>Require packages to be at least N days old before npm will install them:</p>
+          <pre class="code">npm config set min-release-age 2d</pre>
+          <p>
+            This shifts you out of the early-installer window for every
+            future supply chain attack. Security researchers typically
+            detect malicious uploads within 6&ndash;24 hours; a 2-day
+            buffer means you skip the exposure window by default, without
+            needing to know in advance which package will be hit next.
+          </p>
+          <p>
+            Requires npm 11+. Equivalents for pnpm, yarn, and bun are
+            documented in <code>docs/CUSTOMIZE.md</code>. Older npm
+            versions silently ignore the setting &mdash; upgrade to get
+            the protection.
+          </p>
+          <p>
+            <strong>Trade-off:</strong> you&rsquo;re 2 days behind on
+            legitimate updates. Override per-install when a genuine
+            same-day release is needed. This applies to direct installs
+            and any package added as part of a build task. No
+            exceptions.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              Rule 5.7 kills the install-time execution vector. Rule 5.8
+              shrinks the window where you&rsquo;d even pull in a
+              compromised version. The detection community is
+              consistently fast (Socket flagged the TanStack worm
+              within hours of upload) &mdash; this rule converts
+              "the community has noticed" into "I&rsquo;m protected"
+              without having to track every advisory by hand.
+            </p>
+            <p>
+              The two work together. 5.7 is "if I do install the bad
+              package, the payload can&rsquo;t run." 5.8 is "I
+              probably won&rsquo;t install it in the first place."
+              Either alone is partial; both together close the gap
+              that drift-detection alone couldn&rsquo;t.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== MEDIA GATE ===================== -->
+    <section id="media-gate">
+      <span class="section-num">Section 06</span>
+      <h2>Media Pre-Commit Gate</h2>
+      <p class="section-blurb">
+        Git is the source of truth for code, not the storage for large
+        binaries. Catch oversize media before staging, never commit
+        source masters.
+      </p>
+
+      <div class="rule" id="media-rule">
+        <span class="rule-label">Rule 6.0 &middot; pre-commit</span>
+        <h3>Surface oversize, gitignore raw sources</h3>
+        <div class="rule-body">
+          <ul>
+            <li><strong>Hard rule:</strong> surface any file &gt; 5 MB to the user before staging. GitHub warns at 50 MB and rejects at 100 MB; catch oversize before push, not after.</li>
+            <li><strong>Always gitignore raw/uncompressed sources:</strong> <code>*.m4v</code>, <code>*.mov</code>, <code>*.dng</code>, <code>*.cr2</code>, <code>*.arw</code>, <code>*.nef</code>, <code>*.wav</code>. Compressed derivatives only in the repo.</li>
+            <li>Project-specific compression targets (JPEG quality, CRF values, resolution ceilings) belong in the project's <code>CLAUDE.md</code>, not here.</li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              Git history is permanent &mdash; large binaries bloat
+              history forever. Once committed, removing them later
+              requires destructive history rewrites that break every
+              cloned copy of the repo. Compression at commit time is
+              free; cleanup after the fact is expensive.
+            </p>
+            <p>
+              GitHub&rsquo;s 100 MB rejection mid-push is a particularly
+              annoying failure mode &mdash; the push fails, you
+              don&rsquo;t notice until you&rsquo;ve already committed,
+              and the fix requires rewriting commits. Prevent the
+              class of problem at staging time.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== GIT HOOK ===================== -->
+    <section id="git-hook">
+      <span class="section-num">Section 07</span>
+      <h2>Global Pre-Push Git Hook</h2>
+      <p class="section-blurb">
+        Defense against direct terminal pushes that bypass Claude
+        entirely. Configured via <code>core.hooksPath</code> so it
+        works regardless of repo-local hook setup.
+      </p>
+
+      <div class="rule" id="git-hook-rule">
+        <span class="rule-label">Rule 7.0 &middot; defense in depth</span>
+        <h3>Global pre-push hook on protected branches</h3>
+        <div class="rule-body">
+          <p>The pre-push hook should:</p>
+          <ul>
+            <li>Only trigger on pushes to <code>main</code>, <code>master</code>, or <code>production</code></li>
+            <li>Run <code>npm audit --audit-level=critical</code> if <code>package.json</code> exists, and block if critical vulnerabilities are found</li>
+            <li>Check if the diff touches sensitive files (auth, payments, env, middleware, RLS policies) and warn before allowing the push</li>
+            <li>Yield gracefully to project-local hook systems (like Husky) so it doesn't break repos that manage their own hooks</li>
+            <li>Be skippable with <code>git push --no-verify</code> for intentional bypass</li>
+          </ul>
+          <p>
+            If this hook is not yet installed, ask the user once per
+            session whether to set it up. If yes, set it up. If no or
+            skipped, don't ask again that session and don't configure
+            git silently.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              All the rules above are about pushes Claude makes through
+              its Bash tool. A user running <code>git push origin
+              main</code> from their terminal bypasses every one of
+              them. The global git hook is the catch-all for that case
+              &mdash; not blocking work, but adding a moment of
+              attention before any push to a protected branch.
+            </p>
+            <p>
+              The yield-to-Husky rule matters: many projects have their
+              own pre-push hooks for tests, linting, conventional
+              commits. The global hook composes with those rather than
+              competing with them. <code>--no-verify</code> remains the
+              universal escape hatch for "I know what I&rsquo;m
+              doing, just push."
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  </div><!-- /.layout -->
+
+  <footer>
+    <div class="foot-grid">
+      <div>
+        <h4>Maintenance discipline</h4>
+        <p>
+          This file mirrors <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">CLAUDE.md</code>.
+          When you change a rule, update the corresponding section here
+          in the same commit. The <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">CHANGELOG.md</code>
+          entry is the audit trail &mdash; note the doc updated alongside
+          the rule. Drift starts the moment one moves without the other.
+        </p>
+        <p>
+          The split is deliberate: <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">CLAUDE.md</code>
+          gets loaded into every Claude Code session and is sized for
+          context cost; this file is a reference fetched on demand. Resist
+          the urge to merge them back together.
+        </p>
+      </div>
+      <div>
+        <h4>Read alongside</h4>
+        <ul>
+          <li><a href="../README.md">README</a></li>
+          <li><a href="../CLAUDE.md">CLAUDE.md</a></li>
+          <li><a href="../CHANGELOG.md">CHANGELOG</a></li>
+          <li><a href="./INSTALL.md">INSTALL</a></li>
+          <li><a href="./CUSTOMIZE.md">CUSTOMIZE</a></li>
+          <li><a href="https://atmr.substack.com/p/you-can-just-do-things-but-maybe">Article: You Can Just Do Things</a></li>
+          <li><a href="https://atmr.substack.com/p/it-is-next-time-already">Article: It Is "Next Time" Already</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="colophon">
+      agentic-security-baseline &middot; protocol rationale &middot;
+      open this file locally or open the served version from your repo host
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // Scroll-tracking active state for the TOC.
+  // Highlights the rule/section currently in the upper viewport band,
+  // and softly marks its parent top-level section so the reader knows where they are.
+  (function () {
+    var items = document.querySelectorAll('section[id], .rule[id]');
+    if (!items.length || typeof IntersectionObserver === 'undefined') return;
+
+    var linkMap = new Map();
+    document.querySelectorAll('.toc a[href^="#"]').forEach(function (a) {
+      linkMap.set(a.getAttribute('href').slice(1), a);
+    });
+
+    var visible = new Set();
+
+    function highlight() {
+      var last = null;
+      items.forEach(function (el) { if (visible.has(el.id)) last = el; });
+      document.querySelectorAll('.toc a.active, .toc a.in-section').forEach(function (a) {
+        a.classList.remove('active');
+        a.classList.remove('in-section');
+      });
+      if (last && linkMap.has(last.id)) {
+        linkMap.get(last.id).classList.add('active');
+        var parentSection = last.closest('section[id]');
+        if (parentSection && parentSection.id !== last.id) {
+          var parentLink = linkMap.get(parentSection.id);
+          if (parentLink) parentLink.classList.add('in-section');
+        }
+      }
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) visible.add(e.target.id);
+        else visible.delete(e.target.id);
+      });
+      highlight();
+    }, { rootMargin: '-10% 0px -75% 0px', threshold: 0 });
+
+    items.forEach(function (el) { observer.observe(el); });
+  })();
+</script>
+</body>
+</html>

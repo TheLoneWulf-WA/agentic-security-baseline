@@ -12,7 +12,7 @@ The full reasoning is in two companion articles: ["You Can Just Do Things." But 
 
 ## What's in here
 
-- **`CLAUDE.md`** — A workflow protocol that loads into every Claude Code session. Defines when to run `/security-review` and `/code-review`, how pushes get routed, how dependency installs are gated, and how PR merges happen.
+- **`CLAUDE.md`** — A workflow protocol that loads into every Claude Code session. Defines when to run `/security-review` and `/code-review`, how pushes get routed, how dependency installs are gated, and how PR merges happen. Lean by design — see `docs/protocol-rationale.html` for the why behind each rule.
 - **`hooks/push-routing-gate.sh`** — A Claude Code PreToolUse hook. Fires on every `git push` Claude tries to run. If the push targets `main`, `master`, or `production`, it prompts for confirmation. Claude can't bypass it.
 - **`hooks/pre-push`** — A global git pre-push hook (configured via `core.hooksPath`). Runs on every push from the terminal regardless of whether Claude is involved. Runs `npm audit --audit-level=critical` and warns on changes to sensitive files.
 - **`settings.snippet.json`** — The Claude Code settings entry that wires the PreToolUse hook in.
@@ -20,6 +20,7 @@ The full reasoning is in two companion articles: ["You Can Just Do Things." But 
 - **`docs/INSTALL.md`** — Step-by-step install. Written so an agent can follow it, or you can.
 - **`docs/CUSTOMIZE.md`** — What to adapt for your stack: payment processor names, sensitive file patterns, branch names, etc.
 - **`tools/audit.sh`** — A read-only check for the Mini Shai-Hulud / TanStack-class worm: persistence daemon, tampered `.claude`/`.vscode` configs, affected packages in lockfiles, and npm defense status.
+- **`docs/protocol-rationale.html`** — Why each rule in `CLAUDE.md` exists, with diagrams (authority hierarchy, defense stack, review loop, push routing, merge-gate mechanic, dep-gate layers). Self-contained HTML, no build step. Open locally in a browser. The companion to `CLAUDE.md` — operating manual vs. reference.
 
 The install also configures `~/.npmrc` on your machine with two supply-chain protections:
 
