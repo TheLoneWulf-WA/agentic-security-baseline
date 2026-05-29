@@ -46,6 +46,41 @@ Common limits to surface:
 
 ## Review Protocol
 
+### Layer 0 — security-guidance plugin (in-session, non-blocking)
+
+The `security-guidance@claude-plugins-official` plugin (enable at user
+scope) is the earliest layer; runs automatically; nothing to invoke.
+
+- **Per-edit:** deterministic pattern match on Edit/Write (no model
+  call). Custom patterns live in `~/.claude/security-patterns.json`
+  (global), `<project>/.claude/security-patterns.json` (project), and
+  `<project>/.claude/security-patterns.local.json` (gitignored, personal
+  overrides on shared repos). JSON, not YAML (PyYAML isn't installed).
+- **End-of-turn + on-commit:** fresh-context security reviews (separate
+  Claude call, not self-grading) over the turn's diff and commits/pushes
+  Claude makes via its Bash tool. Commits run via the `!` shell escape
+  bypass this layer. Findings come back as in-session fix instructions.
+- **Threat-model guidance:** `~/.claude/claude-security-guidance.md`
+  (global) + `<project>/.claude/claude-security-guidance.md` (project) +
+  `<project>/.claude/claude-security-guidance.local.md` (gitignored,
+  personal overrides) feed the model-backed reviews.
+
+Default model: **Claude Opus 4.7**. Override via
+`SECURITY_REVIEW_MODEL` (end-of-turn) / `SG_AGENTIC_MODEL` (on-commit)
+in `~/.claude/settings.json` to a smaller model if you want to bound
+the per-PR token spend.
+
+**Does NOT replace the gates below.** Non-blocking, security-only, can
+miss things — *reduces* what reaches the gates; doesn't satisfy any.
+Strict Gate still blocks on HIGH; `/code-review --comment` still runs
+on every PR.
+
+Plugin findings are **not** subject to the "ignore platform
+auto-suggestions" rule — they're security findings, not pattern-matched
+tech-stack suggestions.
+
+**Canonical docs:** <https://code.claude.com/docs/en/security-guidance>
+
 ### Strict Gate — run `/security-review` automatically
 
 Before any `git push`, if the diff touches a surface below, run
