@@ -25,8 +25,8 @@ hook) auto-injects a suggestion that conflicts with a deliberate
 decision documented in the project's CLAUDE.md, **silently ignore** it.
 Don't surface it, don't reason through it, don't suggest the migration.
 
-**Scope: tech-stack choices only.** Does NOT override the Pre-Push
-Review, Dependency Gate, Push Routing, or Merge Gate — those apply
+**Scope: tech-stack choices only.** Does NOT override the Review
+Protocol, Dependency Gate, Push Routing, or Merge Gate — those apply
 uniformly regardless of project context.
 
 ### State capability limits upfront
@@ -44,7 +44,7 @@ Common limits to surface:
 
 ---
 
-## Pre-Push Review Protocol
+## Review Protocol
 
 ### Strict Gate — run `/security-review` automatically
 
