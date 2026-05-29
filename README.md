@@ -29,8 +29,9 @@ The install also configures `~/.npmrc` on your machine with two supply-chain pro
 
 See `docs/CUSTOMIZE.md` for tuning, equivalents for pnpm/yarn/bun, and per-package overrides when you need them.
 
-The system also relies on two things that aren't in this repo:
+The system also relies on three things that aren't in this repo:
 
+- `security-guidance@claude-plugins-official` plugin (Anthropic's) — continuous in-session checks via hooks. This is "Layer 0" in `CLAUDE.md`. Install with `/plugin install security-guidance@claude-plugins-official` inside Claude Code. Canonical docs: <https://code.claude.com/docs/en/security-guidance>.
 - `/security-review` and `/code-review` slash commands (Anthropic's, install separately — links in `docs/INSTALL.md`)
 - Socket.dev's free tier on GitHub for supply chain scanning at the PR level
 
@@ -81,14 +82,17 @@ A few defaults need adapting for your stack: the strict gate's payment processor
 - I'm not the deepest expert on bash hooks or settings.json internals. I had Claude write the scripts, I read them, I tested them. They've held up. If something breaks at 2am, debugging it likely involves asking Claude again.
 - Threat models differ. The defaults here reflect what I worry about. They might miss things you should worry about.
 
-## A note on the slash commands (and one related tool)
+## A note on Anthropic's security tools (and one related tool)
 
-The two slash commands this protocol references aren't in the repo. They're Anthropic's:
+This protocol relies on three Anthropic-shipped pieces. All install through Claude Code; none requires a paid plan.
 
-- `/security-review` — from [anthropics/claude-code-security-review](https://github.com/anthropics/claude-code-security-review)
-- `/code-review` — from the official `code-review` plugin in [anthropics/claude-code](https://github.com/anthropics/claude-code/tree/main/plugins/code-review)
+- **`security-guidance` plugin** — continuous, hook-based, in-session. Pattern-matches every `Edit`/`Write` and runs fresh-context security reviews at end-of-turn and on-commit. Install: `/plugin install security-guidance@claude-plugins-official`. Docs: <https://code.claude.com/docs/en/security-guidance>. In `CLAUDE.md` this is **Layer 0** — runs out-of-band and is *not* a replacement for the slash commands below.
+- **`/security-review`** — on-demand security pass on the current branch, run when you ask. From [anthropics/claude-code-security-review](https://github.com/anthropics/claude-code-security-review).
+- **`/code-review`** — on-demand correctness + style pass that posts findings as PR comments. From the official `code-review` plugin in [anthropics/claude-code](https://github.com/anthropics/claude-code/tree/main/plugins/code-review).
 
-Both are local slash commands. They're not the same as Anthropic's hosted Code Review service (a paid Team/Enterprise feature, billed at $15-25 per review).
+The slash commands aren't the same as Anthropic's hosted Code Review service (a paid Team/Enterprise feature, billed at $15-25 per review).
+
+The three layer rather than overlap: the plugin catches the cheap, high-frequency stuff while you're writing; the slash commands run on demand at push or PR time and dig deeper.
 
 ### Also worth knowing about: DeepSec
 
