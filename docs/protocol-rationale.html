@@ -2004,7 +2004,7 @@ Say 'merge it' / 'ship it' / 'merge the PR' when you're ready.</pre>
           <p>The pre-push hook should:</p>
           <ul>
             <li>Only trigger on pushes to <code>main</code>, <code>master</code>, or <code>production</code></li>
-            <li>Run <code>npm audit --audit-level=critical</code> if <code>package.json</code> exists, and block if critical vulnerabilities are found</li>
+            <li>Detect the package manager from the lockfile (<code>package-lock.json</code> &rarr; npm; <code>yarn.lock</code> &rarr; yarn (Classic or Berry); <code>pnpm-lock.yaml</code> &rarr; pnpm; <code>bun.lockb</code> &rarr; bun) and run the matching audit command at the <code>critical</code> threshold; block on critical findings. Skip cleanly with an informational message if no recognized lockfile is present.</li>
             <li>Check if the diff touches sensitive files (auth, payments, env, middleware, RLS policies) and warn before allowing the push</li>
             <li>Yield gracefully to project-local hook systems (like Husky) so it doesn't break repos that manage their own hooks</li>
             <li>Be skippable with <code>git push --no-verify</code> for intentional bypass</li>
@@ -2034,6 +2034,22 @@ Say 'merge it' / 'ship it' / 'merge the PR' when you're ready.</pre>
               competing with them. <code>--no-verify</code> remains the
               universal escape hatch for "I know what I&rsquo;m
               doing, just push."
+            </p>
+            <p>
+              <strong>Detection-first, not npm-first.</strong> Earlier
+              versions of this hook ran <code>npm audit</code>
+              unconditionally on any project with a <code>package.json</code>.
+              On yarn / pnpm / bun projects (no <code>package-lock.json</code>),
+              <code>npm audit</code> fails with <code>ENOLOCK</code> &mdash;
+              which the hook misread as a critical-vuln finding and
+              false-blocked the push. False-blocking is worse than not
+              auditing: adopters lose trust in the hook and disable it
+              with <code>--no-verify</code> as muscle memory, which then
+              hides the cases where the hook would have caught a real
+              vuln. Detecting the lockfile first and running the
+              matching audit command (or skipping cleanly if none is
+              present) preserves the intent of the gate without
+              accumulating false positives.
             </p>
           </div>
         </div>

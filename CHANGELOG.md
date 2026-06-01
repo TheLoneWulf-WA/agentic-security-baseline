@@ -2,6 +2,48 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-06-01
+
+Fixed `hooks/pre-push` to be package-manager-aware. The hook
+previously ran `npm audit --audit-level=critical` whenever
+`package.json` existed, without checking whether the project actually
+uses npm. On yarn / pnpm / bun projects (no `package-lock.json`),
+`npm audit` fails with `ENOLOCK` — which the hook interpreted as a
+critical-vuln finding and false-blocked the push. False-blocking is
+worse than not auditing: adopters lose trust in the hook and disable
+it with `--no-verify` as muscle memory, which then hides the cases
+where the hook would have caught a real vuln.
+
+The hook now:
+
+- Detects the package manager from the lockfile: `package-lock.json`
+  → npm; `yarn.lock` → yarn (Classic if v1; Berry if v2+);
+  `pnpm-lock.yaml` → pnpm; `bun.lockb` → bun
+- Runs the matching audit command at the `critical` threshold:
+  - npm: `npm audit --audit-level=critical`
+  - yarn 1.x (Classic): `yarn audit --level critical`
+  - yarn 2+/3+/4+ (Berry): `yarn npm audit --severity critical --recursive`
+  - pnpm: `pnpm audit --audit-level critical`
+  - bun: `bun audit` (when the subcommand is available in the
+    installed bun version; otherwise skips with a note)
+- Skips cleanly with an informational message if `package.json`
+  exists but no recognized lockfile is present, or if the matching
+  package manager isn't on `PATH`
+- Reports which tool found the vulns and which command to re-run for
+  full output when blocking
+
+`CLAUDE.md` (the "Global Pre-Push Git Hook" section), `README.md`
+(the `hooks/pre-push` bullet), and `docs/protocol-rationale.html`
+(Section 7 rule block and its "Why this exists" callout) updated to
+describe the new behavior. The rationale doc additionally documents
+*why* the design is detection-first.
+
+`install.sh` is unchanged — it copies whatever hook file is in the
+repo, so users running `install.sh` after this commit get the fix
+automatically. Users who already ran `install.sh` can either re-run
+it or copy `hooks/pre-push` to `~/.config/git/hooks/pre-push`
+manually to pick up the fix.
+
 ## 2026-05-29
 
 Compressed `CLAUDE.md` and split the rationale into a new
