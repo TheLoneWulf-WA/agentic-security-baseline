@@ -10,7 +10,11 @@
 #
 # Behavior:
 #   - Only enforces on pushes to main / master / production
-#   - Runs `npm audit --audit-level=critical` and BLOCKS on critical vulns
+#   - Detects the package manager from the lockfile and runs the matching
+#     audit at the `critical` threshold. Supports npm / yarn (Classic + Berry)
+#     / pnpm / bun. Skips cleanly if no recognized lockfile is present,
+#     so yarn/pnpm/bun projects are no longer false-blocked by an
+#     `npm audit ENOLOCK`.
 #   - WARNS on sensitive-file changes (does not block — Claude's strict
 #     gate handles blocking when Claude is the actor)
 #   - Yields to project-local hook systems (Husky) so it doesn't break
@@ -46,22 +50,87 @@ while read local_ref local_sha remote_ref remote_sha; do
         continue
     fi
 
-    # Run npm audit if package.json exists and npm is available
-    if [ -f "package.json" ] && command -v npm >/dev/null 2>&1; then
-        echo "[pre-push] Running npm audit (critical level)..." >&2
-        audit_output=$(npm audit --audit-level=critical 2>&1)
-        audit_exit=$?
-        if [ $audit_exit -ne 0 ]; then
+    # ---------------------------------------------------------------
+    # Dependency audit — package-manager-aware
+    # ---------------------------------------------------------------
+    if [ -f "package.json" ]; then
+        audit_run=0
+        audit_failed=0
+        audit_tool=""
+        audit_command=""
+        audit_output=""
+
+        if [ -f "package-lock.json" ] && command -v npm >/dev/null 2>&1; then
+            echo "[pre-push] npm lockfile detected — running npm audit (critical)..." >&2
+            audit_output=$(npm audit --audit-level=critical 2>&1)
+            audit_exit=$?
+            [ "$audit_exit" -ne 0 ] && audit_failed=1
+            audit_tool="npm"
+            audit_command="npm audit --audit-level=critical"
+            audit_run=1
+
+        elif [ -f "yarn.lock" ] && command -v yarn >/dev/null 2>&1; then
+            yarn_major=$(yarn --version 2>/dev/null | cut -d. -f1)
+            if [ "${yarn_major:-1}" = "1" ]; then
+                echo "[pre-push] yarn 1.x lockfile detected — running yarn audit (critical)..." >&2
+                audit_output=$(yarn audit --level critical 2>&1)
+                audit_exit=$?
+                audit_command="yarn audit --level critical"
+            else
+                echo "[pre-push] yarn ${yarn_major}.x (Berry) lockfile detected — running yarn npm audit (critical)..." >&2
+                audit_output=$(yarn npm audit --severity critical --recursive 2>&1)
+                audit_exit=$?
+                audit_command="yarn npm audit --severity critical --recursive"
+            fi
+            [ "$audit_exit" -ne 0 ] && audit_failed=1
+            audit_tool="yarn"
+            audit_run=1
+
+        elif [ -f "pnpm-lock.yaml" ] && command -v pnpm >/dev/null 2>&1; then
+            echo "[pre-push] pnpm lockfile detected — running pnpm audit (critical)..." >&2
+            audit_output=$(pnpm audit --audit-level critical 2>&1)
+            audit_exit=$?
+            [ "$audit_exit" -ne 0 ] && audit_failed=1
+            audit_tool="pnpm"
+            audit_command="pnpm audit --audit-level critical"
+            audit_run=1
+
+        elif [ -f "bun.lockb" ] && command -v bun >/dev/null 2>&1; then
+            # `bun audit` is a newer subcommand — check availability first
+            if bun audit --help >/dev/null 2>&1; then
+                echo "[pre-push] bun lockfile detected — running bun audit..." >&2
+                audit_output=$(bun audit 2>&1)
+                audit_exit=$?
+                [ "$audit_exit" -ne 0 ] && audit_failed=1
+                audit_tool="bun"
+                audit_command="bun audit"
+                audit_run=1
+            else
+                echo "[pre-push] bun lockfile detected but 'bun audit' unavailable in this version — skipping audit" >&2
+            fi
+
+        else
+            # package.json exists but no recognized lockfile, or matching tool not on PATH.
+            # Do NOT false-block; just inform.
+            echo "[pre-push] No recognized lockfile (package-lock.json / yarn.lock / pnpm-lock.yaml / bun.lockb) — skipping dependency audit" >&2
+        fi
+
+        if [ "$audit_run" = "1" ] && [ "$audit_failed" = "1" ]; then
             echo "$audit_output" | tail -25 >&2
             echo "" >&2
-            echo "[pre-push] BLOCKED: critical vulnerabilities found" >&2
-            echo "[pre-push] Run 'npm audit' for full details" >&2
+            echo "[pre-push] BLOCKED: critical vulnerabilities found by $audit_tool" >&2
+            echo "[pre-push] Run '$audit_command' for full details" >&2
             echo "[pre-push] Bypass this push only with: git push --no-verify" >&2
             exit 1
         fi
-        echo "[pre-push] npm audit clean" >&2
+        if [ "$audit_run" = "1" ] && [ "$audit_failed" = "0" ]; then
+            echo "[pre-push] $audit_tool audit clean" >&2
+        fi
     fi
 
+    # ---------------------------------------------------------------
+    # Sensitive-file warning (warn only, never block)
+    # ---------------------------------------------------------------
     # Determine diff range
     if [ "$remote_sha" = "$ZERO_SHA" ]; then
         # New branch on remote — diff against origin's default branch if available

@@ -14,7 +14,7 @@ The full reasoning is in two companion articles: ["You Can Just Do Things." But 
 
 - **`CLAUDE.md`** — A workflow protocol that loads into every Claude Code session. Defines when to run `/security-review` and `/code-review`, how pushes get routed, how dependency installs are gated, and how PR merges happen. Lean by design — see `docs/protocol-rationale.html` for the why behind each rule.
 - **`hooks/push-routing-gate.sh`** — A Claude Code PreToolUse hook. Fires on every `git push` Claude tries to run. If the push targets `main`, `master`, or `production`, it prompts for confirmation. Claude can't bypass it.
-- **`hooks/pre-push`** — A global git pre-push hook (configured via `core.hooksPath`). Runs on every push from the terminal regardless of whether Claude is involved. Runs `npm audit --audit-level=critical` and warns on changes to sensitive files.
+- **`hooks/pre-push`** — A global git pre-push hook (configured via `core.hooksPath`). Runs on every push from the terminal regardless of whether Claude is involved. Detects the package manager from the lockfile (npm / yarn / pnpm / bun) and runs the matching `audit --audit-level=critical`; blocks on critical findings. Skips cleanly if no recognized lockfile is present. Warns on changes to sensitive files.
 - **`settings.snippet.json`** — The Claude Code settings entry that wires the PreToolUse hook in.
 - **`install.sh`** — A shell script that places the files, substitutes paths, configures git, and sets npm config for supply chain protection (`ignore-scripts`, `min-release-age` when supported). Idempotent.
 - **`docs/INSTALL.md`** — Step-by-step install. Written so an agent can follow it, or you can.

@@ -389,7 +389,7 @@ bypass Claude entirely.
 The pre-push hook:
 
 - Only triggers on pushes to `main` / `master` / `production`
-- Runs `npm audit --audit-level=critical` if `package.json` exists; blocks on critical
+- Detects the package manager from the lockfile (`package-lock.json` / `yarn.lock` / `pnpm-lock.yaml` / `bun.lockb`) and runs the matching audit at the `critical` threshold; blocks on critical findings. Skips cleanly if no recognized lockfile is present (no false-blocking yarn/pnpm/bun projects via `npm audit ENOLOCK`).
 - Warns on diffs touching sensitive files (auth, payments, env, middleware, RLS)
 - Yields gracefully to project-local hook systems (Husky etc.)
 - Skippable with `git push --no-verify`
