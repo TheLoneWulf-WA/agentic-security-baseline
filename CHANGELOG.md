@@ -15,6 +15,14 @@ enforces it at the review gate rather than relying on the writing
 agent's memory. Same pattern as the rest of the protocol: instructions
 are best-effort, gates are what hold.
 
+Two more review-gate rules in the same change. Test changes get
+reviewed before source — rewritten assertions, removed or skipped
+tests, lowered thresholds; a green suite over edited tests proves
+nothing until the edits are verified legitimate. And docs pushed to
+public repos get the same review bar as code, with the sanitization
+scan as a hard blocking gate that covers commit metadata and PR
+bodies, not just file content.
+
 ## 2026-06-01
 
 Fixed `hooks/pre-push` to be package-manager-aware. The hook

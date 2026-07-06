@@ -170,6 +170,10 @@ In addition to what `/code-review` already checks, flag:
 - Non-obvious choices missing their recorded *why* — a guard, magic
   number, defensive check, or deliberate constraint with no commit
   message or comment explaining it (see Intent Debt below)
+- **Test changes, reviewed before source.** Rewritten assertions that
+  match newly-changed behavior, removed or skipped tests, lowered
+  thresholds, weakened CI. A green suite over edited tests proves
+  nothing until the edits are verified legitimate.
 
 ### Review-until-clean — do NOT assume a fix worked
 
@@ -198,6 +202,16 @@ The file is the rulebook; each finding is a protocol amendment, not a
 code fix. Discuss, decide, then apply or reject. Mechanically re-running
 review-until-clean on the rulebook is the wrong loop — it can silently
 reword obligations and drift the protocol without deliberation.
+
+### Docs get the same bar on public repos
+
+Prose pushed to a **public** repo (READMEs, protocol docs, changelogs)
+gets a clean-context review pass before the push — accuracy, tone, no
+sensitive leakage — and review-until-clean applies. Trivial one-liners
+are a judgment call. The sanitization scan is a **hard gate that blocks
+the push** (never an informational echo), and it covers **commit
+metadata and PR bodies**, not just file content — author email and
+session-trailer leaks live there, not in the diff.
 
 ### Review Output Format
 
