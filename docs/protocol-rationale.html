@@ -552,6 +552,7 @@
           <li><a href="#skip-clauses">Skip Clauses</a></li>
           <li><a href="#code-review">/code-review on every PR</a></li>
           <li><a href="#review-until-clean">Review-until-clean</a></li>
+          <li><a href="#docs-same-bar">Docs: same bar on public repos</a></li>
           <li><a href="#review-output">Review output format</a></li>
         </ol>
       </li>
@@ -583,6 +584,11 @@
       </li>
       <li><a href="#media-gate">Media Pre-Commit Gate</a></li>
       <li><a href="#git-hook">Global Pre-Push Git Hook</a></li>
+      <li><a href="#intent-debt-sec">Intent Debt</a>
+        <ol>
+          <li><a href="#intent-debt">Externalize the why</a></li>
+        </ol>
+      </li>
     </ol>
   </nav>
 
@@ -1136,6 +1142,8 @@
             <li><code>console.log</code>, commented-out code, TODO hacks, hardcoded test values</li>
             <li>Performance issues: unoptimized queries, missing indexes, client-side fetching that should be server-side, unnecessary re-renders</li>
             <li>Violations of project-level <code>CLAUDE.md</code> conventions</li>
+            <li>Non-obvious choices missing their recorded <em>why</em> &mdash; a guard, magic number, defensive check, or deliberate constraint with no commit message or comment explaining it (see <a href="#intent-debt-sec">Intent Debt</a>)</li>
+            <li><strong>Test changes, reviewed before source.</strong> Rewritten assertions that match newly-changed behavior, removed or skipped tests, lowered thresholds, weakened CI</li>
           </ul>
         </div>
         <div class="why">
@@ -1148,6 +1156,19 @@
             problem" &mdash; instead of nitpicking style. Posting as a
             PR comment makes the findings durable so the next session can
             read them.
+            <br><br>
+            The last two flags are newer, and both exist because the
+            <em>writing</em> agent can&rsquo;t be trusted to police itself.
+            The missing-why flag is the enforcement end of the Intent Debt
+            section &mdash; the rule lives there, but a rule with no gate is
+            a wish, so the reviewer checks it on every PR. The test-diff
+            flag exists because an agent under pressure to go green will
+            rewrite the assertion to match the behavior it just broke, or
+            quietly weaken CI &mdash; not maliciously, just the cheapest
+            path to a passing suite. A green check over edited tests
+            proves nothing until the edits themselves are verified
+            legitimate, so the reviewer reads the test diff <em>first</em>,
+            before the source that made it pass.
           </div>
         </div>
       </div>
@@ -1272,8 +1293,47 @@
       </div>
 
       <!-- 2.6 OUTPUT FORMAT -->
+      <!-- 2.6 DOCS SAME BAR -->
+      <div class="rule" id="docs-same-bar">
+        <span class="rule-label">Rule 2.6 &middot; public prose</span>
+        <h3>Docs get the same bar on public repos</h3>
+        <div class="rule-body">
+          <p>
+            Prose pushed to a <strong>public</strong> repo &mdash; READMEs,
+            protocol docs, changelogs &mdash; gets a clean-context review
+            pass before the push: accuracy, tone, no sensitive leakage.
+            Review-until-clean applies (excepting <code>CLAUDE.md</code>
+            itself, per the carve-out in Rule 2.5). Trivial one-liners are
+            a judgment call.
+          </p>
+          <p>
+            The sanitization scan is a <strong>hard gate that blocks the
+            push</strong> &mdash; never an informational echo &mdash; and it
+            covers <strong>commit metadata and PR bodies</strong>, not just
+            file content.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            Two real incidents, same week. A sanitization scan ran as a
+            plain <code>echo</code>, printed "NOT clean," and the push went
+            through anyway &mdash; a warning nobody is forced to act on is
+            not a gate. And a commit reached a public repo with a private
+            email in the author field and a session URL in the trailer:
+            the <em>diff</em> was scanned and clean, but identity leaks
+            don&rsquo;t live in diffs &mdash; they live in author fields,
+            trailers, and PR descriptions, exactly where content-only
+            scans never look. Docs also carry their own risk class on a
+            public repo: an inaccurate README or a leaked detail publishes
+            instantly and permanently, so prose earns the same
+            review-until-clean loop as logic.
+          </div>
+        </div>
+      </div>
+
       <div class="rule" id="review-output">
-        <span class="rule-label">Rule 2.6 &middot; reporting</span>
+        <span class="rule-label">Rule 2.7 &middot; reporting</span>
         <h3>Review output format</h3>
         <div class="rule-body">
           <p>
@@ -2051,6 +2111,79 @@ Say 'merge it' / 'ship it' / 'merge the PR' when you're ready.</pre>
               present) preserves the intent of the gate without
               accumulating false positives.
             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== INTENT DEBT ===================== -->
+    <section id="intent-debt-sec">
+      <span class="section-num">Section 08</span>
+      <h2>Intent Debt</h2>
+      <p class="section-blurb">
+        Code records <em>what</em>, never <em>why</em> &mdash; and the why
+        is the part that decays fastest and can&rsquo;t be regenerated.
+        Every agent session starts cold, so an unrecorded why can only be
+        guessed at, and a guess about intent isn&rsquo;t the intent. The
+        term comes from Addy Osmani; the practice below is how this
+        protocol pays the debt down.
+      </p>
+
+      <div class="rule rule-accent" id="intent-debt">
+        <span class="rule-label">Rule 8.1 &middot; externalize the why</span>
+        <h3>The <em>why</em> gets written down, where it can be diffed</h3>
+        <div class="rule-body">
+          <p>
+            <strong>The test:</strong> could a cold session (or a new
+            contributor) tell whether a choice is load-bearing or
+            leftover? If not, the why isn&rsquo;t externalized yet.
+          </p>
+          <p>
+            <strong>Scope by blast radius:</strong> record the why for
+            choices expensive to get wrong or to reconstruct &mdash;
+            guards, magic numbers, defensive checks, deliberate
+            constraints. Not trivia.
+          </p>
+          <p><strong>Route at decision time,</strong> to wherever the project keeps its records:</p>
+          <ul>
+            <li>Architectural why &rarr; a decision log / ADR</li>
+            <li>Code-level why &rarr; the commit message or a comment at the diff, so it travels with the code</li>
+            <li>Deferred / blocked-on-a-dependency work &rarr; a tracked issue</li>
+            <li>Lesson learned / tried-and-failed &rarr; an engineering log</li>
+          </ul>
+          <p>
+            <strong>Tests protect intent, not just behavior:</strong>
+            where behavior is user-visible or load-bearing, the test name
+            or a comment says <em>why</em> it matters &mdash; so a green
+            refactor can&rsquo;t silently change what mattered.
+          </p>
+          <p>
+            <strong>Enforced at review, not by memory:</strong> the
+            <code>/code-review</code> flag list (Rule 2.4) checks that
+            non-obvious choices carry their why. Instructions are
+            best-effort; the review gate is what makes this hold.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            An agent can refactor code and it can explain a system, but it
+            cannot reconstruct reasoning that was never written down
+            &mdash; whether that 300ms debounce was a benchmark result or
+            a number someone typed once. The old channel for this was
+            institutional memory: humans carried the why between sessions.
+            Agents have no such channel. Every session starts blank, so
+            anything that lives only in one conversation is gone when that
+            conversation ends &mdash; and much of what makes running many
+            agents exhausting is re-supplying intent that was never
+            recorded. Writing the why at decision time costs almost
+            nothing; reconstructing it months later costs a fortune, and
+            usually just doesn&rsquo;t happen. Routing matters as much as
+            recording: a why buried in the wrong place is as unfindable as
+            one never written. And there&rsquo;s a quieter second-order
+            effect &mdash; writing the entry forces the decision to
+            actually finish. Half-settled thinking doesn&rsquo;t survive
+            the format.
           </div>
         </div>
       </div>
