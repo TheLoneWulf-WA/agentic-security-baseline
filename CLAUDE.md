@@ -207,7 +207,8 @@ reword obligations and drift the protocol without deliberation.
 
 Prose pushed to a **public** repo (READMEs, protocol docs, changelogs)
 gets a clean-context review pass before the push — accuracy, tone, no
-sensitive leakage — and review-until-clean applies. Trivial one-liners
+sensitive leakage — and review-until-clean applies (excepting
+`CLAUDE.md` itself, per the carve-out above). Trivial one-liners
 are a judgment call. The sanitization scan is a **hard gate that blocks
 the push** (never an informational echo), and it covers **commit
 metadata and PR bodies**, not just file content — author email and
