@@ -167,6 +167,13 @@ In addition to what `/code-review` already checks, flag:
 - `console.log`, commented-out code, TODO hacks, hardcoded test values
 - Performance: unoptimized queries, missing indexes, client-side fetching that should be server-side, unnecessary re-renders
 - Violations of project-level CLAUDE.md conventions
+- Non-obvious choices missing their recorded *why* — a guard, magic
+  number, defensive check, or deliberate constraint with no commit
+  message or comment explaining it (see Intent Debt below)
+- **Test changes, reviewed before source.** Rewritten assertions that
+  match newly-changed behavior, removed or skipped tests, lowered
+  thresholds, weakened CI. A green suite over edited tests proves
+  nothing until the edits are verified legitimate.
 
 ### Review-until-clean — do NOT assume a fix worked
 
@@ -195,6 +202,17 @@ The file is the rulebook; each finding is a protocol amendment, not a
 code fix. Discuss, decide, then apply or reject. Mechanically re-running
 review-until-clean on the rulebook is the wrong loop — it can silently
 reword obligations and drift the protocol without deliberation.
+
+### Docs get the same bar on public repos
+
+Prose pushed to a **public** repo (READMEs, protocol docs, changelogs)
+gets a clean-context review pass before the push — accuracy, tone, no
+sensitive leakage — and review-until-clean applies (excepting
+`CLAUDE.md` itself, per the carve-out above). Trivial one-liners
+are a judgment call. The sanitization scan is a **hard gate that blocks
+the push** (never an informational echo), and it covers **commit
+metadata and PR bodies**, not just file content — author email and
+session-trailer leaks live there, not in the diff.
 
 ### Review Output Format
 
@@ -397,3 +415,29 @@ The pre-push hook:
 If not yet installed, ask the user once per session whether to set it
 up. If declined, don't ask again that session. Don't configure git
 silently.
+
+---
+
+## Intent Debt — the *why* gets written down, where it can be diffed
+
+Code records *what*, never *why* — and an agent session starts cold
+every time, so it can only guess. A guess about intent isn't the
+intent.
+
+- **The test:** could a cold session (or a new contributor) tell
+  whether a choice is load-bearing or leftover? If not, the why isn't
+  externalized yet.
+- **Scope by blast radius:** record the why for choices expensive to
+  get wrong or to reconstruct — guards, magic numbers, defensive
+  checks, deliberate constraints. Not trivia.
+- **Route at decision time,** to wherever the project keeps its
+  records: architectural why → a decision log / ADR · code-level why →
+  the commit message or a comment at the diff, so it travels with the
+  code · deferred / blocked-on-a-dependency work → a tracked issue ·
+  lesson learned / tried-and-failed → an engineering log.
+- **Tests protect intent, not just behavior:** where behavior is
+  user-visible or load-bearing, the test name or a comment says *why*
+  it matters — so a green refactor can't silently change what mattered.
+- **Enforced at review, not by memory:** the `/code-review` flag list
+  checks that non-obvious choices carry their why. Instructions are
+  best-effort; the review gate is what makes this hold.

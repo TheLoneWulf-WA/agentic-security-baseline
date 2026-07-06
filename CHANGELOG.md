@@ -2,6 +2,27 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-07-05
+
+Added the Intent Debt section to CLAUDE.md, plus a matching item in
+the `/code-review` flag list. Motivated by Addy Osmani's "intent debt"
+framing: code records *what*, never *why*, and an agent session starts
+cold every time — so the why has to be written where it can be diffed.
+The section scopes the rule by blast radius (guards, magic numbers,
+deliberate constraints — not trivia), routes each kind of why to its
+home (decision log, commit message, issue, engineering log), and
+enforces it at the review gate rather than relying on the writing
+agent's memory. Same pattern as the rest of the protocol: instructions
+are best-effort, gates are what hold.
+
+Two more review-gate rules in the same change. Test changes get
+reviewed before source — rewritten assertions, removed or skipped
+tests, lowered thresholds; a green suite over edited tests proves
+nothing until the edits are verified legitimate. And docs pushed to
+public repos get the same review bar as code, with the sanitization
+scan as a hard blocking gate that covers commit metadata and PR
+bodies, not just file content.
+
 ## 2026-06-01
 
 Fixed `hooks/pre-push` to be package-manager-aware. The hook
