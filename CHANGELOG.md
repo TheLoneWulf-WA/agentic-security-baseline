@@ -2,6 +2,17 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-07-06
+
+Brought docs/protocol-rationale.html up to date with the 2026-07-05
+protocol additions: a new Section 08 (Intent Debt) with the
+externalize-the-why rule and its rationale, a new Rule 2.6 card for
+the docs-same-bar rule (including the two real incidents that
+motivated it), the two new flag-list bullets on the Rule 2.4 card
+with their reasoning, and TOC entries for all of it. The rationale
+doc had gone stale against the rulebook — which is itself the
+intent-debt failure the new section describes.
+
 ## 2026-07-05
 
 Added the Intent Debt section to CLAUDE.md, plus a matching item in
