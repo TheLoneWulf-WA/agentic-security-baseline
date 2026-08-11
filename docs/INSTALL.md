@@ -44,12 +44,23 @@ cp CLAUDE.md ~/.claude/CLAUDE.md
 
 If the user has substantial existing content in their `~/.claude/CLAUDE.md`, an agent should ask before overwriting and offer to merge rather than replace.
 
-### Step 2 — Install the PreToolUse hook script
+### Step 2 — Install the PreToolUse hook scripts
+
+Both hooks: the push/merge gate (Bash commands) and the config-edit
+gate (Edit/Write to the enforcement config itself).
 
 ```bash
 mkdir -p ~/.claude/hooks
 cp hooks/push-routing-gate.sh ~/.claude/hooks/push-routing-gate.sh
-chmod +x ~/.claude/hooks/push-routing-gate.sh
+cp hooks/config-edit-gate.sh ~/.claude/hooks/config-edit-gate.sh
+chmod +x ~/.claude/hooks/push-routing-gate.sh ~/.claude/hooks/config-edit-gate.sh
+```
+
+### Step 2b — Install the /until-clean skill
+
+```bash
+mkdir -p ~/.claude/skills/until-clean
+cp skills/until-clean/SKILL.md ~/.claude/skills/until-clean/SKILL.md
 ```
 
 ### Step 3 — Wire the hook into settings.json
@@ -136,8 +147,10 @@ If you need to back out:
 # Restore the previous CLAUDE.md (replace timestamp with your actual backup)
 mv ~/.claude/CLAUDE.md.bak.<timestamp> ~/.claude/CLAUDE.md
 
-# Remove the PreToolUse hook
+# Remove the PreToolUse hooks and the skill
 rm ~/.claude/hooks/push-routing-gate.sh
+rm ~/.claude/hooks/config-edit-gate.sh
+rm -r ~/.claude/skills/until-clean
 
 # Restore the previous settings.json
 mv ~/.claude/settings.json.bak.<timestamp> ~/.claude/settings.json

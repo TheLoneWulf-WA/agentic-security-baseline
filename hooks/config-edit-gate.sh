@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Config Edit Gate — Claude Code PreToolUse hook (Edit|Write)
+# Config Edit Gate — Claude Code PreToolUse hook (Edit|Write|NotebookEdit)
 #
 # The guard guarding the guard: any Edit/Write targeting the enforcement
 # config itself (~/.claude/hooks/*, settings.json, settings.local.json,
@@ -10,7 +10,13 @@
 # Location: ~/.claude/hooks/config-edit-gate.sh
 
 input=$(cat)
-file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""')
+file_path=$(echo "$input" | jq -r '.tool_input.file_path // .tool_input.notebook_path // ""')
+
+# Resolve symlinks/relative paths so a link into ~/.claude can't sidestep
+# the match (falls back to the raw path where realpath is unavailable).
+if command -v realpath >/dev/null 2>&1 && [ -n "$file_path" ]; then
+    file_path=$(realpath -m "$file_path" 2>/dev/null || echo "$file_path")
+fi
 
 case "$file_path" in
     "$HOME"/.claude/hooks/*|"$HOME"/.claude/settings.json|"$HOME"/.claude/settings.local.json|"$HOME"/.claude/keybindings.json)
