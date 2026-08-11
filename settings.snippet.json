@@ -9,6 +9,15 @@
             "command": "__USER_HOME__/.claude/hooks/push-routing-gate.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__USER_HOME__/.claude/hooks/config-edit-gate.sh"
+          }
+        ]
       }
     ]
   }

@@ -4,16 +4,23 @@
 #
 # Prompts for user confirmation when Claude attempts to:
 #   1. Push to protected branches (main/master/production)
-#   2. Run `gh pr merge` without an explicit bypass
+#   2. Merge a PR by any route (gh pr merge, gh api, curl/wget to the API) —
+#      "ask mode": the command pauses on an in-session confirmation prompt;
+#      one user keypress approves or rejects it.
+#   3. Write to enforcement config (~/.claude/hooks, settings.json) via shell.
 #
-# Enforces two protocols from ~/.claude/CLAUDE.md:
+# Enforces protocols from ~/.claude/CLAUDE.md:
 #   - Push Routing: default = feature branch + PR; override = user says "push to main"
-#   - PR Merge Follow-up: default = stop and wait for user; override = user says
-#     "ship it through" (bypass phrase), which Claude translates into
-#     MERGE_GATE_BYPASS=1 prefixing the command.
+#   - PR Merge Follow-up (ask mode, 2026-08-10): Claude runs the merge only
+#     after the user says "merge it" / "ship it"; this gate then requires a
+#     live user keypress. The literal phrase "ship it through" skips the
+#     prompt via a MERGE_GATE_BYPASS=1 prefix; every bypass is audit-logged.
+#   (To restore deny mode — user merges in the GitHub UI, Claude locked out —
+#    change the merge case's permissionDecision from "ask" to "deny".)
 #
 # This is a programmatic enforcement layer — Claude cannot bypass it without
-# the env-var prefix, and the env-var prefix is gated by a specific user phrase.
+# the env-var prefix, the prefix is gated by a specific user phrase, and every
+# use of the prefix leaves a line in ~/.claude/logs/merge-bypass.log.
 #
 # Location: ~/.claude/hooks/push-routing-gate.sh
 
@@ -21,25 +28,40 @@ input=$(cat)
 command=$(echo "$input" | jq -r '.tool_input.command // ""')
 cwd=$(echo "$input" | jq -r '.cwd // ""')
 
-# --- gh pr merge gate ---
-# Catches: gh pr merge, gh pr merge <n>, gh pr merge --squash, etc.
-# Bypassed by: MERGE_GATE_BYPASS=1 gh pr merge ...
-# Claude adds the env-var prefix only when the user has said the bypass phrase
-# ("ship it through") for the current merge. Plain "ship it" / "merge it" does
-# NOT add the prefix and so still triggers the prompt below.
-if echo "$command" | grep -qE '\bgh\s+pr\s+merge\b'; then
+# --- Merge gate: Claude does not merge PRs ---
+# Catches: gh pr merge; gh api .../pulls/<n>/merge; curl/wget to the merge API.
+if echo "$command" | grep -qiE '\bgh\s+pr\s+merge\b|\bgh\s+api\b[^|;]*pulls/[^ ]*/merge|\b(curl|wget)\b[^|;]*api\.github\.com[^ ]*pulls[^ ]*merge'; then
     if echo "$command" | grep -qE '\bMERGE_GATE_BYPASS=1\b'; then
-        # Explicit bypass present — allow silently.
+        # Explicit user-phrase bypass — allow, but leave an audit trail.
+        mkdir -p "$HOME/.claude/logs"
+        printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$cwd" "$command" >> "$HOME/.claude/logs/merge-bypass.log"
         exit 0
     fi
     jq -n '{
         hookSpecificOutput: {
             hookEventName: "PreToolUse",
             permissionDecision: "ask",
-            permissionDecisionReason: "gh pr merge detected. PR Merge Follow-up protocol requires user confirmation. Only confirm if you explicitly approved this merge (\"ship it\" / \"merge it\"). To skip this prompt next time, use the bypass phrase \"ship it through\"."
+            permissionDecisionReason: "Merge gate: approve ONLY if you just told Claude to merge this PR (\"merge it\" / \"ship it\") AND the pre-merge summary showed Review loop: CLEAN. Reject otherwise. (\"ship it through\" skips this prompt next time; every skip is audit-logged.)"
         }
     }'
     exit 0
+fi
+
+# --- Enforcement-config self-protection (shell writes) ---
+# Shell-side twin of config-edit-gate.sh: writing to the hooks/settings that
+# implement these gates must never happen silently via Bash redirection,
+# sed -i, mv, etc. Read-only access (cat/grep/ls) stays frictionless.
+if echo "$command" | grep -qE '\.claude/(hooks|settings\.json|settings\.local\.json|keybindings\.json)'; then
+    if echo "$command" | grep -qE '>>|>[[:space:]]*[^&[:space:]]|\bsed[[:space:]]+-i\b|\btee\b|\brm\b|\bmv\b|\bcp\b|\bchmod\b|\bln\b|\btruncate\b'; then
+        jq -n '{
+            hookSpecificOutput: {
+                hookEventName: "PreToolUse",
+                permissionDecision: "ask",
+                permissionDecisionReason: "This command writes to Claude Code enforcement config (~/.claude/hooks or settings). Confirm only if you explicitly requested this change."
+            }
+        }'
+        exit 0
+    fi
 fi
 
 # Not a git push? Allow immediately.
