@@ -14,16 +14,25 @@ layers.
 New: `skills/until-clean/SKILL.md` (the `/until-clean` slash command —
 runs the loop, verifies each prior finding is resolved rather than
 reworded, reports a fixed-format verdict line, writes a per-branch
-clean marker under `.git/` that any new commit invalidates). New:
+clean marker recording the head SHA of the clean pass). New:
 `hooks/config-edit-gate.sh` (prompts on agent edits to the enforcement
-config itself). Updated: `hooks/push-routing-gate.sh` now intercepts
-merges by any route (`gh pr merge`, `gh api`, `curl`/`wget` to the
-merge API) in ask mode — the agent merges, a human keystroke gates the
-act — with a documented one-word flip to deny mode; the `"ship it
-through"` bypass is now audit-logged to `~/.claude/logs/`. Updated:
+config itself — hooks, settings, skills, commands, the protocol
+CLAUDE.md; Edit/Write/NotebookEdit, symlink-resolving). Updated:
+`hooks/push-routing-gate.sh` now intercepts merges via `gh pr merge`,
+`gh api`, and `curl`/`wget` to the merge API in ask mode — the agent
+merges, a human keystroke gates the act, and the prompt reports the
+current branch's marker state (clean / stale / missing) — with a
+documented one-word flip to deny mode; the `"ship it through"` bypass
+is audit-logged to `~/.claude/logs/`; the protected-branch push check
+is now refspec-aware (`HEAD:main`, trailing flags). Updated:
 `CLAUDE.md` (mandatory verdict line at every pre-merge stop; ask-mode
-merge protocol), `settings.snippet.json` (wires the Edit/Write gate),
-`install.sh`, README.
+merge protocol), `settings.snippet.json` (wires the Edit/Write/
+NotebookEdit gate), `install.sh` (places the new pieces; settings merge
+now preserves existing PreToolUse hooks), README.
+
+`docs/protocol-rationale.html` still describes the pre-mechanization
+merge gate — a rationale-doc update follows in its own change, per the
+convention this changelog's 2026-07-06 entry set.
 
 ## 2026-07-06
 

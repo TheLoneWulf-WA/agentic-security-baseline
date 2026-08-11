@@ -203,8 +203,10 @@ outcome explicitly:
 means the loop wasn't closed — the user should never have to ask.
 The `/until-clean` skill (`skills/until-clean/SKILL.md`, installed to
 `~/.claude/skills/`) runs the loop on demand and, on a clean pass,
-writes a per-branch marker at `<git-dir>/review-clean/<branch>`
-(head SHA + timestamp; any new commit invalidates it).
+writes a per-branch marker at
+`<git-dir>/review-clean/<branch with / replaced by _>` (head SHA +
+timestamp). The merge gate reads the current branch's marker and shows
+its state — clean / stale / missing — in the confirmation prompt.
 
 **Carve-out — `CLAUDE.md` itself:** review findings on `CLAUDE.md`
 (this file, or any project-level `CLAUDE.md`) are **not auto-fixable**.
@@ -273,8 +275,8 @@ clean.
 After a PR is created and local reviews complete, **do not auto-merge**
 (merge gate runs in **ask mode** by default). Stop and tell the user:
 
-> "PR opened at <url>. Review loop: <verdict line>. Say 'merge it'
-> when you're ready."
+> "PR opened at <url>. <verdict line>. Say 'merge it' when you're
+> ready."
 
 On `"merge it"` / `"ship it"` / `"merge the PR"` / `"merge that"`: run
 `gh pr merge --squash --delete-branch` on the most recently opened PR
@@ -293,21 +295,27 @@ If multiple PRs are open in the session, ask which one.
 ### Hook-enforced merge gate
 
 `~/.claude/hooks/push-routing-gate.sh` (registered as a `PreToolUse`
-hook on `Bash` in `~/.claude/settings.json`) intercepts every merge
-attempt from Claude — `gh pr merge`, `gh api .../pulls/<n>/merge`, and
-`curl`/`wget` to the merge API — and pauses it on an in-session user
-confirmation prompt. This is **ask mode**, the shipped default: Claude
-does the work, a human keystroke gates the act. Flip the merge case's
-`permissionDecision` from `"ask"` to `"deny"` for **deny mode** — Claude
-locked out of merging entirely, you merge in the GitHub UI. Every
-honored bypass (below) is audit-logged to
-`~/.claude/logs/merge-bypass.log` in both modes.
+hook on `Bash` in `~/.claude/settings.json`) intercepts merge attempts
+via the routes agents actually use — `gh pr merge`,
+`gh api .../pulls/<n>/merge`, and `curl`/`wget` to the merge API — and
+pauses them on an in-session user confirmation prompt that includes the
+review-loop marker state for the current branch. This is **ask mode**,
+the shipped default: Claude does the work, a human keystroke gates the
+act. Flip the merge case's `permissionDecision` from `"ask"` to
+`"deny"` for **deny mode** — Claude locked out of merging (via those
+routes), you merge in the GitHub UI. Every honored bypass (below) is
+audit-logged to `~/.claude/logs/merge-bypass.log` in both modes. It's
+a pattern match on command shapes, not a sandbox — unenumerated routes
+exist; the gate makes drift and casual circumvention loud, not
+impossible.
 
-The hook also prompts on shell writes to `~/.claude/hooks` / settings
-files, and its companion `hooks/config-edit-gate.sh` (PreToolUse on
-`Edit|Write`) prompts on direct edits to the same enforcement config —
-the guard guarding the guard. A gate an agent can silently rewrite is
-not a gate.
+The hook also prompts on shell writes to enforcement config (hooks,
+settings, skills, commands, the protocol CLAUDE.md — including
+project-level `.claude/settings.json`), and its companion
+`hooks/config-edit-gate.sh` (PreToolUse on `Edit|Write|NotebookEdit`,
+`$HOME`-scoped, symlink-resolving) prompts on direct edits to the same
+config — the guard guarding the guard. A gate an agent can silently
+rewrite is not a gate.
 
 **Bypass phrase: `"ship it through"`** (literal). When the user says
 exactly this phrase for a specific merge, Claude prefixes the command:
