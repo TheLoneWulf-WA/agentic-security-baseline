@@ -13,7 +13,9 @@ The full reasoning is in two companion articles: ["You Can Just Do Things." But 
 ## What's in here
 
 - **`CLAUDE.md`** — A workflow protocol that loads into every Claude Code session. Defines when to run `/security-review` and `/code-review`, how pushes get routed, how dependency installs are gated, and how PR merges happen. Lean by design — see `docs/protocol-rationale.html` for the why behind each rule.
-- **`hooks/push-routing-gate.sh`** — A Claude Code PreToolUse hook. Fires on every `git push` Claude tries to run. If the push targets `main`, `master`, or `production`, it prompts for confirmation. Claude can't bypass it.
+- **`hooks/push-routing-gate.sh`** — A Claude Code PreToolUse hook. Fires on every `git push` Claude tries to run (prompts if the push targets `main`, `master`, or `production`), on every PR merge attempt by any route — `gh pr merge`, the `gh api` merge endpoint, `curl`/`wget` to the GitHub API — and on shell commands that write to the hook/settings files themselves. Merges pause for a one-keypress confirmation ("ask mode"); the `"ship it through"` bypass phrase skips the prompt and every use of it is written to an audit log. One word in the script flips merges to "deny mode" if you'd rather click merge in the GitHub UI yourself.
+- **`hooks/config-edit-gate.sh`** — The guard guarding the guard: a PreToolUse hook on `Edit`/`Write` that prompts whenever the agent tries to edit the enforcement config itself (`~/.claude/hooks/*`, `settings.json`). A gate an agent can silently rewrite is not a gate. (The platform's own permission classifier also blocks some of these edits — this hook makes the protection explicit and yours.)
+- **`skills/until-clean/SKILL.md`** — A slash command (`/until-clean`) that mechanizes the review-until-clean loop: re-reviews the current branch's PR, verifies every previously raised finding is actually resolved (not reworded), loops fix → re-review until a pass comes back empty, then reports one fixed-format verdict line and writes a per-branch clean marker under `.git/` that any new commit invalidates. Exists because "the findings were fixed" and "a re-run came back clean" are different claims — the gap between them is where I kept drifting.
 - **`hooks/pre-push`** — A global git pre-push hook (configured via `core.hooksPath`). Runs on every push from the terminal regardless of whether Claude is involved. Detects the package manager from the lockfile (npm / yarn / pnpm / bun) and runs the matching `audit --audit-level=critical`; blocks on critical findings. Skips cleanly if no recognized lockfile is present. Warns on changes to sensitive files.
 - **`settings.snippet.json`** — The Claude Code settings entry that wires the PreToolUse hook in.
 - **`install.sh`** — A shell script that places the files, substitutes paths, configures git, and sets npm config for supply chain protection (`ignore-scripts`, `min-release-age` when supported). Idempotent.
@@ -34,6 +36,16 @@ The system also relies on three things that aren't in this repo:
 - `security-guidance@claude-plugins-official` plugin (Anthropic's) — continuous in-session checks via hooks. This is "Layer 0" in `CLAUDE.md`. Install with `/plugin install security-guidance@claude-plugins-official` inside Claude Code. Canonical docs: <https://code.claude.com/docs/en/security-guidance>.
 - `/security-review` and `/code-review` slash commands (Anthropic's, install separately — links in `docs/INSTALL.md`)
 - Socket.dev's free tier on GitHub for supply chain scanning at the PR level
+
+## The review loop, mechanized
+
+The newest layer, added after a drift incident that made the problem concrete: review findings got fixed, the mandatory re-review didn't happen until I asked — and when it did run, it caught a *new* bug the first pass had missed. The lesson wasn't "try harder"; instructions in `CLAUDE.md` are best-effort by nature. So the loop got moved into things that can't drift:
+
+- **A skill** (`/until-clean`) that runs the whole loop as a procedure with a fixed-format answer — `Review loop: CLEAN (re-run after fixes at <sha>)` or a findings list. Seven keystrokes replace a question I was typing over and over.
+- **A marker** written on each clean pass (`.git/review-clean/<branch>`, head SHA + timestamp). Any new commit makes it stale — which catches exactly the drift class above: fixes pushed after a clean pass silently invalidate it.
+- **A merge gate in three postures.** Ask mode (default): the agent merges, but the command pauses on your keypress. Deny mode: the agent can't merge at all; you click in the GitHub UI. Bypass phrase: `"ship it through"` merges immediately, audit-logged. Prose for principles, skills for procedures, hooks for prohibitions — judgment at the top, mechanism at the bottom.
+
+Worth knowing: the strongest layer — server-side branch protection — needs GitHub Pro on private repos. The gate here is the best you can do locally on the free plan, and it's honest about that: it stops drift cold, and it makes deliberate circumvention loud (audit log, config-edit prompts) rather than impossible.
 
 ## Who this might help
 

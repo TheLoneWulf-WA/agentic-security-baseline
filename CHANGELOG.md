@@ -2,6 +2,29 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-08-10
+
+Mechanized the review-until-clean loop and hardened the merge gate.
+Motivated by a live drift incident: review findings were fixed, the
+mandatory re-review didn't run until asked for — and when it ran, it
+surfaced a new bug the first pass had missed. Prose rules drift under
+momentum; the fix was moving the loop into invocable and mechanical
+layers.
+
+New: `skills/until-clean/SKILL.md` (the `/until-clean` slash command —
+runs the loop, verifies each prior finding is resolved rather than
+reworded, reports a fixed-format verdict line, writes a per-branch
+clean marker under `.git/` that any new commit invalidates). New:
+`hooks/config-edit-gate.sh` (prompts on agent edits to the enforcement
+config itself). Updated: `hooks/push-routing-gate.sh` now intercepts
+merges by any route (`gh pr merge`, `gh api`, `curl`/`wget` to the
+merge API) in ask mode — the agent merges, a human keystroke gates the
+act — with a documented one-word flip to deny mode; the `"ship it
+through"` bypass is now audit-logged to `~/.claude/logs/`. Updated:
+`CLAUDE.md` (mandatory verdict line at every pre-merge stop; ask-mode
+merge protocol), `settings.snippet.json` (wires the Edit/Write gate),
+`install.sh`, README.
+
 ## 2026-07-06
 
 Brought docs/protocol-rationale.html up to date with the 2026-07-05
