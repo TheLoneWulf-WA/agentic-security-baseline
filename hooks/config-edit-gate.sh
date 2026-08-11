@@ -13,9 +13,15 @@ input=$(cat)
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // .tool_input.notebook_path // ""')
 
 # Resolve symlinks/relative paths so a link into ~/.claude can't sidestep
-# the match (falls back to the raw path where realpath is unavailable).
+# the match. No -m flag: macOS ships BSD realpath, which lacks it — for a
+# not-yet-existing target (a Write creating a new file), resolve the
+# parent directory and re-attach the basename. Raw path as last resort.
 if command -v realpath >/dev/null 2>&1 && [ -n "$file_path" ]; then
-    file_path=$(realpath -m "$file_path" 2>/dev/null || echo "$file_path")
+    if resolved=$(realpath "$file_path" 2>/dev/null); then
+        file_path="$resolved"
+    elif resolved=$(realpath "$(dirname "$file_path")" 2>/dev/null); then
+        file_path="$resolved/$(basename "$file_path")"
+    fi
 fi
 
 case "$file_path" in
