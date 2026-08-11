@@ -103,10 +103,12 @@ fi
 
 # --- Check 1: Protected branch named as a push target ---
 # Catches: git push origin main (also with trailing flags like
-# --no-verify), refspec forms (HEAD:main, feature:main), -u variants.
-# The [\s:] left boundary means feature-main does NOT match; the (\s|$)
-# right boundary means trailing flags no longer defeat the check.
-if echo "$command" | grep -qE '[[:space:]:](main|master|production)([[:space:]]|$)'; then
+# --no-verify), refspec forms (HEAD:main, feature:main,
+# HEAD:refs/heads/main, +main force-refspecs), quoted branch names,
+# -u variants. Left boundary admits space, colon, slash, plus, and
+# quotes — so feature-main does NOT match; right boundary admits
+# space, quotes, or end-of-command — so trailing flags don't defeat it.
+if echo "$command" | grep -qE "[[:space:]:/+\"'](main|master|production)([[:space:]\"']|\$)"; then
     jq -n '{
         hookSpecificOutput: {
             hookEventName: "PreToolUse",
