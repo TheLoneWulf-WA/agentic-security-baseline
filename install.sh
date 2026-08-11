@@ -52,12 +52,19 @@ fi
 cp "$REPO_DIR/CLAUDE.md" "$HOME/.claude/CLAUDE.md"
 echo "✓ Installed protocol to ~/.claude/CLAUDE.md"
 
-# ---- Step 2: Install PreToolUse hook script ----
+# ---- Step 2: Install PreToolUse hook scripts ----
 
 mkdir -p "$HOME/.claude/hooks"
 cp "$REPO_DIR/hooks/push-routing-gate.sh" "$HOME/.claude/hooks/push-routing-gate.sh"
-chmod +x "$HOME/.claude/hooks/push-routing-gate.sh"
-echo "✓ Installed PreToolUse hook to ~/.claude/hooks/push-routing-gate.sh"
+cp "$REPO_DIR/hooks/config-edit-gate.sh" "$HOME/.claude/hooks/config-edit-gate.sh"
+chmod +x "$HOME/.claude/hooks/push-routing-gate.sh" "$HOME/.claude/hooks/config-edit-gate.sh"
+echo "✓ Installed PreToolUse hooks to ~/.claude/hooks/ (push-routing-gate, config-edit-gate)"
+
+# ---- Step 2b: Install the /until-clean skill ----
+
+mkdir -p "$HOME/.claude/skills/until-clean"
+cp "$REPO_DIR/skills/until-clean/SKILL.md" "$HOME/.claude/skills/until-clean/SKILL.md"
+echo "✓ Installed /until-clean skill to ~/.claude/skills/until-clean/"
 
 # ---- Step 3: Wire hook into settings.json ----
 
@@ -75,8 +82,14 @@ if [ ! -f "$SETTINGS" ]; then
 else
     backup="$SETTINGS.bak.$TIMESTAMP"
     cp "$SETTINGS" "$backup"
-    # Deep-merge: existing settings + snippet's hooks
-    jq -s '.[0] * .[1]' "$SETTINGS" "$TMP_SNIPPET" > "$SETTINGS.new"
+    # Deep-merge for sibling keys; hooks.PreToolUse needs explicit array
+    # concatenation because jq's * replaces arrays wholesale — a plain
+    # merge would silently drop any PreToolUse hooks the user already has.
+    # `unique` keeps the merge idempotent on re-runs; it sorts, so entry
+    # order may change (harmless: all matching PreToolUse hooks run).
+    jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
+           | (.[0] * .[1]) | .hooks.PreToolUse = $pt' \
+        "$SETTINGS" "$TMP_SNIPPET" > "$SETTINGS.new"
     mv "$SETTINGS.new" "$SETTINGS"
     echo "✓ Merged hook config into ~/.claude/settings.json"
     echo "  (previous version backed up to $backup)"

@@ -44,12 +44,23 @@ cp CLAUDE.md ~/.claude/CLAUDE.md
 
 If the user has substantial existing content in their `~/.claude/CLAUDE.md`, an agent should ask before overwriting and offer to merge rather than replace.
 
-### Step 2 — Install the PreToolUse hook script
+### Step 2 — Install the PreToolUse hook scripts
+
+Both hooks: the push/merge gate (Bash commands) and the config-edit
+gate (Edit/Write/NotebookEdit to the enforcement config itself).
 
 ```bash
 mkdir -p ~/.claude/hooks
 cp hooks/push-routing-gate.sh ~/.claude/hooks/push-routing-gate.sh
-chmod +x ~/.claude/hooks/push-routing-gate.sh
+cp hooks/config-edit-gate.sh ~/.claude/hooks/config-edit-gate.sh
+chmod +x ~/.claude/hooks/push-routing-gate.sh ~/.claude/hooks/config-edit-gate.sh
+```
+
+### Step 2b — Install the /until-clean skill
+
+```bash
+mkdir -p ~/.claude/skills/until-clean
+cp skills/until-clean/SKILL.md ~/.claude/skills/until-clean/SKILL.md
 ```
 
 ### Step 3 — Wire the hook into settings.json
@@ -64,14 +75,18 @@ if [ ! -f ~/.claude/settings.json ]; then
     cp "$SNIPPET" ~/.claude/settings.json
 else
     cp ~/.claude/settings.json ~/.claude/settings.json.bak.$(date +%Y%m%d-%H%M%S)
-    jq -s '.[0] * .[1]' ~/.claude/settings.json "$SNIPPET" > ~/.claude/settings.json.new
+    # hooks.PreToolUse is concatenated explicitly — jq's * replaces arrays,
+    # which would drop any PreToolUse hooks you already have.
+    jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
+           | (.[0] * .[1]) | .hooks.PreToolUse = $pt' \
+        ~/.claude/settings.json "$SNIPPET" > ~/.claude/settings.json.new
     mv ~/.claude/settings.json.new ~/.claude/settings.json
 fi
 
 rm "$SNIPPET"
 ```
 
-The `jq -s '.[0] * .[1]'` pattern deep-merges the snippet into existing settings, preserving the user's other config (permissions, plugins, etc.).
+Sibling keys (permissions, plugins, etc.) deep-merge via `*`; `hooks.PreToolUse` is concatenated explicitly because `*` would replace the array and drop any hooks you already have. `unique` makes re-runs idempotent — note it sorts, so entry order may change (harmless: all matching PreToolUse hooks run).
 
 ### Step 4 — Install the global git pre-push hook
 
@@ -121,6 +136,9 @@ Tell the user what should now be true:
 
 - A new Claude Code session will load the protocol from `~/.claude/CLAUDE.md`
 - Pushes to `main`, `master`, or `production` will prompt for confirmation (the PreToolUse hook)
+- PR merges Claude runs (`gh pr merge` and the API routes) will pause on a confirmation prompt showing the review-loop marker state (ask mode)
+- Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands) will prompt (the config-edit gate)
+- `/until-clean` will be available as a slash command in new sessions
 - Direct terminal pushes to those branches will run `npm audit` and warn on sensitive file changes (the global git hook)
 - PRs will be scanned by Socket.dev (once the GitHub App is installed)
 
@@ -136,8 +154,10 @@ If you need to back out:
 # Restore the previous CLAUDE.md (replace timestamp with your actual backup)
 mv ~/.claude/CLAUDE.md.bak.<timestamp> ~/.claude/CLAUDE.md
 
-# Remove the PreToolUse hook
+# Remove the PreToolUse hooks and the skill
 rm ~/.claude/hooks/push-routing-gate.sh
+rm ~/.claude/hooks/config-edit-gate.sh
+rm -r ~/.claude/skills/until-clean
 
 # Restore the previous settings.json
 mv ~/.claude/settings.json.bak.<timestamp> ~/.claude/settings.json

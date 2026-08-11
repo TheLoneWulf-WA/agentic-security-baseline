@@ -2,6 +2,38 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-08-10
+
+Mechanized the review-until-clean loop and hardened the merge gate.
+Motivated by a live drift incident: review findings were fixed, the
+mandatory re-review didn't run until asked for — and when it ran, it
+surfaced a new bug the first pass had missed. Prose rules drift under
+momentum; the fix was moving the loop into invocable and mechanical
+layers.
+
+New: `skills/until-clean/SKILL.md` (the `/until-clean` slash command —
+runs the loop, verifies each prior finding is resolved rather than
+reworded, reports a fixed-format verdict line, writes a per-branch
+clean marker recording the head SHA of the clean pass). New:
+`hooks/config-edit-gate.sh` (prompts on agent edits to the enforcement
+config itself — hooks, settings, skills, commands, the protocol
+CLAUDE.md; Edit/Write/NotebookEdit, symlink-resolving). Updated:
+`hooks/push-routing-gate.sh` now intercepts merges via `gh pr merge`,
+`gh api`, and `curl`/`wget` to the merge API in ask mode — the agent
+merges, a human keystroke gates the act, and the prompt reports the
+current branch's marker state (clean / stale / missing) — with a
+documented one-word flip to deny mode; the `"ship it through"` bypass
+is audit-logged to `~/.claude/logs/`; the protected-branch push check
+is now refspec-aware (`HEAD:main`, trailing flags). Updated:
+`CLAUDE.md` (mandatory verdict line at every pre-merge stop; ask-mode
+merge protocol), `settings.snippet.json` (wires the Edit/Write/
+NotebookEdit gate), `install.sh` (places the new pieces; settings merge
+now preserves existing PreToolUse hooks), README.
+
+`docs/protocol-rationale.html` still describes the pre-mechanization
+merge gate — a rationale-doc update follows in its own change, per the
+convention this changelog's 2026-07-06 entry set.
+
 ## 2026-07-06
 
 Brought docs/protocol-rationale.html up to date with the 2026-07-05
