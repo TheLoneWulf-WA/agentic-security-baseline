@@ -85,7 +85,8 @@ else
     # Deep-merge for sibling keys; hooks.PreToolUse needs explicit array
     # concatenation because jq's * replaces arrays wholesale — a plain
     # merge would silently drop any PreToolUse hooks the user already has.
-    # `unique` keeps the merge idempotent on re-runs.
+    # `unique` keeps the merge idempotent on re-runs; it sorts, so entry
+    # order may change (harmless: all matching PreToolUse hooks run).
     jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
            | (.[0] * .[1]) | .hooks.PreToolUse = $pt' \
         "$SETTINGS" "$TMP_SNIPPET" > "$SETTINGS.new"

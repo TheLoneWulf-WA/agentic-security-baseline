@@ -86,7 +86,7 @@ fi
 rm "$SNIPPET"
 ```
 
-The `jq -s '.[0] * .[1]'` pattern deep-merges the snippet into existing settings, preserving the user's other config (permissions, plugins, etc.).
+Sibling keys (permissions, plugins, etc.) deep-merge via `*`; `hooks.PreToolUse` is concatenated explicitly because `*` would replace the array and drop any hooks you already have. `unique` makes re-runs idempotent — note it sorts, so entry order may change (harmless: all matching PreToolUse hooks run).
 
 ### Step 4 — Install the global git pre-push hook
 
@@ -136,6 +136,9 @@ Tell the user what should now be true:
 
 - A new Claude Code session will load the protocol from `~/.claude/CLAUDE.md`
 - Pushes to `main`, `master`, or `production` will prompt for confirmation (the PreToolUse hook)
+- PR merges Claude runs (`gh pr merge` and the API routes) will pause on a confirmation prompt showing the review-loop marker state (ask mode)
+- Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands) will prompt (the config-edit gate)
+- `/until-clean` will be available as a slash command in new sessions
 - Direct terminal pushes to those branches will run `npm audit` and warn on sensitive file changes (the global git hook)
 - PRs will be scanned by Socket.dev (once the GitHub App is installed)
 

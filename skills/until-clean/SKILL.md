@@ -74,7 +74,9 @@ findings (this has happened in practice).
 
 - Never mark a finding resolved without an agent verifying it on the
   pushed state. Self-assessment does not count.
-- The marker is per-branch, local-only (lives under `.git/`), and is
-  invalidated by any new commit — a stale marker is treated as absent.
+- The marker is per-branch, local-only (lives under `<git-dir>/review-clean/`,
+  worktree-accurate), and is invalidated by any new commit — the merge
+  gate reports a stale marker as an explicit WARNING, distinct from a
+  missing one.
 - CLAUDE.md findings follow the carve-out: they are amendments to
   discuss, never auto-fixes, and never block silently — surface them.
