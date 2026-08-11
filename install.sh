@@ -82,8 +82,13 @@ if [ ! -f "$SETTINGS" ]; then
 else
     backup="$SETTINGS.bak.$TIMESTAMP"
     cp "$SETTINGS" "$backup"
-    # Deep-merge: existing settings + snippet's hooks
-    jq -s '.[0] * .[1]' "$SETTINGS" "$TMP_SNIPPET" > "$SETTINGS.new"
+    # Deep-merge for sibling keys; hooks.PreToolUse needs explicit array
+    # concatenation because jq's * replaces arrays wholesale — a plain
+    # merge would silently drop any PreToolUse hooks the user already has.
+    # `unique` keeps the merge idempotent on re-runs.
+    jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
+           | (.[0] * .[1]) | .hooks.PreToolUse = $pt' \
+        "$SETTINGS" "$TMP_SNIPPET" > "$SETTINGS.new"
     mv "$SETTINGS.new" "$SETTINGS"
     echo "✓ Merged hook config into ~/.claude/settings.json"
     echo "  (previous version backed up to $backup)"

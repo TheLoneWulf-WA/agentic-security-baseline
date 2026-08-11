@@ -47,7 +47,7 @@ If the user has substantial existing content in their `~/.claude/CLAUDE.md`, an 
 ### Step 2 — Install the PreToolUse hook scripts
 
 Both hooks: the push/merge gate (Bash commands) and the config-edit
-gate (Edit/Write to the enforcement config itself).
+gate (Edit/Write/NotebookEdit to the enforcement config itself).
 
 ```bash
 mkdir -p ~/.claude/hooks
@@ -75,7 +75,11 @@ if [ ! -f ~/.claude/settings.json ]; then
     cp "$SNIPPET" ~/.claude/settings.json
 else
     cp ~/.claude/settings.json ~/.claude/settings.json.bak.$(date +%Y%m%d-%H%M%S)
-    jq -s '.[0] * .[1]' ~/.claude/settings.json "$SNIPPET" > ~/.claude/settings.json.new
+    # hooks.PreToolUse is concatenated explicitly — jq's * replaces arrays,
+    # which would drop any PreToolUse hooks you already have.
+    jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
+           | (.[0] * .[1]) | .hooks.PreToolUse = $pt' \
+        ~/.claude/settings.json "$SNIPPET" > ~/.claude/settings.json.new
     mv ~/.claude/settings.json.new ~/.claude/settings.json
 fi
 
