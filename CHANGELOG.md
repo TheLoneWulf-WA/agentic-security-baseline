@@ -14,8 +14,7 @@ record of what shipped then. **If you installed before this date, run
 value". `tools/audit.sh` now shows the value in green only when it is a plain
 positive number of days (fractions such as `0.5` included) under
 10,000, and otherwise (`2d`, `0`, a negative number, or 10,000 days or
-more, a cutoff older than npm itself, so no version is old enough and npm
-cannot install anything new from the registry) shows
+more, a cutoff from before npm existed) shows
 the command to fix it. `docs/protocol-rationale.html` still shows
 `min-release-age 2d`; its correction follows with the rationale-doc
 update, in its own change.
