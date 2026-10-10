@@ -114,16 +114,25 @@ if command -v npm >/dev/null 2>&1; then
     ylw "  -> ignore-scripts = $ig. Set it: npm config set ignore-scripts true"
   fi
   mra=$(npm config get min-release-age 2>/dev/null)
-  if [ -z "$mra" ] || [ "$mra" = "undefined" ] || [ "$mra" = "null" ]; then
-    ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2"
-  elif case "$mra" in *[!0-9]*) true ;; *) false ;; esac; then
-    # npm takes a plain number of days; an older version of this kit suggested "2d", which recent npm rejects.
-    ylw "  -> min-release-age = $mra is not a number of days (npm rejects it). Set it: npm config set min-release-age 2"
-  elif [ "$mra" -eq 0 ]; then
-    ylw "  -> min-release-age = $mra turns the delay off. Set it: npm config set min-release-age 2"
-  else
-    grn "  min-release-age = $mra"
-  fi
+  # npm takes a number of days (fractions allowed, e.g. 0.5 for twelve hours). An older version of this kit
+  # suggested "2d", which recent npm rejects; 0 or a negative number turns the delay off.
+  case "$mra" in
+    "" | undefined | null)
+      ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2" ;;
+    -*)
+      ylw "  -> min-release-age = $mra turns the delay off. Set it: npm config set min-release-age 2" ;;
+    *[!0-9.]* | *.*.* | .)
+      ylw "  -> min-release-age = $mra is not a number of days (npm rejects it). Set it: npm config set min-release-age 2" ;;
+    *)
+      int=${mra%%.*}
+      if [ ${#int} -gt 6 ]; then
+        ylw "  -> min-release-age = $mra is too large for npm to use. Set it: npm config set min-release-age 2"
+      elif case "$mra" in *[1-9]*) false ;; *) true ;; esac; then
+        ylw "  -> min-release-age = $mra turns the delay off. Set it: npm config set min-release-age 2"
+      else
+        grn "  min-release-age = $mra"
+      fi ;;
+  esac
 else
   ylw "  npm not found — skipping"
 fi
