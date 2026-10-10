@@ -92,7 +92,7 @@ A few defaults need adapting for your stack: the strict gate's payment processor
 ## A few things worth knowing
 
 - This is what I have today. It'll change. If you adopt any of it, treat it the same way — test it, adjust it, push back on the parts that don't fit you.
-- Review-until-clean burns tokens. On a noisy diff that's three or four review cycles before convergence. You'll feel it on your usage limit.
+- Review-until-clean burns tokens. On a noisy diff that's three or four review cycles before convergence. `/adversarial-review` adds three more reviewers on the most capable model to every sensitive PR, and each finding round costs a verification pass. You'll feel it on your usage limit.
 - The `CLAUDE.md` is a permanent context tax. It loads into every session. As it grows, it costs more. Try not to let it bloat without reason.
 - I'm not the deepest expert on bash hooks or settings.json internals. I had Claude write the scripts, I read them, I tested them. They've held up. If something breaks at 2am, debugging it likely involves asking Claude again.
 - Threat models differ. The defaults here reflect what I worry about. They might miss things you should worry about.
