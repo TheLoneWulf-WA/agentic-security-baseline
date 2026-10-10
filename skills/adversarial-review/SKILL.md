@@ -80,7 +80,8 @@ A CLEAN verdict is never given from this skill alone.
 
 4. **Fix every finding.**
    - One commit per finding, building between each. Closely related
-     findings in the same lines may share a commit; say so in the ledger.
+     findings in the same lines may share a commit; say so in the commit
+     message and the ledger.
    - LOW findings are fixed too, or stated plainly as not fixed with the
      reason. Never folded into "clean".
    - A finding that is the user's to decide (wording a person reads, a
