@@ -12,8 +12,10 @@ record of what shipped then. **If you installed before this date, run
 `npm config set min-release-age 2`** (or re-run `install.sh`): npm rejects
 `2d`, and on recent npm 11 it makes installs fail with "Invalid time
 value". `tools/audit.sh` now shows the value in green only when it is a plain
-positive number of days (fractions such as `0.5` included), and
-otherwise (`2d`, `0`, a negative number) shows the command to fix it. `docs/protocol-rationale.html` still shows
+positive number of days (fractions such as `0.5` included) under
+10,000, and otherwise (`2d`, `0`, a negative number, or 10,000 days or
+more, which is older than npm itself and so blocks every install) shows
+the command to fix it. `docs/protocol-rationale.html` still shows
 `min-release-age 2d`; its correction follows with the rationale-doc
 update, in its own change.
 
