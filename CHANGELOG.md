@@ -2,6 +2,47 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-10-10
+
+Brought the repo up to date with the protocol as it is used today.
+
+Set an order for the reviews on one PR, in a new "The order, for one
+PR" section at the top of the Review Protocol: local checks and a real
+run of the thing, `/security-review` before the first push, push and
+open the PR, `/adversarial-review` on sensitive PRs, fix every finding,
+`/until-clean` until a pass after the last fix is clean, then
+`/code-review --comment` last, at the clean head, and a fresh
+`/until-clean` pass if main moved under the same files before merge.
+The order came from what each step caught in practice: each looks with
+a different lens, the role-based review found the most, the
+verification pass caught what the fixes broke, and the diff-only
+`/code-review` still found things the earlier reviewers had passed —
+so it runs last, where its comments describe the code that will merge.
+
+The adversarial review became a slash command. New:
+`skills/adversarial-review/SKILL.md` (`/adversarial-review` — three
+fresh-context reviewers, each in a role: a hostile party, the on-call
+engineer, the person in the chair; no checklist, never the author's
+conclusions; fixes every finding, LOW included, and hands off to
+`/until-clean`, which gives the verdict). `CLAUDE.md` gained a matching
+section saying when it runs without being asked. `install.sh` and
+`docs/INSTALL.md` install it the same way as `/until-clean`; no hook or
+settings change was needed.
+
+Other sections had been added to the live protocol since the last sync
+and are now here: Operating Posture (momentum on labor, never on
+judgment; the always-ask classes; recommend technical, ask design; a
+judgment ledger at every pre-merge stop), PR Decomposition, and Project
+Documentation Architecture. Smaller edits: Layer 0 reviews and both
+`/until-clean` reviewers run on the most capable model available; the
+verdict line sits next to the judgment ledger; Intent Debt routes the
+why through the project's doc atlas and is checked by the ledger as
+well as `/code-review`.
+
+`docs/protocol-rationale.html` does not cover these additions yet — a
+rationale-doc update follows in its own change, per the convention this
+changelog's 2026-07-06 entry set.
+
 ## 2026-08-10
 
 Mechanized the review-until-clean loop and hardened the merge gate.
