@@ -11,9 +11,10 @@ Fixed the `min-release-age` value everywhere it is set or suggested
 record of what shipped then. **If you installed before this date, run
 `npm config set min-release-age 2`** (or re-run `install.sh`): npm rejects
 `2d`, and on recent npm 11 it makes installs fail with "Invalid time
-value". `tools/audit.sh` now flags a value npm can't use (such as `2d`, or
-one too large) and one that turns the delay off (`0` or a negative
-number); fractions of a day, such as `0.5`, are accepted. `docs/protocol-rationale.html` still shows
+value". `tools/audit.sh` now flags a value npm can't use (such as `2d`), one
+that turns the delay off (`0` or a negative number), and one of 1,000
+days or more, which blocks nearly every install; fractions of a day,
+such as `0.5`, are accepted. `docs/protocol-rationale.html` still shows
 `min-release-age 2d`; its correction follows with the rationale-doc
 update, in its own change.
 
