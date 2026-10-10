@@ -99,9 +99,8 @@ one does not replace an earlier one.
 
 1. **Local checks, then the real thing.** Lint, typecheck, tests; then
    a production build with the behaviour exercised the way a user or an
-   attacker would (real requests, real signals: a terminal signals the
-   whole process group, not one pid). Unit tests prove the code you
-   thought of; this proves the thing.
+   attacker would (real requests, real inputs, real signals). Unit
+   tests prove the code you thought of; this proves the thing.
 2. **`/security-review` before the first push**, when the Strict Gate
    applies. Cheap and focused.
 3. **Push and open the PR.**
@@ -115,7 +114,8 @@ one does not replace an earlier one.
 7. **`/code-review --comment` last**, at the clean head, so what it
    posts describes the code that will merge. Its diff-only lens still
    finds things the earlier reviewers passed. If it finds anything:
-   fix, and one more `/until-clean` pass.
+   fix, and one more `/until-clean` pass (that pass is the re-run the
+   Review-until-clean section asks for).
 8. **At merge, check the base.** If main moved under the same files,
    merge main in and run one fresh `/until-clean` pass (no new
    adversarial round: nothing reviewed changed).
@@ -142,11 +142,12 @@ scope) is the earliest layer; runs automatically; nothing to invoke.
   `<project>/.claude/claude-security-guidance.local.md` (gitignored,
   personal overrides) feed the model-backed reviews.
 
-Reviews run on the most capable model available, set via
-`SECURITY_REVIEW_MODEL` (end-of-turn) / `SG_AGENTIC_MODEL` (on-commit)
-in `~/.claude/settings.json`. When that is the same model that writes
-the code, keep independence in other ways: fresh-context reviewers and
-testing on the real preview. Layer 0 fires every turn (end-of-turn +
+Set `SECURITY_REVIEW_MODEL` (end-of-turn) / `SG_AGENTIC_MODEL`
+(on-commit) in `~/.claude/settings.json` to the most capable model
+available; the plugin has its own default otherwise, and the installer
+sets neither. When that is the same model that writes the code, keep
+independence in other ways: fresh-context reviewers, and testing
+against a real running build (a preview deploy where you have one). Layer 0 fires every turn (end-of-turn +
 on-commit), so this is a recurring per-turn cost, not per-PR; point one
 var at a smaller model if steady-state usage bites.
 
@@ -353,7 +354,9 @@ review-until-clean converge. Uniform across all projects.
 - **Don't smuggle.** A "while I'm here" cleanup becomes a sibling PR; a
   bug found mid-refactor gets fixed in its own PR first.
 - **N findings → N fix commits.** Sequential, building between each.
-  Never one combined fix.
+  Never one combined fix. The one exception: findings whose fixes touch
+  the same lines may share a commit, said so in the commit message and
+  the judgment ledger.
 - **Sensitive surfaces ride alone.** Strict-gate diffs get their own
   focused PR so review sees the security surface in isolation.
 - **Split across sessions when heavy.** Finish the current PR and stop;
@@ -372,7 +375,9 @@ any push command without a target:
 1. Create a new feature branch from the current branch
 2. Push the branch to origin
 3. Open a PR via `gh pr create`
-4. Run `/code-review --comment` on the PR
+4. Run the review order (see "The order, for one PR"):
+   `/adversarial-review` where it applies, fixes, `/until-clean`, then
+   `/code-review --comment` on the PR
 5. Stop and prompt the user to merge (see PR Merge Follow-up)
 
 The strict gate runs before the push, exactly as specified above.
@@ -418,8 +423,11 @@ behavior, not an error; never retry around it.
 - `"merge but keep the branch"` → omit `--delete-branch`
 
 If multiple PRs are open in the session, ask which one. After a squash
-merge lands, sync with `git fetch origin && git reset --hard
-origin/<default>`.
+merge lands, switch to `<default>`. If `git status` is clean and
+`<default>` has no local commits of its own, sync with `git fetch
+origin && git reset --hard origin/<default>`. Otherwise stop and ask.
+Never run it on a feature branch: it discards uncommitted work and
+local commits.
 
 ### Hook-enforced merge gate
 

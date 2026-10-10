@@ -88,8 +88,8 @@ A CLEAN verdict is never given from this skill alone.
      else's area, a canonical document) is surfaced with a recommendation,
      not fixed. If it was not created by this change, file it as an issue.
    - Where behaviour matters, check it for real after the fix: a
-     production build, a real run, a signal sent the way a terminal sends
-     it (to the whole process group, not one pid). Say what was run.
+     production build, a real run, real inputs sent the way a user or an
+     attacker would send them. Say what was run.
    - Keep a running list of "known and accepted" items with the reason,
      so later reviewers are told not to re-report them and the user sees
      them in one place.
