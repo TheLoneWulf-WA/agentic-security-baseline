@@ -119,6 +119,8 @@ if command -v npm >/dev/null 2>&1; then
   elif case "$mra" in *[!0-9]*) true ;; *) false ;; esac; then
     # npm takes a plain number of days; an older version of this kit suggested "2d", which recent npm rejects.
     ylw "  -> min-release-age = $mra is not a number of days (npm rejects it). Set it: npm config set min-release-age 2"
+  elif [ "$mra" -eq 0 ]; then
+    ylw "  -> min-release-age = $mra turns the delay off. Set it: npm config set min-release-age 2"
   else
     grn "  min-release-age = $mra"
   fi
