@@ -29,7 +29,8 @@ findings (this has happened in practice).
 
 3. **Re-review the CURRENT state.** Launch review agents per the
    project's convention (project CLAUDE.md may specify a count; default
-   2: one compliance/CLAUDE.md agent (sonnet), one bug agent (opus)).
+   2: one compliance/CLAUDE.md agent and one bug agent, both on the most
+   capable model available).
    Each agent gets: the full current diff, the prior-findings checklist,
    and two jobs — (a) verdict per prior finding: RESOLVED / NOT RESOLVED
    (resolved means actually fixed, not reworded; for security findings the
