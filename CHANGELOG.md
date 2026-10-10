@@ -43,11 +43,12 @@ the review order rather than going straight to `/code-review`; findings
 whose fixes touch the same lines may share a commit, said so in the
 message and the ledger.
 
-**One destructive step is now guarded.** After a squash merge the
-protocol syncs the local default branch with `git reset --hard
-origin/<default>`, which discards uncommitted work and local commits.
-It now runs only from a clean default branch with no local commits of
-its own, and otherwise stops and asks; never on a feature branch.
+**New: a destructive step, guarded from the start.** After a squash
+merge the protocol now syncs the local default branch with `git reset
+--hard origin/<default>`, which discards uncommitted work and local
+commits. It runs only from a clean default branch with no local
+commits of its own, and otherwise stops and asks; never on a feature
+branch.
 
 `docs/protocol-rationale.html` does not cover these additions yet — a
 rationale-doc update follows in its own change, per the convention this
