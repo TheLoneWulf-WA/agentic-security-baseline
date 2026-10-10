@@ -114,34 +114,17 @@ if command -v npm >/dev/null 2>&1; then
     ylw "  -> ignore-scripts = $ig. Set it: npm config set ignore-scripts true"
   fi
   mra=$(npm config get min-release-age 2>/dev/null)
-  # npm takes a number of days (fractions allowed, e.g. 0.5 for twelve hours), and prints it back normalised
-  # (".5" as 0.5, "010" as 10). An older version of this kit suggested "2d", which recent npm rejects; 0 or a
-  # negative number turns the delay off. Anything of 1,000 days or more is treated as a mistake: npm accepts
-  # it, but almost no package has versions that old, so it blocks nearly every install (npm prints values of
-  # 1e21 and up in exponent form). The size test is on the length of the text, never arithmetic, so no value
-  # can overflow the shell.
-  case "${mra#-}" in
-    "" | undefined | null)
-      if [ "$mra" = "-" ]; then
-        ylw "  -> min-release-age = $mra is not a number of days (npm can't use it). Set it: npm config set min-release-age 2"
-      else
-        ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2"
-      fi ;;
-    *[0-9][eE]+*)
-      ylw "  -> min-release-age = $mra is implausibly large: it blocks nearly every install. Set it: npm config set min-release-age 2" ;;
-    *[!0-9.]* | *.*.* | .)
-      ylw "  -> min-release-age = $mra is not a number of days (npm can't use it). Set it: npm config set min-release-age 2" ;;
-    *)
-      int=${mra#-}
-      int=${int%%.*}
-      if [ "${mra#-}" != "$mra" ] || ! case "$mra" in *[1-9]*) true ;; *) false ;; esac; then
-        ylw "  -> min-release-age = $mra turns the delay off. Set it: npm config set min-release-age 2"
-      elif [ ${#int} -gt 3 ]; then
-        ylw "  -> min-release-age = $mra is implausibly large: it blocks nearly every install. Set it: npm config set min-release-age 2"
-      else
-        grn "  min-release-age = $mra"
-      fi ;;
-  esac
+  # npm takes a number of days (fractions allowed: 0.5 is twelve hours). Green only for a plain positive
+  # number; anything else (an older version of this kit suggested "2d", which recent npm rejects; 0 or a
+  # negative number turns the delay off) is shown with the command that sets the recommended value.
+  # Only text patterns, never arithmetic, so no value can upset the shell.
+  if [ -z "$mra" ] || [ "$mra" = "undefined" ] || [ "$mra" = "null" ]; then
+    ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2"
+  elif case "$mra" in *[!0-9.]* | *.*.* | .* | *.) false ;; *[1-9]*) true ;; *) false ;; esac; then
+    grn "  min-release-age = $mra"
+  else
+    ylw "  -> min-release-age = $mra is not a plain positive number of days. Set it: npm config set min-release-age 2"
+  fi
 else
   ylw "  npm not found — skipping"
 fi
