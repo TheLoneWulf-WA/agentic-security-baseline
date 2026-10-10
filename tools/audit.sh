@@ -117,7 +117,7 @@ if command -v npm >/dev/null 2>&1; then
   if [ -n "$mra" ] && [ "$mra" != "undefined" ] && [ "$mra" != "null" ]; then
     grn "  min-release-age = $mra"
   else
-    ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2d"
+    ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2"
   fi
 else
   ylw "  npm not found — skipping"

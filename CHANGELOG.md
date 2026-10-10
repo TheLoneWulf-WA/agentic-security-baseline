@@ -2,6 +2,16 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-10-10
+
+Fixed the `min-release-age` value everywhere it is set or suggested
+(`CLAUDE.md`, `install.sh`, `tools/audit.sh`, `README.md`,
+`docs/CUSTOMIZE.md`): npm documents it as a plain number of days, so
+`2`, not `2d`. The 2026-05-13 entry below keeps the old spelling as a
+record of what shipped then. `docs/protocol-rationale.html` still shows
+`min-release-age 2d`; its correction follows with the rationale-doc
+update, in its own change.
+
 ## 2026-08-10
 
 Mechanized the review-until-clean loop and hardened the merge gate.

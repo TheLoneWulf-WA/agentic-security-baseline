@@ -399,8 +399,10 @@ after a normal install.
 ### 8. Minimum release age
 
 ```
-npm config set min-release-age 2d
+npm config set min-release-age 2
 ```
+
+The value is a plain number of days (`2`, not `2d`).
 
 Skips the early-installer window for every future supply chain attack.
 Researchers typically detect malicious uploads within 6–24 hours; the
