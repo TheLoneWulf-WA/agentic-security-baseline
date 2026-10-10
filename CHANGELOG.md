@@ -8,7 +8,11 @@ Fixed the `min-release-age` value everywhere it is set or suggested
 (`CLAUDE.md`, `install.sh`, `tools/audit.sh`, `README.md`,
 `docs/CUSTOMIZE.md`): npm documents it as a plain number of days, so
 `2`, not `2d`. The 2026-05-13 entry below keeps the old spelling as a
-record of what shipped then. `docs/protocol-rationale.html` still shows
+record of what shipped then. **If you installed before this date, run
+`npm config set min-release-age 2`** (or re-run `install.sh`): npm rejects
+`2d`, and on recent npm 11 it makes installs fail with "Invalid time
+value". `tools/audit.sh` now flags a value that is not a whole number of
+days. `docs/protocol-rationale.html` still shows
 `min-release-age 2d`; its correction follows with the rationale-doc
 update, in its own change.
 

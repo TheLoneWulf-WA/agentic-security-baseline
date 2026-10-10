@@ -114,10 +114,13 @@ if command -v npm >/dev/null 2>&1; then
     ylw "  -> ignore-scripts = $ig. Set it: npm config set ignore-scripts true"
   fi
   mra=$(npm config get min-release-age 2>/dev/null)
-  if [ -n "$mra" ] && [ "$mra" != "undefined" ] && [ "$mra" != "null" ]; then
-    grn "  min-release-age = $mra"
-  else
+  if [ -z "$mra" ] || [ "$mra" = "undefined" ] || [ "$mra" = "null" ]; then
     ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2"
+  elif case "$mra" in *[!0-9]*) true ;; *) false ;; esac; then
+    # npm takes a plain number of days; an older version of this kit suggested "2d", which recent npm rejects.
+    ylw "  -> min-release-age = $mra is not a number of days (npm rejects it). Set it: npm config set min-release-age 2"
+  else
+    grn "  min-release-age = $mra"
   fi
 else
   ylw "  npm not found — skipping"
