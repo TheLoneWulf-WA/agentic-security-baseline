@@ -66,6 +66,12 @@ mkdir -p "$HOME/.claude/skills/until-clean"
 cp "$REPO_DIR/skills/until-clean/SKILL.md" "$HOME/.claude/skills/until-clean/SKILL.md"
 echo "✓ Installed /until-clean skill to ~/.claude/skills/until-clean/"
 
+# ---- Step 2c: Install the /adversarial-review skill ----
+
+mkdir -p "$HOME/.claude/skills/adversarial-review"
+cp "$REPO_DIR/skills/adversarial-review/SKILL.md" "$HOME/.claude/skills/adversarial-review/SKILL.md"
+echo "✓ Installed /adversarial-review skill to ~/.claude/skills/adversarial-review/"
+
 # ---- Step 3: Wire hook into settings.json ----
 
 SETTINGS="$HOME/.claude/settings.json"

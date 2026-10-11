@@ -44,7 +44,84 @@ Common limits to surface:
 
 ---
 
+## Operating Posture
+
+The behavioral layer — governs judgment, not tool permissions. The
+permission rules in settings.json and the hooks enforce the mechanical
+boundary; this section governs everything a permission rule cannot see.
+
+### Momentum on labor, never on judgment
+
+Chain routine implementation — code → build → test → review → fix —
+without "want to continue?" prompts. Autonomy covers labor only.
+An always-ask class below stops the chain, even mid-PR.
+
+### Always-ask classes — stop, present options + recommendation
+
+- **Product / design / UX** — anything user-visible by look or feel.
+  Produce the artifact (mockup, draft) proactively; never translate it
+  into code without sign-off.
+- **User-data retention/deletion semantics** — cascades, what survives
+  a delete or replace. Product promises wearing technical clothes;
+  documented-in-PR is NOT sufficient.
+- **Measurement → rule conversions** — any must/never/always derived
+  from evidence gets a scope check (does the evidence cover the rule's
+  whole domain, or only the case measured?) and the static-vs-adaptive
+  choice surfaced, not assumed.
+- **Amendments to canonical documents** — decision logs, specs, any
+  CLAUDE.md (consistent with the CLAUDE.md review carve-out below:
+  protocol changes are discussed, then applied).
+
+### Recommend technical, ask design
+
+Engineering / sequencing / implementation calls: recommend as principal
+engineer — options + my pick — and proceed unless overridden.
+Product/design calls: ask, with artifacts. When unsure which class a
+call is: it's the asking class.
+
+### Judgment ledger at pre-merge
+
+Every pre-merge stop lists the judgment-bearing calls made under
+momentum — separate from the diff summary — so review attention lands
+on the judgments, not the mechanics. The ledger also confirms each
+non-obvious choice in the diff carries its recorded *why* (see Intent
+Debt).
+
+---
+
 ## Review Protocol
+
+### The order, for one PR
+
+Each layer below is described in its own section; this is the order
+they run in, and why. Each step looks with a different lens, so a later
+one does not replace an earlier one.
+
+1. **Local checks, then the real thing.** Lint, typecheck, tests; then
+   a production build with the behaviour exercised the way a user or an
+   attacker would (real requests, real inputs, real signals). Unit
+   tests prove the code you thought of; this proves the thing.
+2. **`/security-review` before the first push**, when the Strict Gate
+   applies. Cheap and focused.
+3. **Push and open the PR.**
+4. **`/adversarial-review`** on sensitive PRs (see its section). The
+   deep finding step, and the one that finds the most. For a change
+   that touches nothing sensitive, say in one line that it is skipped.
+5. **Fix every finding**, one commit per finding, pushed as you go.
+   What is the user's to decide is surfaced, not fixed.
+6. **`/until-clean`**, looping until a pass after the last fix comes
+   back clean; it writes the marker. It catches what the fixes broke.
+7. **`/code-review --comment` last**, at the clean head, so what it
+   posts describes the code that will merge. Its diff-only lens still
+   finds things the earlier reviewers passed. If it finds anything:
+   fix, and one more `/until-clean` pass (that pass is the re-run the
+   Review-until-clean section asks for).
+8. **At merge, check the base.** If main moved under the same files,
+   merge main in and run one fresh `/until-clean` pass (no new
+   adversarial round: nothing reviewed changed).
+
+**No CLEAN verdict before step 6 has run.** A pass of my own, however
+careful, is not the loop.
 
 ### Layer 0 — security-guidance plugin (in-session, non-blocking)
 
@@ -65,15 +142,20 @@ scope) is the earliest layer; runs automatically; nothing to invoke.
   `<project>/.claude/claude-security-guidance.local.md` (gitignored,
   personal overrides) feed the model-backed reviews.
 
-Default model: **Claude Opus 4.7**. Override via
-`SECURITY_REVIEW_MODEL` (end-of-turn) / `SG_AGENTIC_MODEL` (on-commit)
-in `~/.claude/settings.json` to a smaller model if you want to bound
-the per-PR token spend.
+Set `SECURITY_REVIEW_MODEL` (end-of-turn) / `SG_AGENTIC_MODEL`
+(on-commit) in `~/.claude/settings.json` to the most capable model
+available; the plugin has its own default otherwise, and the installer
+sets neither. When that is the same model that writes the code, keep
+independence in other ways: fresh-context reviewers, and testing
+against a real running build (a preview deploy where you have one). Layer 0 fires every turn (end-of-turn +
+on-commit), so this is a recurring per-turn cost, not per-PR; point one
+var at a smaller model if steady-state usage bites.
 
 **Does NOT replace the gates below.** Non-blocking, security-only, can
 miss things — *reduces* what reaches the gates; doesn't satisfy any.
-Strict Gate still blocks on HIGH; `/code-review --comment` still runs
-on every PR.
+Strict Gate still blocks on HIGH; `/until-clean` still covers
+correctness + conventions + verifies fixes; `/code-review --comment`
+still runs on every PR.
 
 Plugin findings are **not** subject to the "ignore platform
 auto-suggestions" rule — they're security findings, not pattern-matched
@@ -175,6 +257,34 @@ In addition to what `/code-review` already checks, flag:
   thresholds, weakened CI. A green suite over edited tests proves
   nothing until the edits are verified legitimate.
 
+### Adversarial review — `/adversarial-review` on sensitive PRs
+
+Three fresh-context reviewers, no checklist, each in a role: **a
+hostile party** (how is this abused, what can it reach or delete that
+isn't its own), **the on-call engineer** (where does it hang, fail
+silently, leave a mess, or mislead at a bad moment), **the person in
+the chair** (whoever reads the screen, the guide, the runbook or the
+README: is it true, and does it say what to do). They are given the
+code and the docs, never the author's conclusions.
+
+Run it **without being asked, before the merge prompt**, on any PR
+touching: auth, sessions or tokens; uploads or media; payments; the
+admin; API endpoints taking input; anything an attacker can reach; any
+script or job that runs with access rules off or deletes records. A
+project CLAUDE.md or memory may widen this; the wider rule wins. For a
+change that is none of these, say in one line that it is skipped.
+
+- Fix every finding, LOW included, one commit each. What is the user's
+  to decide (always-ask classes) is surfaced with a recommendation, not
+  fixed; if this change didn't create it, it becomes an issue.
+- It finds and fixes; it never gives the verdict. **`/until-clean`
+  follows it** and verifies the fixes on the pushed state.
+- In addition to the Strict Gate and `/code-review --comment`, not in
+  place of either.
+
+The skill (`skills/adversarial-review/SKILL.md`, installed to
+`~/.claude/skills/`) holds the briefs and the procedure.
+
 ### Review-until-clean — do NOT assume a fix worked
 
 Applies to `/security-review`, `/code-review`, and any ad-hoc review
@@ -197,7 +307,7 @@ to confirm it was downgraded or removed, not just reworded.
 the only acceptable stop signal short of a clean pass.
 
 **Verdict line (mandatory):** every pre-merge stop states the loop
-outcome explicitly:
+outcome explicitly, next to the judgment ledger:
 `Review loop: CLEAN (re-run after fixes at <sha>)` or
 `Review loop: NOT CLEAN — <n> open finding(s)`. Absence of this line
 means the loop wasn't closed — the user should never have to ask.
@@ -234,6 +344,26 @@ session-trailer leaks live there, not in the diff.
 
 ---
 
+## PR Decomposition
+
+The supply side of the Review Protocol: small units are what make
+review-until-clean converge. Uniform across all projects.
+
+- **One logical change per PR.** A plan step is the natural unit. If
+  the description needs "also" or "plus," it's two PRs.
+- **Don't smuggle.** A "while I'm here" cleanup becomes a sibling PR; a
+  bug found mid-refactor gets fixed in its own PR first.
+- **N findings → N fix commits.** Sequential, building between each.
+  Never one combined fix. The one exception: findings whose fixes touch
+  the same lines may share a commit, said so in the commit message and
+  the judgment ledger.
+- **Sensitive surfaces ride alone.** Strict-gate diffs get their own
+  focused PR so review sees the security surface in isolation.
+- **Split across sessions when heavy.** Finish the current PR and stop;
+  don't stack a second PR into a depleted context.
+
+---
+
 ## Push Routing
 
 Strict by default. Uniform across all projects — no class that gets
@@ -245,7 +375,9 @@ any push command without a target:
 1. Create a new feature branch from the current branch
 2. Push the branch to origin
 3. Open a PR via `gh pr create`
-4. Run `/code-review --comment` on the PR
+4. Run the review order (see "The order, for one PR"):
+   `/adversarial-review` where it applies, fixes, `/until-clean`, then
+   `/code-review --comment` on the PR
 5. Stop and prompt the user to merge (see PR Merge Follow-up)
 
 The strict gate runs before the push, exactly as specified above.
@@ -290,7 +422,12 @@ behavior, not an error; never retry around it.
 - `"merge as merge commit"` → `--merge`
 - `"merge but keep the branch"` → omit `--delete-branch`
 
-If multiple PRs are open in the session, ask which one.
+If multiple PRs are open in the session, ask which one. After a squash
+merge lands, switch to `<default>`. If `git status` is clean and
+`<default>` has no local commits of its own, sync with `git fetch
+origin && git reset --hard origin/<default>`. Otherwise stop and ask.
+Never run it on a feature branch: it discards uncommitted work and
+local commits.
 
 ### Hook-enforced merge gate
 
@@ -449,6 +586,32 @@ silently.
 
 ---
 
+## Project Documentation Architecture
+
+CLAUDE.md holds rules + pointers — never records, status, or anything
+that accumulates. Accumulating content gets a designated home, created
+**on first need** (no empty scaffolding in small repos):
+
+- **Rule detail** too long for CLAUDE.md → `docs/conventions/` —
+  CLAUDE.md keeps the trigger line + pointer.
+- **Records of completed work** (what landed, per phase/milestone) →
+  `docs/phase-history/` or equivalent. Read when touching a surface a
+  past phase built; never duplicated into CLAUDE.md.
+- **Live state** (where we are / what's next) → a forward-plan doc +
+  transient handoffs in `docs/handoff/` that **self-delete on pickup**
+  (durable content must already live in a durable home before the
+  handoff dies).
+- **Decisions and their why** → an append-only decision log. Append at
+  the next number; never delete; revisiting a decision adds a new entry
+  referencing the old.
+- **The atlas** → `docs/documentation-map.md` once a project has
+  several of the above; it points, it does not duplicate.
+
+The test before writing anything down: what *kind* of thing is it, and
+does it accumulate? If yes, it has a home above — not CLAUDE.md.
+
+---
+
 ## Intent Debt — the *why* gets written down, where it can be diffed
 
 Code records *what*, never *why* — and an agent session starts cold
@@ -461,14 +624,16 @@ intent.
 - **Scope by blast radius:** record the why for choices expensive to
   get wrong or to reconstruct — guards, magic numbers, defensive
   checks, deliberate constraints. Not trivia.
-- **Route at decision time,** to wherever the project keeps its
-  records: architectural why → a decision log / ADR · code-level why →
-  the commit message or a comment at the diff, so it travels with the
-  code · deferred / blocked-on-a-dependency work → a tracked issue ·
-  lesson learned / tried-and-failed → an engineering log.
+- **Route at decision time,** per the project's doc atlas (see Project
+  Documentation Architecture): architectural why → a decision log /
+  ADR · code-level why → the commit message or a comment at the diff,
+  so it travels with the code · deferred / blocked-on-a-dependency work
+  → a tracked issue · lesson learned / tried-and-failed → an
+  engineering log · durable convention → CLAUDE.md.
 - **Tests protect intent, not just behavior:** where behavior is
   user-visible or load-bearing, the test name or a comment says *why*
   it matters — so a green refactor can't silently change what mattered.
 - **Enforced at review, not by memory:** the `/code-review` flag list
-  checks that non-obvious choices carry their why. Instructions are
-  best-effort; the review gate is what makes this hold.
+  and the pre-merge judgment ledger both check that non-obvious choices
+  carry their why. Instructions are best-effort; the review gates are
+  what make this hold.
