@@ -15,9 +15,57 @@ value". `tools/audit.sh` now shows the value in green only when it is a plain
 positive number of days (fractions such as `0.5` included) under
 10,000, and otherwise (`2d`, `0`, a negative number, or 10,000 days or
 more, a cutoff from before npm existed) shows
-the command to fix it. `docs/protocol-rationale.html` still shows
-`min-release-age 2d`; its correction follows with the rationale-doc
-update, in its own change.
+the command to fix it.
+
+Brought the repo up to date with the protocol as it is used today.
+
+Set an order for the reviews on one PR, in a new "The order, for one
+PR" section at the top of the Review Protocol: local checks and a real
+run of the thing, `/security-review` before the first push, push and
+open the PR, `/adversarial-review` on sensitive PRs, fix every finding,
+`/until-clean` until a pass after the last fix is clean, then
+`/code-review --comment` last, at the clean head, and a fresh
+`/until-clean` pass if main moved under the same files before merge.
+The order came from what each step caught in practice: each looks with
+a different lens, the role-based review found the most, the
+verification pass caught what the fixes broke, and the diff-only
+`/code-review` still found things the earlier reviewers had passed —
+so it runs last, where its comments describe the code that will merge.
+
+The adversarial review became a slash command. New:
+`skills/adversarial-review/SKILL.md` (`/adversarial-review` — three
+fresh-context reviewers, each in a role: a hostile party, the on-call
+engineer, the person in the chair; no checklist, never the author's
+conclusions; fixes every finding, LOW included, and hands off to
+`/until-clean`, which gives the verdict). `CLAUDE.md` gained a matching
+section saying when it runs without being asked. `install.sh` and
+`docs/INSTALL.md` install it the same way as `/until-clean`; no hook or
+settings change was needed.
+
+Other sections had been added to the live protocol since the last sync
+and are now here: Operating Posture (momentum on labor, never on
+judgment; the always-ask classes; recommend technical, ask design; a
+judgment ledger at every pre-merge stop), PR Decomposition, and Project
+Documentation Architecture. Smaller edits: Layer 0 now says to set
+its two model variables to the most capable model available (the
+installer sets neither), and both `/until-clean` reviewers run on that
+model too; the verdict line sits next to the judgment ledger; Intent
+Debt routes the why through the project's doc atlas and is checked by
+the ledger as well as `/code-review`; Push Routing's "push this" runs
+the review order rather than going straight to `/code-review`; findings
+whose fixes touch the same lines may share a commit, said so in the
+message and the ledger.
+
+**New: a destructive step, guarded from the start.** After a squash
+merge the protocol now syncs the local default branch with `git reset
+--hard origin/<default>`, which discards uncommitted work and local
+commits. It runs only from a clean default branch with no local
+commits of its own, and otherwise stops and asks; never on a feature
+branch.
+
+`docs/protocol-rationale.html` does not cover these changes yet, and
+still shows `min-release-age 2d`; a rationale-doc update follows in its
+own change, per the convention this changelog's 2026-07-06 entry set.
 
 ## 2026-08-10
 

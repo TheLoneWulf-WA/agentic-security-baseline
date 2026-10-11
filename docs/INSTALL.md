@@ -63,6 +63,13 @@ mkdir -p ~/.claude/skills/until-clean
 cp skills/until-clean/SKILL.md ~/.claude/skills/until-clean/SKILL.md
 ```
 
+### Step 2c — Install the /adversarial-review skill
+
+```bash
+mkdir -p ~/.claude/skills/adversarial-review
+cp skills/adversarial-review/SKILL.md ~/.claude/skills/adversarial-review/SKILL.md
+```
+
 ### Step 3 — Wire the hook into settings.json
 
 The snippet uses `__USER_HOME__` as a placeholder. Claude Code does **not** expand `~` or `$HOME` in hook command paths, so we substitute the literal absolute path before merging.
@@ -138,7 +145,7 @@ Tell the user what should now be true:
 - Pushes to `main`, `master`, or `production` will prompt for confirmation (the PreToolUse hook)
 - PR merges Claude runs (`gh pr merge` and the API routes) will pause on a confirmation prompt showing the review-loop marker state (ask mode)
 - Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands) will prompt (the config-edit gate)
-- `/until-clean` will be available as a slash command in new sessions
+- `/until-clean` and `/adversarial-review` will be available as slash commands in new sessions
 - Direct terminal pushes to those branches will run `npm audit` and warn on sensitive file changes (the global git hook)
 - PRs will be scanned by Socket.dev (once the GitHub App is installed)
 
@@ -154,10 +161,11 @@ If you need to back out:
 # Restore the previous CLAUDE.md (replace timestamp with your actual backup)
 mv ~/.claude/CLAUDE.md.bak.<timestamp> ~/.claude/CLAUDE.md
 
-# Remove the PreToolUse hooks and the skill
+# Remove the PreToolUse hooks and the skills
 rm ~/.claude/hooks/push-routing-gate.sh
 rm ~/.claude/hooks/config-edit-gate.sh
 rm -r ~/.claude/skills/until-clean
+rm -r ~/.claude/skills/adversarial-review
 
 # Restore the previous settings.json
 mv ~/.claude/settings.json.bak.<timestamp> ~/.claude/settings.json
