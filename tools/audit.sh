@@ -114,10 +114,22 @@ if command -v npm >/dev/null 2>&1; then
     ylw "  -> ignore-scripts = $ig. Set it: npm config set ignore-scripts true"
   fi
   mra=$(npm config get min-release-age 2>/dev/null)
-  if [ -n "$mra" ] && [ "$mra" != "undefined" ] && [ "$mra" != "null" ]; then
-    grn "  min-release-age = $mra"
+  # npm takes a number of days (fractions allowed: 0.5 is twelve hours). Green only for a plain positive
+  # number; anything else (an older version of this kit suggested "2d", which recent npm rejects; 0 or a
+  # negative number turns the delay off) is shown with the command that sets the recommended value.
+  # 10,000 days or more (five digits) puts the cutoff before npm existed, which is never
+  # what was meant. Only text patterns, never arithmetic, so no value can upset the shell.
+  if [ -z "$mra" ] || [ "$mra" = "undefined" ] || [ "$mra" = "null" ]; then
+    ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2"
+  elif case "$mra" in *[!0-9.]* | *.*.* | .* | *.) false ;; *[1-9]*) true ;; *) false ;; esac; then
+    int=${mra%%.*}
+    if [ ${#int} -ge 5 ]; then
+      ylw "  -> min-release-age = $mra puts the cutoff before npm existed. Set it: npm config set min-release-age 2"
+    else
+      grn "  min-release-age = $mra"
+    fi
   else
-    ylw "  -> min-release-age not set (needs npm 11+). Set it: npm config set min-release-age 2d"
+    ylw "  -> min-release-age = $mra is not a plain positive number of days. Set it: npm config set min-release-age 2"
   fi
 else
   ylw "  npm not found — skipping"

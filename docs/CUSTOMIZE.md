@@ -49,15 +49,15 @@ The default merge strategy is `squash + delete branch`. If your team prefers reb
 
 ## 8. Package manager configuration (npm / pnpm / yarn / bun)
 
-The `install.sh` sets two npm configs by default: `ignore-scripts=true` and `min-release-age=2d` (when supported). Both can be tuned, and equivalents for other package managers are below.
+The `install.sh` sets two npm configs by default: `ignore-scripts=true` and `min-release-age=2` (when supported). Both can be tuned, and equivalents for other package managers are below.
 
 ### Tuning the release-age buffer
 
 The default is 2 days. Adjust upward if you want a wider margin:
 
 ```
-npm config set min-release-age 3d   # 3 days
-npm config set min-release-age 7d   # one week (more conservative)
+npm config set min-release-age 3   # 3 days
+npm config set min-release-age 7   # one week (more conservative)
 ```
 
 Two days is where most malicious uploads have been caught by community/Socket detection by the time you'd install. A week is paranoid but defensible if you ship at unusual hours when detection lag is longest.

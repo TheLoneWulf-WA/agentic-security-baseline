@@ -28,7 +28,7 @@ The full reasoning is in two companion articles: ["You Can Just Do Things." But 
 The install also configures `~/.npmrc` on your machine with two supply-chain protections:
 
 - **`ignore-scripts=true`** — blocks `preinstall`/`postinstall`/`prepare` script execution, the vector used in the Axios, TanStack, and Mini Shai-Hulud supply chain attacks. Compromised packages can't auto-run their payload on install.
-- **`min-release-age=2d`** (npm 11+) — skips the early-installer window for *future* supply chain attacks by refusing to install package versions less than 2 days old. Most malicious uploads are detected by Socket and the security community within 6-24 hours; the 2-day buffer means you skip the exposure window by default.
+- **`min-release-age=2`** (npm 11+) — skips the early-installer window for *future* supply chain attacks by refusing to install package versions less than 2 days old. Most malicious uploads are detected by Socket and the security community within 6-24 hours; the 2-day buffer means you skip the exposure window by default.
 
 See `docs/CUSTOMIZE.md` for tuning, equivalents for pnpm/yarn/bun, and per-package overrides when you need them.
 

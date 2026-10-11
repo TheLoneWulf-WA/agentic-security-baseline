@@ -4,6 +4,19 @@ Dated events in this protocol's lifecycle. Newest first.
 
 ## 2026-10-10
 
+Fixed the `min-release-age` value everywhere it is set or suggested
+(`CLAUDE.md`, `install.sh`, `tools/audit.sh`, `README.md`,
+`docs/CUSTOMIZE.md`): npm documents it as a plain number of days, so
+`2`, not `2d`. The 2026-05-13 entry below keeps the old spelling as a
+record of what shipped then. **If you installed before this date, run
+`npm config set min-release-age 2`** (or re-run `install.sh`): npm rejects
+`2d`, and on recent npm 11 it makes installs fail with "Invalid time
+value". `tools/audit.sh` now shows the value in green only when it is a plain
+positive number of days (fractions such as `0.5` included) under
+10,000, and otherwise (`2d`, `0`, a negative number, or 10,000 days or
+more, a cutoff from before npm existed) shows
+the command to fix it.
+
 Brought the repo up to date with the protocol as it is used today.
 
 Set an order for the reviews on one PR, in a new "The order, for one
@@ -50,9 +63,9 @@ commits. It runs only from a clean default branch with no local
 commits of its own, and otherwise stops and asks; never on a feature
 branch.
 
-`docs/protocol-rationale.html` does not cover these additions yet — a
-rationale-doc update follows in its own change, per the convention this
-changelog's 2026-07-06 entry set.
+`docs/protocol-rationale.html` does not cover these changes yet, and
+still shows `min-release-age 2d`; a rationale-doc update follows in its
+own change, per the convention this changelog's 2026-07-06 entry set.
 
 ## 2026-08-10
 

@@ -141,11 +141,11 @@ if command -v npm >/dev/null 2>&1; then
     NPM_VERSION=$(npm --version)
     NPM_MAJOR=$(echo "$NPM_VERSION" | cut -d. -f1)
     if [ "$NPM_MAJOR" -ge 11 ]; then
-        npm config set min-release-age 2d
-        echo "✓ Set npm min-release-age=2d (skips early-installer window)"
+        npm config set min-release-age 2
+        echo "✓ Set npm min-release-age=2 (skips early-installer window)"
     else
         echo "⚠ Skipped min-release-age — requires npm 11+ (you have npm $NPM_VERSION)"
-        echo "  When you upgrade npm, run: npm config set min-release-age 2d"
+        echo "  When you upgrade npm, run: npm config set min-release-age 2"
         echo "  Until then, ignore-scripts above provides most of the protection."
     fi
 else
