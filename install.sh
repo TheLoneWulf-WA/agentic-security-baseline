@@ -93,6 +93,9 @@ else
     # replaces arrays wholesale — a plain merge would silently drop the
     # user's own PreToolUse hooks and permission rules. Any deny rule the
     # user has is kept as-is and still wins over these allow entries.
+    # The snippet's allow entries let Claude push a claude/* branch to
+    # origin and open a PR without a prompt; the push-routing hook still
+    # asks on every other push and on every merge.
     # `unique` keeps the merge idempotent on re-runs; it sorts, so entry
     # order may change (harmless: all matching PreToolUse hooks run).
     jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
@@ -102,7 +105,10 @@ else
            | .permissions.allow = $al | .permissions.ask = $as' \
         "$SETTINGS" "$TMP_SNIPPET" > "$SETTINGS.new"
     mv "$SETTINGS.new" "$SETTINGS"
-    echo "✓ Merged hook config into ~/.claude/settings.json"
+    echo "✓ Merged hook and permission config into ~/.claude/settings.json"
+    echo "  Claude may now push its own claude/* branch to origin and open a PR"
+    echo "  without a prompt. To keep prompting, add Bash(git push *) to"
+    echo "  permissions.ask; an ask or deny rule wins over these allow entries."
     echo "  (previous version backed up to $backup)"
 fi
 

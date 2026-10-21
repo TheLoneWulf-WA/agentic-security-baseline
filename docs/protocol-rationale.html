@@ -559,6 +559,7 @@
       <li><a href="#push-routing">Push Routing</a>
         <ol>
           <li><a href="#routing-default">Default routing</a></li>
+          <li><a href="#feature-branches-push-freely">Feature branches push freely</a></li>
           <li><a href="#routing-overrides">Explicit overrides</a></li>
           <li><a href="#branch-naming">Branch naming</a></li>
           <li><a href="#graceful-degradation">Graceful degradation</a></li>
@@ -1477,28 +1478,46 @@
           <p>
             Claude may push its own <code>claude/*</code> branch and open
             the PR without being asked, after the Strict Gate&rsquo;s
-            <code>/security-review</code> where it applies. The settings
-            snippet puts <code>Bash(git push:*)</code> and
-            <code>Bash(gh pr create:*)</code> on the allow list and keeps
-            <code>Bash(gh pr merge:*)</code> on the ask list.
+            <code>/security-review</code> where it applies. Only the plain
+            shape runs without a prompt:
+            <code>git push [-u] origin claude/&lt;name&gt;</code>, and
+            <code>gh pr create</code>.
           </p>
           <p>
-            Pushes to <code>main</code>/<code>master</code>/<code>production</code>
-            and every merge still need the user, per action. The
-            push-routing hook answers <code>ask</code> on both, and a
-            hook&rsquo;s <code>ask</code> always brings up the prompt, in
-            auto mode too: an allow-list entry cannot approve it silently.
+            Two layers hold it there. The settings snippet allows only that
+            shape. The push-routing hook fails closed: it answers
+            <code>ask</code> on every push that is not exactly that shape
+            &mdash; <code>main</code>/<code>master</code>/<code>production</code>,
+            force, <code>--all</code>/<code>--mirror</code>, tags, deletes,
+            other remotes or URLs, refspecs, a bare <code>git push</code>,
+            or anything it cannot parse &mdash; and on every merge. Per the
+            Claude Code hooks reference, a hook&rsquo;s <code>ask</code>
+            brings up the prompt in auto mode too; an allow entry cannot
+            approve it silently. The hook reads command text, so a push
+            hidden in a script file or <code>eval</code> is outside it;
+            such commands match no allow entry either.
           </p>
         </div>
         <div class="why">
           <div class="why-label">Why this exists</div>
           <div class="why-body">
-            A feature branch is reversible and reaches nobody until it is
-            merged; the irreversible steps are the merge and a push to a
-            protected branch. Asking on every feature push spent the
-            user&rsquo;s attention where the risk is lowest, and taught
-            reflexive approval. The approval now sits only where the risk
-            is, and the hook keeps it there mechanically.
+            <p>
+              A feature branch is reversible and reaches nobody until it is
+              merged; the irreversible steps are the merge, a push to a
+              protected branch, and pushes that rewrite or delete what
+              others rely on. Asking on every feature push spent the
+              user&rsquo;s attention where the risk is lowest and taught
+              reflexive approval. The approval now sits only where the risk
+              is.
+            </p>
+            <p>
+              The hook fails closed because the old check matched
+              protected names in the command text, and that missed
+              <code>--mirror</code>, <code>--all</code>, force-pushes,
+              URLs and a name followed by <code>;</code>. That was
+              harmless while every push prompted anyway; it stopped being
+              harmless the moment feature pushes were allowed.
+            </p>
           </div>
         </div>
       </div>

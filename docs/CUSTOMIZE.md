@@ -27,13 +27,11 @@ The regex is case-insensitive (it's used with `grep -iE`).
 
 ## 3. The branch naming convention (`~/.claude/CLAUDE.md`)
 
-Push Routing creates feature branches with the prefix `claude/<short-slug>`. If you prefer `feat/<slug>` or your team's own convention, edit the **Branch naming** section.
+Push Routing creates feature branches with the prefix `claude/<short-slug>`. If you prefer `feat/<slug>` or your team's own convention, edit the **Branch naming** section. Change the prefix in two more places too, or your pushes will prompt every time: the `claude/` allow entries in `~/.claude/settings.json`, and `safe_re` in `~/.claude/hooks/push-routing-gate.sh`.
 
 ## 4. The protected branches list (`~/.claude/hooks/push-routing-gate.sh`)
 
-The PreToolUse hook treats `main`, `master`, and `production` as protected. If you have other protected branches (`release`, `staging`, `prod-au`, etc.), add them to the case statements near the top of the script.
-
-There are two case statements to update — one for explicit branch names in the push command, one for the current-branch check.
+The PreToolUse hook treats `main`, `master`, and `production` as protected. Pushes to them always ask, because the hook only lets the plain `git push [-u] origin claude/<name>` shape through. Naming them in the script changes the prompt's wording to the protected-branch warning: add them to the `(main|master|production)` pattern in the push gate.
 
 ## 5. Skip clauses (`~/.claude/CLAUDE.md`)
 
