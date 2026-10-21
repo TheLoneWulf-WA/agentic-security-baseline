@@ -19,7 +19,10 @@ command text, which missed `--all`, `--mirror`, force-pushes, tags,
 deletes, other remotes and URLs, a protected name followed directly by
 `;`, and names hidden in quotes or variables. That did not matter while
 every push prompted; with feature pushes allowed, it would have. A push
-command the hook cannot parse asks too.
+command the hook cannot parse asks too, as do `git send-pack`, `git
+subtree push`, pushes with global options (`--no-pager`, `--git-dir`,
+`-c`), a push after `cd`, and a push in a repo that sets
+`remote.origin.push` (which can remap `claude/x` to another branch).
 
 `install.sh` and `docs/INSTALL.md` now concatenate `permissions.allow`
 and `permissions.ask` when merging the snippet, the same way they

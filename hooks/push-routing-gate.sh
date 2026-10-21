@@ -109,8 +109,10 @@ fi
 # or URL, no quotes, variables or substitutions. A bare `git push` asks
 # too, because its destination depends on config the hook cannot see.
 # Text after a separator (&&, ;, |) is a different segment; every push
-# segment in the command must be the safe shape. `git -C dir push` and
-# `git -c k=v push` count as pushes. This is a check on command text: a
+# segment in the command must be the safe shape. `git -C dir push`,
+# `git -c k=v push`, `git send-pack` and `git subtree push` count as
+# pushes and ask. A push after `cd`/`pushd`, or in a repo whose
+# remote.origin.push is set, asks too: either can change where it lands. This is a check on command text: a
 # push hidden inside eval or a script file is not seen here (see "Honest
 # scope" above); those do not match the allow list either, so the normal
 # permission flow decides them.
@@ -118,7 +120,10 @@ fi
 # Why ask rather than deny: the user may want any of these, and says so
 # with an override ("push to main"); the keypress is theirs to give.
 
-push_re='\bgit([[:space:]]+-[Cc][[:space:]]+[^[:space:];&|]+)*[[:space:]]+push\b'
+# A push is `git`, any global options (-C dir, -c k=v, --no-pager,
+# --git-dir=...), then push, send-pack or `subtree push`. Global options
+# are matched broadly so an unusual form still counts as a push and asks.
+push_re='\bgit([[:space:]]+(-[Cc][[:space:]]+[^[:space:];&|]+|-[^[:space:];&|]+))*[[:space:]]+(push|send-pack|subtree[[:space:]]+push)\b'
 if ! echo "$command" | grep -qE "$push_re"; then
     exit 0
 fi
@@ -151,6 +156,23 @@ while IFS= read -r seg; do
         ask "This push is not the plain feature-branch shape (git push [-u] origin claude/<name>). Force, --all, --mirror, tags, deletes, other remotes, refspecs and bare pushes always ask. Confirm only if you asked for this push."
     fi
 done <<< "$segments"
+
+# A directory change before the push means the hook cannot tell which
+# repo's config applies, so it asks.
+if printf '%s' "$command" | grep -qE '(^|[;&|[:space:]])(cd|pushd)[[:space:]]'; then
+    ask "This push follows a directory change, so the push gate cannot check that repo's config. Confirm only if you asked for this push."
+fi
+
+# Repo config can remap an explicit refspec: remote.origin.push can send
+# `git push origin claude/x` to main. Ask if origin has any push mapping,
+# or if the hook cannot read the repo's config at all.
+if [ -n "$cwd" ] && [ -d "$cwd" ] && git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
+    if [ -n "$(git -C "$cwd" config --get-all remote.origin.push 2>/dev/null)" ]; then
+        ask "This repo sets remote.origin.push, which can redirect a claude/* push to another branch. Confirm only if you asked for this push."
+    fi
+else
+    ask "Push gate could not find the repo for this push, so it asks. Confirm only if you asked for this push."
+fi
 
 # Every push segment is a plain push of a claude/* branch to origin.
 exit 0
