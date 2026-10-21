@@ -3,7 +3,8 @@
 # Push Routing Gate — Claude Code PreToolUse hook
 #
 # Prompts for user confirmation when Claude attempts to:
-#   1. Push to protected branches (main/master/production)
+#   1. Push anything other than a plain claude/* branch to origin
+#      (protected branches, force, --all/--mirror, tags, deletes, URLs)
 #   2. Merge a PR via the known routes (gh pr merge, gh api, curl/wget to
 #      the API) — "ask mode": the command pauses on an in-session
 #      confirmation prompt; one user keypress approves or rejects it. The
@@ -96,46 +97,60 @@ if echo "$command" | grep -qE '\.claude/(hooks|skills|commands|CLAUDE\.md|settin
     fi
 fi
 
-# Not a git push? Allow immediately.
-if ! echo "$command" | grep -qE '\bgit\s+push\b'; then
+# --- Push gate: fail closed ---
+# Feature-branch pushes are on the settings allow list, so this hook is
+# the only thing between Claude and a push it should not make silently.
+# It therefore allows exactly one shape and asks on everything else:
+#
+#   git push [-u | --set-upstream] origin claude/<name>
+#
+# with nothing else in that push segment: no refspec colon (claude/x:main),
+# no flags (--force, --all, --mirror, --tags, --delete), no other remote
+# or URL, no quotes, variables or substitutions. A bare `git push` asks
+# too, because its destination depends on config the hook cannot see.
+# Text after a separator (&&, ;, |) is a different segment; every push
+# segment in the command must be the safe shape. `git -C dir push` and
+# `git -c k=v push` count as pushes. This is a check on command text: a
+# push hidden inside eval or a script file is not seen here (see "Honest
+# scope" above); those do not match the allow list either, so the normal
+# permission flow decides them.
+#
+# Why ask rather than deny: the user may want any of these, and says so
+# with an override ("push to main"); the keypress is theirs to give.
+
+push_re='\bgit([[:space:]]+-[Cc][[:space:]]+[^[:space:];&|]+)*[[:space:]]+push\b'
+if ! echo "$command" | grep -qE "$push_re"; then
     exit 0
 fi
 
-# --- Check 1: Protected branch named as a push target ---
-# Catches: git push origin main (also with trailing flags like
-# --no-verify), refspec forms (HEAD:main, feature:main,
-# HEAD:refs/heads/main, +main force-refspecs), quoted branch names,
-# -u variants. Left boundary admits space, colon, slash, plus, and
-# quotes — so feature-main does NOT match; right boundary admits
-# space, quotes, or end-of-command — so trailing flags don't defeat it.
-if echo "$command" | grep -qE "[[:space:]:/+\"'](main|master|production)([[:space:]\"']|\$)"; then
-    jq -n '{
+ask() {
+    jq -n --arg r "$1" '{
         hookSpecificOutput: {
             hookEventName: "PreToolUse",
             permissionDecision: "ask",
-            permissionDecisionReason: "Push to protected branch detected. Push Routing protocol requires feature branch + PR by default. Only confirm if you explicitly said \"push to main\"."
+            permissionDecisionReason: $r
         }
     }'
     exit 0
-fi
+}
 
-# --- Check 2: Bare push while on a protected branch ---
-# Catches: git push, git push origin (no branch = pushes current branch)
-if [ -n "$cwd" ] && [ -d "$cwd" ]; then
-    current_branch=$(cd "$cwd" && git branch --show-current 2>/dev/null || echo "")
-    case "$current_branch" in
-        main|master|production)
-            jq -n --arg branch "$current_branch" '{
-                hookSpecificOutput: {
-                    hookEventName: "PreToolUse",
-                    permissionDecision: "ask",
-                    permissionDecisionReason: ("Currently on protected branch " + $branch + ". Push Routing requires feature branch + PR. Only confirm if you explicitly requested pushing to this branch.")
-                }
-            }'
-            exit 0
-            ;;
-    esac
-fi
+# Every push segment: from "git ... push" up to the next separator.
+# Newlines are separators too; they are turned into ";" first because a
+# newline inside a grep pattern would split it into two patterns.
+segments=$(printf '%s' "$command" | tr '\n' ';' | grep -oE "${push_re}[^;&|]*") ||
+    ask "Push gate could not read this push command, so it asks. Confirm only if you asked for this push."
+[ -n "$segments" ] ||
+    ask "Push gate could not read this push command, so it asks. Confirm only if you asked for this push."
+safe_re='^git[[:space:]]+push([[:space:]]+(-u|--set-upstream))?[[:space:]]+origin[[:space:]]+claude/[A-Za-z0-9._/-]+[[:space:]]*$'
+while IFS= read -r seg; do
+    [ -z "$seg" ] && continue
+    if echo "$seg" | grep -qE "[[:space:]:/+\"'](main|master|production)([^A-Za-z0-9._-]|\$)"; then
+        ask "Push to protected branch detected. Push Routing requires feature branch + PR by default. Only confirm if you explicitly said \"push to main\"."
+    fi
+    if ! echo "$seg" | grep -qE "$safe_re"; then
+        ask "This push is not the plain feature-branch shape (git push [-u] origin claude/<name>). Force, --all, --mirror, tags, deletes, other remotes, refspecs and bare pushes always ask. Confirm only if you asked for this push."
+    fi
+done <<< "$segments"
 
-# Feature branch or non-protected target — allow silently
+# Every push segment is a plain push of a claude/* branch to origin.
 exit 0

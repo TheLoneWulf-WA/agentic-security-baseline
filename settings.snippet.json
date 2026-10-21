@@ -1,11 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push:*)",
-      "Bash(gh pr create:*)"
-    ],
-    "ask": [
-      "Bash(gh pr merge:*)"
+      "Bash(git push origin claude/*)",
+      "Bash(git push -u origin claude/*)",
+      "Bash(git push --set-upstream origin claude/*)",
+      "Bash(gh pr create *)"
     ]
   },
   "hooks": {
