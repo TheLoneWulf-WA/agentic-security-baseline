@@ -21,8 +21,12 @@ deletes, other remotes and URLs, a protected name followed directly by
 every push prompted; with feature pushes allowed, it would have. A push
 command the hook cannot parse asks too, as do `git send-pack`, `git
 subtree push`, pushes with global options (`--no-pager`, `--git-dir`,
-`-c`), a push after `cd`, and a push in a repo that sets
-`remote.origin.push` (which can remap `claude/x` to another branch).
+`-c`), anything before `git` (`VAR=`, `env`, a subshell), a push with
+`cd`/`pushd`/`popd` anywhere in the command, and a push in a repo whose
+config could redirect or widen it: `remote.origin.push`, `push.default`
+upstream or tracking (a branch created from `origin/main` would push to
+`main`), `push.followTags`, `push.recurseSubmodules`, or a tag named
+like the branch. Input the hook cannot read (no `jq`, not JSON) asks.
 
 `install.sh` and `docs/INSTALL.md` now concatenate `permissions.allow`
 and `permissions.ask` when merging the snippet, the same way they

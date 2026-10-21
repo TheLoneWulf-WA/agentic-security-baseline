@@ -96,7 +96,7 @@ fi
 rm "$SNIPPET"
 ```
 
-Sibling keys (plugins, etc.) deep-merge via `*`; `hooks.PreToolUse`, `permissions.allow` and `permissions.ask` are concatenated explicitly because `*` would replace each array and drop the hooks and rules you already have. Your `permissions.deny` is left untouched and still beats any allow entry. The snippet allows only `git push [-u] origin claude/<name>` and `gh pr create`, so Claude can push its own feature branch and open the PR without a prompt. Every other push still prompts: the push-routing hook asks on anything that is not that plain shape, and on every merge. To keep prompting on all pushes, add `Bash(git push *)` to your `permissions.ask`. `unique` makes re-runs idempotent — note it sorts, so entry order may change (harmless: all matching PreToolUse hooks run).
+Sibling keys (plugins, etc.) deep-merge via `*`; `hooks.PreToolUse`, `permissions.allow` and `permissions.ask` are concatenated explicitly because `*` would replace each array and drop the hooks and rules you already have. Your `permissions.deny` is left untouched and still beats any allow entry. The snippet allows only `git push [-u] origin claude/<name>` and `gh pr create`, so Claude can push its own feature branch and open the PR without a prompt. Every other push still prompts: the push-routing hook asks on anything that is not that plain shape, when the repo's git config could redirect it (for example `push.default=upstream` on a branch tracking main), and on every merge. To keep prompting on all pushes, add `Bash(git push *)` to your `permissions.ask`. `unique` makes re-runs idempotent — note it sorts, so entry order may change (harmless: all matching PreToolUse hooks run).
 
 ### Step 4 — Install the global git pre-push hook
 
@@ -146,7 +146,7 @@ Tell the user what should now be true:
 
 - A new Claude Code session will load the protocol from `~/.claude/CLAUDE.md`
 - Claude can push its own branch with `git push [-u] origin claude/<name>` and open the PR with `gh pr create` without a prompt (the settings allow list)
-- Every other push will prompt for confirmation: `main`, `master` or `production`, force, `--all`/`--mirror`, tags, deletes, other remotes, refspecs, a bare `git push` (the PreToolUse hook)
+- Every other push will prompt for confirmation: `main`, `master` or `production`, force, `--all`/`--mirror`, tags, deletes, other remotes, refspecs, a bare `git push`, and a push the repo's config could redirect (the PreToolUse hook)
 - PR merges Claude runs (`gh pr merge` and the API routes) will pause on a confirmation prompt showing the review-loop marker state (ask mode)
 - Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands) will prompt (the config-edit gate)
 - `/until-clean` and `/adversarial-review` will be available as slash commands in new sessions
