@@ -382,6 +382,13 @@ any push command without a target:
 
 The strict gate runs before the push, exactly as specified above.
 
+**Feature branches push freely.** Claude may push its own `claude/*`
+branch and open the PR without being asked, after the Strict Gate's
+`/security-review` where it applies (`git push` and `gh pr create` are
+on the settings allow list). Pushes to main/master/production and every
+merge still need the user, per action: the push-routing hook asks on
+both, whatever the allow list says.
+
 ### Explicit overrides (always honored)
 
 - `"push to main"` / `"push to master"` → push directly to main, no PR (hotfix escape hatch)

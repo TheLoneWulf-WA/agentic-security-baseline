@@ -2,6 +2,23 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-10-21
+
+Feature branches push freely. Claude may now push its own `claude/*`
+branch and open the PR without being asked, after the Strict Gate's
+`/security-review` where it applies. New paragraph in `CLAUDE.md` (Push
+Routing) and rule 3.0b in `docs/protocol-rationale.html`.
+`settings.snippet.json` now allows `Bash(git push:*)` and
+`Bash(gh pr create:*)` and keeps `Bash(gh pr merge:*)` on ask. Nothing
+changed in the hooks: a push to main/master/production and every merge
+still stop for the user, because the push-routing hook answers `ask`
+and a hook's ask always prompts.
+
+`install.sh` and `docs/INSTALL.md` now concatenate `permissions.allow`
+and `permissions.ask` when merging the snippet, the same way they
+already did for `hooks.PreToolUse`. Without it, jq's `*` would have
+replaced the user's own allow and ask lists with the snippet's.
+
 ## 2026-10-10
 
 Fixed the `min-release-age` value everywhere it is set or suggested

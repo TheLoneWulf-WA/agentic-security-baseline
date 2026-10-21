@@ -1,4 +1,13 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
+    ],
+    "ask": [
+      "Bash(gh pr merge:*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

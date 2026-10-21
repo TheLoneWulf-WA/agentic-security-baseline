@@ -1469,6 +1469,40 @@
         </div>
       </div>
 
+      <!-- 3.0b FEATURE BRANCHES PUSH FREELY -->
+      <div class="rule" id="feature-branches-push-freely">
+        <span class="rule-label">Rule 3.0b &middot; standing permission</span>
+        <h3>Feature branches push freely</h3>
+        <div class="rule-body">
+          <p>
+            Claude may push its own <code>claude/*</code> branch and open
+            the PR without being asked, after the Strict Gate&rsquo;s
+            <code>/security-review</code> where it applies. The settings
+            snippet puts <code>Bash(git push:*)</code> and
+            <code>Bash(gh pr create:*)</code> on the allow list and keeps
+            <code>Bash(gh pr merge:*)</code> on the ask list.
+          </p>
+          <p>
+            Pushes to <code>main</code>/<code>master</code>/<code>production</code>
+            and every merge still need the user, per action. The
+            push-routing hook answers <code>ask</code> on both, and a
+            hook&rsquo;s <code>ask</code> always brings up the prompt, in
+            auto mode too: an allow-list entry cannot approve it silently.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            A feature branch is reversible and reaches nobody until it is
+            merged; the irreversible steps are the merge and a push to a
+            protected branch. Asking on every feature push spent the
+            user&rsquo;s attention where the risk is lowest, and taught
+            reflexive approval. The approval now sits only where the risk
+            is, and the hook keeps it there mechanically.
+          </div>
+        </div>
+      </div>
+
       <!-- 3.1 OVERRIDES -->
       <div class="rule" id="routing-overrides">
         <span class="rule-label">Rule 3.1 &middot; user override</span>

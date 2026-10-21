@@ -82,10 +82,13 @@ if [ ! -f ~/.claude/settings.json ]; then
     cp "$SNIPPET" ~/.claude/settings.json
 else
     cp ~/.claude/settings.json ~/.claude/settings.json.bak.$(date +%Y%m%d-%H%M%S)
-    # hooks.PreToolUse is concatenated explicitly — jq's * replaces arrays,
-    # which would drop any PreToolUse hooks you already have.
+    # hooks.PreToolUse and permissions.allow/ask are concatenated explicitly —
+    # jq's * replaces arrays, which would drop the hooks and rules you have.
     jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
-           | (.[0] * .[1]) | .hooks.PreToolUse = $pt' \
+           | ((.[0].permissions.allow // []) + (.[1].permissions.allow // []) | unique) as $al
+           | ((.[0].permissions.ask // []) + (.[1].permissions.ask // []) | unique) as $as
+           | (.[0] * .[1]) | .hooks.PreToolUse = $pt
+           | .permissions.allow = $al | .permissions.ask = $as' \
         ~/.claude/settings.json "$SNIPPET" > ~/.claude/settings.json.new
     mv ~/.claude/settings.json.new ~/.claude/settings.json
 fi
@@ -93,7 +96,7 @@ fi
 rm "$SNIPPET"
 ```
 
-Sibling keys (permissions, plugins, etc.) deep-merge via `*`; `hooks.PreToolUse` is concatenated explicitly because `*` would replace the array and drop any hooks you already have. `unique` makes re-runs idempotent — note it sorts, so entry order may change (harmless: all matching PreToolUse hooks run).
+Sibling keys (plugins, etc.) deep-merge via `*`; `hooks.PreToolUse`, `permissions.allow` and `permissions.ask` are concatenated explicitly because `*` would replace each array and drop the hooks and rules you already have. Your `permissions.deny` is left untouched and still beats any allow entry. The snippet allows `git push` and `gh pr create` so Claude can push its own feature branch and open the PR without a prompt; the push-routing hook still asks on any push to main/master/production and on every merge. `unique` makes re-runs idempotent — note it sorts, so entry order may change (harmless: all matching PreToolUse hooks run).
 
 ### Step 4 — Install the global git pre-push hook
 

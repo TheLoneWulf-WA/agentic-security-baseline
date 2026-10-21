@@ -88,13 +88,18 @@ if [ ! -f "$SETTINGS" ]; then
 else
     backup="$SETTINGS.bak.$TIMESTAMP"
     cp "$SETTINGS" "$backup"
-    # Deep-merge for sibling keys; hooks.PreToolUse needs explicit array
-    # concatenation because jq's * replaces arrays wholesale — a plain
-    # merge would silently drop any PreToolUse hooks the user already has.
+    # Deep-merge for sibling keys; hooks.PreToolUse and permissions.allow /
+    # permissions.ask need explicit array concatenation because jq's *
+    # replaces arrays wholesale — a plain merge would silently drop the
+    # user's own PreToolUse hooks and permission rules. Any deny rule the
+    # user has is kept as-is and still wins over these allow entries.
     # `unique` keeps the merge idempotent on re-runs; it sorts, so entry
     # order may change (harmless: all matching PreToolUse hooks run).
     jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
-           | (.[0] * .[1]) | .hooks.PreToolUse = $pt' \
+           | ((.[0].permissions.allow // []) + (.[1].permissions.allow // []) | unique) as $al
+           | ((.[0].permissions.ask // []) + (.[1].permissions.ask // []) | unique) as $as
+           | (.[0] * .[1]) | .hooks.PreToolUse = $pt
+           | .permissions.allow = $al | .permissions.ask = $as' \
         "$SETTINGS" "$TMP_SNIPPET" > "$SETTINGS.new"
     mv "$SETTINGS.new" "$SETTINGS"
     echo "✓ Merged hook config into ~/.claude/settings.json"
