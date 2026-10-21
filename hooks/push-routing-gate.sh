@@ -171,6 +171,14 @@ safe_re='^git[[:space:]]+push([[:space:]]+(-u|--set-upstream))?[[:space:]]+origi
 if ! printf '%s' "$lead" | grep -qE "$safe_re"; then
     ask "This push is not the plain feature-branch shape (git push [-u] origin claude/<name>, optionally then && gh pr create). Anything before the push, other flags, remotes, refspecs or chained commands ask. Confirm only if you asked for this push."
 fi
+# A lone & after the push backgrounds `push && gh pr create`, so a command
+# after it would run while the push is still reading its config. ;, |
+# and newlines run later and cannot move the push. Text such as "Q&A"
+# in a PR body also matches and simply asks.
+tail=${lead#*&&}
+if [ "$tail" != "$lead" ] && printf '%s' "$tail" | grep -qE '(^|[^&>|])&([^&>]|$)'; then
+    ask "A lone & after the push would run the next command alongside it, so it asks. Confirm only if you asked for this push."
+fi
 branches=$(printf '%s' "$lead" | sed -E 's/^git[[:space:]]+push([[:space:]]+(-u|--set-upstream))?[[:space:]]+origin[[:space:]]+(claude\/[A-Za-z0-9._\/-]+).*$/\3/')
 
 # A directory change anywhere in the command means the config read below
