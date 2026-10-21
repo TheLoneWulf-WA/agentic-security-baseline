@@ -108,9 +108,9 @@ fi
 #
 #   git push [-u | --set-upstream] origin claude/<name>
 #
-# as a whole command part (between separators: && || ; | & newline),
-# with nothing before `git` (no VAR=, env, sudo, subshell) and nothing
-# after the branch name except an optional 2>&1. So these ask: other
+# as the whole command: nothing before `git` (no VAR=, env, git config,
+# cd, subshell), and after the branch name only an optional 2>&1 and an
+# optional `&& gh pr create ...`. So these ask: other
 # branches and refspecs (claude/x:main), flags (--force, --all,
 # --mirror, --tags, --delete), other remotes or URLs, quotes, variables,
 # a bare `git push`, `git -C dir push`, `git send-pack`, `git subtree
@@ -119,7 +119,8 @@ fi
 # The command text is not the whole story: git config decides where a
 # push lands. So the hook also reads the repo's effective config in the
 # session's cwd, and asks when any of these could move or widen the push:
-# remote.origin.push (remaps the refspec), push.default upstream/tracking
+# remote.origin.push (remaps the refspec), a pushurl or pushInsteadOf
+# (sends it to another URL), remote.origin.mirror, push.default upstream/tracking
 # (sends claude/x to its upstream, often main), push.followTags (adds
 # tags), push.recurseSubmodules on-demand/only (pushes other repos), a
 # tag with the same name as the branch (git prefers the tag), or a cd /
@@ -152,26 +153,25 @@ ask() {
 }
 unparsed="Push gate could not read this push command, so it asks. Confirm only if you asked for this push."
 
-# Split into command parts. Newlines become ";" (a newline inside a grep
-# pattern would split the pattern in two), and the harmless 2>&1 is
-# dropped first so its "&" does not split a part.
-flat=$(printf '%s' "$command" | sed 's/[[:space:]]*2>&1//g' | tr '\n' ';')
-parts=$(printf '%s' "$flat" | grep -oE "[^;&|]*${push_re}[^;&|]*") || ask "$unparsed"
-[ -n "$parts" ] || ask "$unparsed"
-
-safe_re='^git[[:space:]]+push([[:space:]]+(-u|--set-upstream))?[[:space:]]+origin[[:space:]]+claude/[A-Za-z0-9._/-]+$'
-branches=""
-while IFS= read -r part; do
-    part=$(printf '%s' "$part" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
-    [ -z "$part" ] && continue
-    if printf '%s' "$part" | grep -qE "[[:space:]:/+\"'](main|master|production)([^A-Za-z0-9._-]|\$)"; then
-        ask "Push to protected branch detected. Push Routing requires feature branch + PR by default. Only confirm if you explicitly said \"push to main\"."
-    fi
-    if ! printf '%s' "$part" | grep -qE "$safe_re"; then
-        ask "This push is not the plain feature-branch shape (git push [-u] origin claude/<name>). Force, --all, --mirror, tags, deletes, other remotes, refspecs, bare pushes and anything before git always ask. Confirm only if you asked for this push."
-    fi
-    branches="$branches ${part##* }"
-done <<< "$parts"
+# The whole command must be the safe push, optionally with a trailing
+# 2>&1, optionally followed by `&& gh pr create ...`. Nothing may run
+# before the push: a `git config`, `export GIT_*=...`, `git tag` or `cd`
+# earlier in the same command would change where the push lands after
+# this hook has read the config. Whatever follows `&& gh pr create` runs
+# only once the push has finished, so it cannot move the push; a second
+# push anywhere in the command asks.
+flat=$(printf '%s' "$command" | tr '\n' ';')
+npush=$(printf '%s' "$flat" | grep -oE "$push_re" | wc -l | tr -d ' ')
+[ "$npush" = "1" ] || ask "This command has more than one push, so it asks. Confirm only if you asked for these pushes."
+lead=$(printf '%s' "$flat" | sed -E 's/^[[:space:]]+//')
+if printf '%s' "$lead" | grep -qE "^git[^;&|]*[[:space:]:/+\"'](main|master|production)([^A-Za-z0-9._-]|\$)"; then
+    ask "Push to protected branch detected. Push Routing requires feature branch + PR by default. Only confirm if you explicitly said \"push to main\"."
+fi
+safe_re='^git[[:space:]]+push([[:space:]]+(-u|--set-upstream))?[[:space:]]+origin[[:space:]]+(claude/[A-Za-z0-9._/-]+)([[:space:]]+2>&1)?[[:space:]]*(&&[[:space:]]*gh[[:space:]]+pr[[:space:]]+create([[:space:]].*)?)?$'
+if ! printf '%s' "$lead" | grep -qE "$safe_re"; then
+    ask "This push is not the plain feature-branch shape (git push [-u] origin claude/<name>, optionally then && gh pr create). Anything before the push, other flags, remotes, refspecs or chained commands ask. Confirm only if you asked for this push."
+fi
+branches=$(printf '%s' "$lead" | sed -E 's/^git[[:space:]]+push([[:space:]]+(-u|--set-upstream))?[[:space:]]+origin[[:space:]]+(claude\/[A-Za-z0-9._\/-]+).*$/\3/')
 
 # A directory change anywhere in the command means the config read below
 # would be the wrong repo's.
@@ -191,10 +191,19 @@ case "$(cfg push.default)" in
     upstream|tracking)
         ask "push.default is upstream here, so a claude/* push goes to the branch's upstream, which may be main. Confirm only if you asked for this push." ;;
 esac
-case "$(printf '%s' "$(cfg push.followTags)" | tr 'A-Z' 'a-z')" in
-    true|yes|on|1)
-        ask "push.followTags is on here, so this push would also push tags. Confirm only if you asked for this push." ;;
-esac
+# Booleans are parsed by git itself; a value git cannot parse asks.
+for key in push.followTags remote.origin.mirror; do
+    if git -C "$cwd" config --get "$key" >/dev/null 2>&1; then
+        v=$(git -C "$cwd" config --type=bool --get "$key" 2>/dev/null) || ask "Push gate could not read $key here, so it asks. Confirm only if you asked for this push."
+        [ "$v" = "true" ] && ask "$key is on here, so this push would push more than the branch. Confirm only if you asked for this push."
+    fi
+done
+# The push URL must be origin's own URL: a pushurl or a pushInsteadOf
+# rewrite would send the branch somewhere else.
+if [ -n "$(git -C "$cwd" config --get-all remote.origin.pushurl 2>/dev/null)" ] ||
+   [ "$(git -C "$cwd" remote get-url --push origin 2>/dev/null)" != "$(git -C "$cwd" remote get-url origin 2>/dev/null)" ]; then
+    ask "origin's push URL differs from its fetch URL here, so this push may go somewhere else. Confirm only if you asked for this push."
+fi
 case "$(cfg push.recurseSubmodules)" in
     on-demand|only)
         ask "push.recurseSubmodules would push submodule repos too. Confirm only if you asked for this push." ;;
@@ -205,6 +214,6 @@ for b in $branches; do
     fi
 done
 
-# Every push part is a plain push of a claude/* branch to origin, and the
-# repo's config cannot move it.
+# The command is the plain push of one claude/* branch to origin, and
+# the repo's config cannot move it.
 exit 0

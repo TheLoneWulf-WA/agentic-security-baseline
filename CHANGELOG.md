@@ -26,7 +26,12 @@ subtree push`, pushes with global options (`--no-pager`, `--git-dir`,
 config could redirect or widen it: `remote.origin.push`, `push.default`
 upstream or tracking (a branch created from `origin/main` would push to
 `main`), `push.followTags`, `push.recurseSubmodules`, or a tag named
-like the branch. Input the hook cannot read (no `jq`, not JSON) asks.
+like the branch, a pushurl or `pushInsteadOf` rewrite, or
+`remote.origin.mirror`. Booleans are read with git's own parser. The
+whole command must be the push, optionally followed by `&& gh pr
+create`: anything before it in the same command (`git config`, `export
+GIT_*`, `git tag`) could change where it lands after the hook checked.
+Input the hook cannot read (no `jq`, not JSON) asks.
 
 `install.sh` and `docs/INSTALL.md` now concatenate `permissions.allow`
 and `permissions.ask` when merging the snippet, the same way they

@@ -385,12 +385,14 @@ The strict gate runs before the push, exactly as specified above.
 **Feature branches push freely.** Claude may push its own `claude/*`
 branch and open the PR without being asked, after the Strict Gate's
 `/security-review` where it applies. Only the plain shape runs without a
-prompt: `git push [-u] origin claude/<name>`, and `gh pr create`. Every
+prompt: `git push [-u] origin claude/<name>` as the whole command,
+optionally followed by `&& gh pr create ...`, and `gh pr create` alone. Every
 other push asks: main/master/production, force, `--all`/`--mirror`,
 tags, deletes, other remotes or URLs, refspecs and a bare `git push`.
 It also asks when the repo's git config could move or widen that push
-(`remote.origin.push`, `push.default` upstream, `push.followTags`,
-submodule pushes, a tag with the branch's name). Every merge still needs
+(`remote.origin.push`, a pushurl or `pushInsteadOf`, `push.default`
+upstream, `push.followTags`, submodule pushes, a tag with the branch's
+name). Every merge still needs
 the user, per action. Two layers enforce it: the settings allow list
 names only the plain shape, and the push-routing hook asks on anything
 else.

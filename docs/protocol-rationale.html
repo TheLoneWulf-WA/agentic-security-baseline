@@ -1480,8 +1480,11 @@
             the PR without being asked, after the Strict Gate&rsquo;s
             <code>/security-review</code> where it applies. Only the plain
             shape runs without a prompt:
-            <code>git push [-u] origin claude/&lt;name&gt;</code>, and
-            <code>gh pr create</code>.
+            <code>git push [-u] origin claude/&lt;name&gt;</code> as the whole
+            command, optionally followed by <code>&amp;&amp; gh pr create</code>.
+            Nothing may run before the push in the same command: a
+            <code>git config</code> or <code>export GIT_*</code> there would
+            change where the push lands after the hook has checked.
           </p>
           <p>
             Two layers hold it there. The settings snippet allows only that
@@ -1490,7 +1493,7 @@
             &mdash; <code>main</code>/<code>master</code>/<code>production</code>,
             force, <code>--all</code>/<code>--mirror</code>, tags, deletes,
             other remotes or URLs, refspecs, a bare <code>git push</code>,
-            or anything it cannot parse &mdash; and on every merge. It also reads the repo&rsquo;s git config and asks when config could move or widen the push: <code>remote.origin.push</code>, <code>push.default</code> set to upstream (which sends a branch tracking <code>main</code> to <code>main</code>), <code>push.followTags</code>, submodule pushes, or a tag with the branch&rsquo;s name. Per the
+            or anything it cannot parse &mdash; and on every merge. It also reads the repo&rsquo;s git config and asks when config could move or widen the push: <code>remote.origin.push</code>, a pushurl or <code>pushInsteadOf</code> rewrite, <code>push.default</code> set to upstream (which sends a branch tracking <code>main</code> to <code>main</code>), <code>push.followTags</code>, submodule pushes, or a tag with the branch&rsquo;s name. Per the
             Claude Code hooks reference, a hook&rsquo;s <code>ask</code>
             brings up the prompt in auto mode too; an allow entry cannot
             approve it silently. The hook reads command text, so a push
