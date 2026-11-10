@@ -123,6 +123,31 @@ one does not replace an earlier one.
 **No CLEAN verdict before step 6 has run.** A pass of my own, however
 careful, is not the loop.
 
+### Light lane — docs-only and look-only PRs (2026-11-05)
+
+A PR qualifies only if it is one of these, and nothing else:
+- **Docs-only:** `.md` files, code comments, runbook text. No code
+  that runs.
+- **Look-only:** styling on pages outside the project's critical flows
+  (a buying flow, sign-in; any surfaces the project's CLAUDE.md protects
+  are excluded), with no logic, data, wording or shared-component
+  behaviour change.
+
+For a light-lane PR:
+- No adversarial review (it never applied) and no critical-flow suites.
+- **One `/until-clean` pass.** Fix any LOW it finds, then the
+  skill's final `/code-review` at the final commit is the re-check;
+  no further loop rounds unless that review finds something.
+- Docs-only runs lint and the docs build; look-only keeps the full
+  local check (a style change can break the build).
+- Look-only PRs attach before/after screenshots at the project's
+  test sizes; they are the main evidence.
+
+Anything touching payments, sign-in, sessions, customer data, the
+admin, uploads, or a critical flow is never light lane: the full
+order above applies. When unsure, it is not light lane. The merge
+gate, the base check and the user's "merge it" are unchanged.
+
 ### Layer 0 — security-guidance plugin (in-session, non-blocking)
 
 The `security-guidance@claude-plugins-official` plugin (enable at user
@@ -142,14 +167,15 @@ scope) is the earliest layer; runs automatically; nothing to invoke.
   `<project>/.claude/claude-security-guidance.local.md` (gitignored,
   personal overrides) feed the model-backed reviews.
 
-Set `SECURITY_REVIEW_MODEL` (end-of-turn) / `SG_AGENTIC_MODEL`
-(on-commit) in `~/.claude/settings.json` to the most capable model
-available; the plugin has its own default otherwise, and the installer
-sets neither. When that is the same model that writes the code, keep
-independence in other ways: fresh-context reviewers, and testing
-against a real running build (a preview deploy where you have one). Layer 0 fires every turn (end-of-turn +
-on-commit), so this is a recurring per-turn cost, not per-PR; point one
-var at a smaller model if steady-state usage bites.
+Reviews run on **Sonnet 5.5**, set via `SECURITY_REVIEW_MODEL`
+(end-of-turn) / `SG_AGENTIC_MODEL` (on-commit) in
+`~/.claude/settings.json` (2026-11-10: usage was hitting plan limits,
+and Layer 0 fires every turn in every session, end-of-turn and
+on-commit, so it's a per-turn cost, not per-PR). It's a non-blocking
+early net; the gates behind it (`/security-review`,
+`/adversarial-review` on sensitive PRs, the code review) still decide.
+The installer sets neither variable; without them the plugin uses its
+own default.
 
 **Does NOT replace the gates below.** Non-blocking, security-only, can
 miss things — *reduces* what reaches the gates; doesn't satisfy any.
@@ -268,11 +294,14 @@ README: is it true, and does it say what to do). They are given the
 code and the docs, never the author's conclusions.
 
 Run it **without being asked, before the merge prompt**, on any PR
-touching: auth, sessions or tokens; uploads or media; payments; the
-admin; API endpoints taking input; anything an attacker can reach; any
-script or job that runs with access rules off or deletes records. A
-project CLAUDE.md or memory may widen this; the wider rule wins. For a
-change that is none of these, say in one line that it is skipped.
+touching: auth, sessions or tokens; uploads or media; payments; admin
+actions that move money or change accounts or permissions; API
+endpoints taking input; anything an attacker can reach; any script or
+job that runs with access rules off or deletes records. Not for admin
+changes that are only wording, layout, help text or read-only display
+(2026-11-10, usage). A project CLAUDE.md or memory may widen this; the
+wider rule wins. For a change that is none of these, say in one line
+that it is skipped.
 
 - Fix every finding, LOW included, one commit each. What is the user's
   to decide (always-ask classes) is surfaced with a recommendation, not
@@ -299,6 +328,41 @@ The loop:
 4. **Re-run the same review on the new state**
 5. If new findings → step 2
 6. Stop only when a pass returns "no issues found"
+
+**Cost limits (2026-11-10, usage was hitting plan limits):**
+- **Pass cap:** at most 3 loop passes. Wording-only findings (PR body,
+  comments, docs prose) are fixed in a batch and never trigger a pass by
+  themselves; the final code review covers them. After pass 3 only a
+  MEDIUM or HIGH code finding earns a 4th pass; still open after that →
+  NOT CLEAN, surfaced to the user.
+- **Models by risk:** Opus for the bug reviewer only on sensitive PRs;
+  Sonnet for everything else, and for compliance reviewers always.
+- **Risk is mechanical, not judged:** `~/.claude/scripts/pr-risk.sh <PR>`,
+  for any project, web or mobile. It checks the PR against shared
+  defaults in `~/.claude/risk-paths/` (secrets, CI, deploy, dependency
+  files, migrations, API and server code, Android/iOS/Expo security
+  files, names like auth/payment/upload in code files, and risky words in
+  added lines: billing, keychain, webview bridges, exported components,
+  cleartext, service-role keys, deletes) plus the project's own list,
+  `<repo>/.claude/risk-paths.txt` (or `~/.claude/risk-paths/<repo>.txt`).
+  Anything it can't decide is sensitive, and so is every PR in a project
+  with no list of its own yet. **New project rule:** the first time a
+  session works in a project with no list, it runs
+  `~/.claude/scripts/pr-risk.sh --suggest`, which drafts a list from the
+  project's own folders. It then reviews the draft: it removes false hits
+  and adds the project's own money, access, customer-data, upload and
+  delete areas the shared lists can't know. It opens the result as
+  `<repo>/.claude/risk-paths.txt` in its own small PR for the user's OK.
+  Never review a PR at lower risk than the script says.
+  When a new money, access, upload, input or data-deleting area appears,
+  add its path to the project list.
+- **`/code-review` size:** normal-risk PRs of 150 changed lines or fewer
+  get 2 Sonnet agents instead of 4.
+- The skills (`until-clean`, `code-review`, `adversarial-review`) carry
+  the exact procedure.
+
+Why each limit is set where it is, and what still protects money and
+data: [`docs/review-cost-rationale.html`](docs/review-cost-rationale.html).
 
 **For security findings:** also check the severity label after the fix
 to confirm it was downgraded or removed, not just reworded.
