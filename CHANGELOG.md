@@ -7,9 +7,8 @@ Dated events in this protocol's lifecycle. Newest first.
 Trimmed `CLAUDE.md`, which loads into every session, without changing a
 rule: the numbered review loop (the `/until-clean` skill runs it), the
 history of the dropped classifier, the named supply-chain campaigns and
-the long pre-push hook list now live only in `CHANGELOG.md` and the
-rationale pages. The pre-push section now asks about setting the hook up
-only when `core.hooksPath` is unset.
+the long pre-push hook list now live only in the skill and the rationale
+pages (and earlier entries here).
 
 Review cost limits. Usage was hitting plan limits, and late review
 passes were mostly finding PR-description wording, so the loop got
