@@ -3,9 +3,11 @@
 # Anything else is sensitive. Matched by file type, not folder: code under a docs/ folder is still code.
 # Pages and PDFs under docs/
 (^|/)docs/.*\.(html?|pdf)$
-# Prose, except text files that are build or dependency config
-^(?!(.*/)?(requirements[^/]*|constraints[^/]*|cmakelists)\.txt$).*\.(md|mdx|rst|txt|adoc)$
-(^|/)(license|licence|notice|authors|contributors|changelog)[^/]*$
+# Prose. Not: text files that are build or dependency config; agent instructions and this kit's own lists and
+# commands (CLAUDE.md, AGENTS.md, SKILL.md, anything under .claude/, commands/ or risk-paths/), which steer reviews.
+# MDX is not prose: it runs imports and JSX.
+^(?!(.*/)?([^/]*requirements[^/]*|requirements/[^/]+|constraints[^/]*|cmakelists)\.txt$)(?!(.*/)?(claude|agents|skill)\.md$)(?!(.*/)?(\.claude|commands|risk-paths)/).*\.(md|rst|txt|adoc)$
+(^|/)(license|licence|notice|authors|contributors|changelog)$
 \.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|heic|mp4|webm|mov|mp3|wav|ogg|woff2?|ttf|otf|eot|lottie)$
 \.(css|scss|sass|less)$
-(^|/)\.(prettierrc|editorconfig|gitattributes)[^/]*$
+(^|/)(\.editorconfig|\.gitattributes|\.prettierrc(\.(json|ya?ml|toml))?)$

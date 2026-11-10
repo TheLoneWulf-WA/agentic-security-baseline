@@ -11,6 +11,6 @@ android:exported="true"|usesCleartextTraffic|NSAllowsArbitraryLoads|NSExceptionD
 \b[A-Z0-9_]*(SECRET|PRIVATE_KEY|API_KEY|ACCESS_KEY|WEBHOOK)[A-Z0-9_]*\b
 \b(Set-Cookie|httpOnly|sameSite|Access-Control-Allow-Origin|redirect_uri|callbackUrl|returnTo)\b
 # Third-party scripts, frames and forms that send data elsewhere: sensitive even on a safe page
-\bnext/script\b|<(script|iframe)\b|action=\{?["'`]https?:
+\bnext/script\b|(?i:<(script|iframe)\b)|action=\{?["'`]https?:
 # Reading the database from a page or component (Payload's Local API skips access rules by default)
 \bgetPayload\b|@payload-config|from ["']payload["']|\bpayload\.(find|findByID|create|update|delete|count)\(
