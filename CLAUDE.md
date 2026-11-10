@@ -320,15 +320,8 @@ The skill (`skills/adversarial-review/SKILL.md`, installed to
 Applies to `/security-review`, `/code-review`, and any ad-hoc review
 agent invocation. After applying a fix, **re-run the same review on
 the updated code**. A passing TypeScript check is not a verified fix.
-
-The loop:
-
-1. Run review
-2. Apply fixes for any findings
-3. Commit + push
-4. **Re-run the same review on the new state**
-5. If new findings → step 2
-6. Stop only when a pass returns "no issues found"
+The loop is review → fix → push → re-run on the new state, until a
+pass returns no issues; `/until-clean` runs it.
 
 **Cost limits (2026-11-10, usage was hitting plan limits):**
 - **Pass cap:** at most 3 loop passes. Wording-only findings (PR body,
@@ -341,13 +334,9 @@ The loop:
   but docs, images or styles gets two Sonnet reviewers.
 - **Docs-only test is mechanical, not judged:** `~/.claude/scripts/pr-risk.sh
   <PR>` says `RISK=normal` only when every changed file is docs, images or
-  styles by file type (`~/.claude/risk-paths/_default-safe.txt`) and no
-  added line has a risky word (`_default-content.txt`: scripts, iframes,
-  database access, secrets). Everything else, and any error, is
-  sensitive. Works for every project, web or mobile, with no per-project
-  lists (2026-11-10: a per-project file classifier was tried and dropped;
-  its own review took four passes and found more missed files each time,
-  and its saving was the smallest of these changes).
+  styles by type (`~/.claude/risk-paths/`) and no added line has a risky
+  word. Everything else, and any error, is sensitive. One set of lists
+  for every project.
 - **`/code-review` size:** docs, images or styles-only PRs (`RISK=normal`)
   of 150 changed lines or fewer get 2 Sonnet agents instead of 4.
 - The skills (`until-clean`, `code-review`, `adversarial-review`) carry
@@ -582,12 +571,8 @@ Compare lockfile before/after `npm install` / `npm update` / `npm ci`.
 Flag any already-installed package whose version changed; report
 which packages changed and to what version.
 
-**Forensic only**: by the time the diff appears, any malicious
-`postinstall` script has already executed. Tells you WHAT changed;
-does NOT prevent it. The preventive layers for trusted-package
-hijacking (Axios; then `@tanstack/`, `@opensearch-project/`,
-`@mistralai/`, `guardrails-ai`, `@uipath/`, `squawk` in the
-2025–2026 Mini Shai-Hulud campaign) are #7 and #8.
+**Forensic only**: by the time the diff appears, an install script has
+already run. It tells you what changed; #7 and #8 are what prevent.
 
 ### 7. Disable install scripts by default
 
@@ -610,14 +595,10 @@ after a normal install.
 npm config set min-release-age 2
 ```
 
-The value is a plain number of days (`2`, not `2d`).
-
-Skips the early-installer window for every future supply chain attack.
-Researchers typically detect malicious uploads within 6–24 hours; the
-2-day buffer skips the exposure window by default.
-
-Requires npm 11+. Equivalents for pnpm/yarn/bun in `docs/CUSTOMIZE.md`.
-Older npm silently ignores; upgrade to get the protection.
+A plain number of days (`2`, not `2d`). Malicious uploads are usually
+caught within a day, so a 2-day wait skips that window. Requires npm
+11+; older npm silently ignores it. Equivalents for pnpm/yarn/bun in
+`docs/CUSTOMIZE.md`.
 
 **Override per-install** when a genuine same-day release is needed.
 Applies to direct installs and any package added as part of a build
@@ -642,20 +623,15 @@ output exceeding thresholds, never commit source masters.
 
 ## Global Pre-Push Git Hook (defense in depth)
 
-Global git hook (via `core.hooksPath`) for direct terminal pushes that
-bypass Claude entirely.
+A global pre-push hook (via `core.hooksPath`) for pushes typed in a
+terminal, which bypass Claude. On pushes to `main` / `master` /
+`production` it runs the lockfile's audit at `critical` (blocks on a
+critical finding), warns on sensitive files, yields to project hooks
+(Husky etc.), and skips with `--no-verify`. Details in
+`docs/protocol-rationale.html`.
 
-The pre-push hook:
-
-- Only triggers on pushes to `main` / `master` / `production`
-- Detects the package manager from the lockfile (`package-lock.json` / `yarn.lock` / `pnpm-lock.yaml` / `bun.lockb`) and runs the matching audit at the `critical` threshold; blocks on critical findings. Skips cleanly if no recognized lockfile is present (no false-blocking yarn/pnpm/bun projects via `npm audit ENOLOCK`).
-- Warns on diffs touching sensitive files (auth, payments, env, middleware, RLS)
-- Yields gracefully to project-local hook systems (Husky etc.)
-- Skippable with `git push --no-verify`
-
-If not yet installed, ask the user once per session whether to set it
-up. If declined, don't ask again that session. Don't configure git
-silently.
+Only if `git config --global core.hooksPath` is unset: ask once per
+session whether to set it up. Never configure git silently.
 
 ---
 
