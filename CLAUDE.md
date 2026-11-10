@@ -145,8 +145,8 @@ For a light-lane PR:
 
 Anything touching payments, sign-in, sessions, customer data, the
 admin, uploads, or a critical flow is never light lane: the full
-order above applies. A PR the script calls sensitive is never light
-lane. When unsure, it is not light lane. The merge
+order above applies. When unsure, it is not light lane. The light lane decides how many
+loop passes a PR gets; `pr-risk.sh` decides only which models review it. The merge
 gate, the base check and the user's "merge it" are unchanged.
 
 ### Layer 0 — security-guidance plugin (in-session, non-blocking)

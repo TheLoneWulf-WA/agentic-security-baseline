@@ -164,7 +164,7 @@ Tell the user what should now be true:
 - Claude can push its own branch with `git push [-u] origin claude/<name>` and open the PR with `gh pr create` without a prompt (the settings allow list)
 - Every other push will prompt for confirmation: `main`, `master` or `production`, force, `--all`/`--mirror`, tags, deletes, other remotes, refspecs, a bare `git push`, and a push the repo's config could redirect (the PreToolUse hook)
 - PR merges Claude runs (`gh pr merge` and the API routes) will pause on a confirmation prompt showing the review-loop marker state (ask mode)
-- Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands) will prompt (the config-edit gate)
+- Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands, scripts, risk-paths) will prompt, including shell writes and interpreter one-liners (the config-edit gate and the push-routing hook)
 - `/until-clean`, `/adversarial-review` and `/code-review` will be available as slash commands in new sessions
 - `~/.claude/scripts/pr-risk.sh <PR>` prints `RISK=` and `SIZE=` for a PR; `RISK=normal` only for a PR of docs, images or styles with no risky words added
 - Direct terminal pushes to those branches will run `npm audit` and warn on sensitive file changes (the global git hook)

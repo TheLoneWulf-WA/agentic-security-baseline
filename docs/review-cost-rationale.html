@@ -617,7 +617,7 @@
             <tr><td><code>/code-review</code> size</td><td>A docs-, images- or styles-only PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the script can&rsquo;t run, gets all 4.</td></tr>
             <tr><td>Layer 0 model</td><td>The in-session security plugin is set to Sonnet 5.5 via <code>SECURITY_REVIEW_MODEL</code> / <code>SG_AGENTIC_MODEL</code> (the installer sets neither). It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
             <tr><td>Adversarial trigger</td><td>The three-role review still runs on auth, uploads, payments, input endpoints and anything an attacker can reach. For the admin it now runs on actions that move money or change accounts or permissions, not on admin wording, layout, help text or read-only display.</td></tr>
-            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass and the final code review. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane, and neither is a PR the script calls sensitive.</td></tr>
+            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass and the final code review. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane. The light lane decides how many passes a PR gets; the script decides only which models review it.</td></tr>
           </tbody>
         </table>
         </div>
@@ -844,7 +844,6 @@
           <ul>
             <li><strong>The word list is only as good as its words.</strong> A docs or styles PR that adds something risky using no listed word (a stylesheet that loads from elsewhere, an SVG trick) comes out normal and gets Sonnet reviewers.</li>
             <li><strong>Content words only look at added lines.</strong> A docs PR that deletes a warning or a step from a runbook isn&rsquo;t flagged; the reviewers still read it.</li>
-            <li><strong>The lists in <code>~/.claude/</code> are not guarded.</strong> The config-edit gate asks before an agent edits hooks, skills, commands, settings or <code>CLAUDE.md</code>. It does not cover <code>~/.claude/scripts/</code> or <code>~/.claude/risk-paths/</code>, so an agent could widen the safe list without a prompt.</li>
             <li><strong>Size is lines, not meaning.</strong> It only decides the code review&rsquo;s agent count, and only on PRs already judged docs-only.</li>
           </ul>
         </div>

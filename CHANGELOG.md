@@ -32,8 +32,9 @@ limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
   smallest of these changes, so it was cut back to the docs-only test.
 
 Also in `CLAUDE.md`: the light lane for docs-only and look-only PRs (one
-loop pass, then the final code review; from 2026-11-05), never for a PR
-the script calls sensitive; the `/adversarial-review` trigger for the
+loop pass, then the final code review; from 2026-11-05), which decides
+how many passes a PR gets while `pr-risk.sh` decides only which models
+review it; the `/adversarial-review` trigger for the
 admin narrowed to actions that move money or change accounts or
 permissions, not wording, layout, help text or read-only display; and
 Layer 0 on Sonnet 5.5, because it fires every turn in every session.
@@ -56,6 +57,14 @@ identical ones are left alone. The command's `allowed-tools` line gets
 your home path substituted, as the settings snippet does.
 `docs/CUSTOMIZE.md` has a new section 8 on the docs-only test (package
 manager configuration is now 9).
+
+Both gates now treat `~/.claude/scripts/` and `~/.claude/risk-paths/` as
+enforcement config, since the script decides how hard each PR is
+reviewed: `hooks/config-edit-gate.sh` asks on edits to them, and
+`hooks/push-routing-gate.sh` asks on shell writes to them. The shell
+check also asks on python, perl, ruby, node and awk one-liners that
+touch enforcement config, which can write a file without any shell
+redirection.
 
 New `docs/review-cost-rationale.html` explains the reasoning, the
 classifier that was dropped, what still protects money and data, and

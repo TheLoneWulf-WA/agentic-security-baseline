@@ -88,8 +88,11 @@ fi
 # Writing to the files that implement these gates must never happen
 # silently via Bash redirection, sed -i, mv, etc. Read-only access
 # (cat/grep/ls) stays frictionless.
-if echo "$command" | grep -qE '\.claude/(hooks|skills|commands|CLAUDE\.md|settings\.json|settings\.local\.json|keybindings\.json)'; then
-    if echo "$command" | grep -qE '>>|>[[:space:]]*[^&[:space:]]|\bsed[[:space:]]+-i\b|\btee\b|\brm\b|\bmv\b|\bcp\b|\bchmod\b|\bln\b|\btruncate\b'; then
+# scripts/ and risk-paths/ added 2026-11-10: pr-risk decides how hard each PR is reviewed, so it is enforcement config.
+# Interpreters (python/perl/ruby/node/awk) added the same day: a one-liner can write a file without any of the shell
+# operators below, and edits to CLAUDE.md had gone through that way unprompted.
+if echo "$command" | grep -qE '\.claude/(hooks|skills|commands|scripts|risk-paths|CLAUDE\.md|settings\.json|settings\.local\.json|keybindings\.json)'; then
+    if echo "$command" | grep -qE '>>|>[[:space:]]*[^&[:space:]]|\bsed[[:space:]]+-i\b|\btee\b|\brm\b|\bmv\b|\bcp\b|\bchmod\b|\bln\b|\btruncate\b|\b(python3?|perl|ruby|node|awk)\b'; then
         jq -n '{
             hookSpecificOutput: {
                 hookEventName: "PreToolUse",
