@@ -37,8 +37,8 @@ findings (this has happened in practice).
    matches the PR against the shared default lists in
    `~/.claude/risk-paths/` and the project's own list
    (`<repo>/.claude/risk-paths.txt`, or `~/.claude/risk-paths/<repo>.txt`),
-   and returns sensitive for anything it can't decide, including a
-   project with no list of its own yet. Never treat a PR as lower risk than the script says;
+   and returns sensitive when it can't read the PR or its path list,
+   and for a project with no list of its own yet. Never treat a PR as lower risk than the script says;
    you may treat it as higher.
    - **RISK=sensitive:** bug agent on **opus**, compliance agent on
      **sonnet**.

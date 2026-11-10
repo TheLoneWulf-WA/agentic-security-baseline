@@ -19,8 +19,8 @@ limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
 - **Risk is mechanical:** new `scripts/pr-risk.sh`, with shared default
   lists in `risk-paths/` (paths, code-file names, and words in added
   lines, covering web, Android, iOS and Expo) plus each project's own
-  `.claude/risk-paths.txt`. Anything it can't decide is sensitive, and
-  so is every PR in a project with no list yet. New-project rule:
+  `.claude/risk-paths.txt`. A PR it can't read is sensitive, and so
+  is every PR in a project with no list yet. New-project rule:
   `pr-risk.sh --suggest` drafts the list, a session reviews it and opens
   it as its own PR.
 
