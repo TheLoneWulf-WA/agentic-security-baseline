@@ -66,6 +66,11 @@ check also asks on python, perl, ruby, node and awk one-liners that
 touch enforcement config, which can write a file without any shell
 redirection.
 
+`scripts/pr-risk.py` takes the repo from the PR's own link, not from
+the current folder. Given a PR link from another repo, it used to read
+the folder's repo's PR of the same number, and could judge the wrong
+files.
+
 New `docs/review-cost-rationale.html` explains the reasoning, the
 classifier that was dropped, what still protects money and data, and
 the known weaknesses. Linked from the README, `CLAUDE.md` and
