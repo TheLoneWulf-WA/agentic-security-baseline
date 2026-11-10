@@ -1,0 +1,33 @@
+# Default SENSITIVE paths for every project (extended regex, matched case-insensitively against each changed file's path).
+# Used by ~/.claude/scripts/pr-risk.sh together with the project's own list. Drawn from the Strict Gate lists in ~/.claude/CLAUDE.md.
+# --- any project: secrets, CI, deploy, dependencies ---
+(^|/)\.env
+(^|/)\.(github|gitlab|circleci|buildkite)/
+(^|/)(\.gitlab-ci\.yml|bitbucket-pipelines\.yml|jenkinsfile|codemagic\.yaml|fastlane/)
+(^|/)(package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|\.npmrc|\.yarnrc.*|requirements[^/]*\.txt|poetry\.lock|pipfile(\.lock)?|pyproject\.toml|gemfile(\.lock)?|podfile(\.lock)?|package\.resolved|cartfile.*|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|gradle\.properties|libs\.versions\.toml|gradle-wrapper\.properties|pubspec\.(yaml|lock)|go\.(mod|sum)|cargo\.(toml|lock)|composer\.(json|lock))$
+(^|/)(vercel\.json|netlify\.toml|firebase\.json|\.firebaserc|[^/]*\.rules|database\.rules\.json|fly\.toml|render\.yaml|dockerfile|docker-compose[^/]*|app\.yaml|serverless\.ya?ml|wrangler\.toml|[^/]*\.tf)$
+(^|/)(supabase|terraform|infra|deploy|k8s|helm)/
+(^|/)scripts/
+# --- web ---
+(^|/)(next|nuxt|vite|astro|svelte|remix|webpack)\.config\.
+(^|/)(middleware|proxy)\.(ts|js|mjs)$
+(^|/)(migrations?|migrate|prisma|drizzle|db|database|schema)/
+(^|/)[^/]*\.sql$
+(^|/)schema\.prisma$
+(^|/)(api|server|webhooks?|actions|routes)/
+(^|/)[^/]*(route|actions?|server)\.(ts|js|mjs)$
+# --- android ---
+(^|/)androidmanifest\.xml$
+(^|/)(network_security_config|backup_rules|data_extraction_rules|file_paths)\.xml$
+(^|/)proguard[^/]*\.(pro|txt)$
+(^|/)[^/]*\.(jks|keystore|p12|pem|key|so)$
+(^|/)(jni|cpp|native)/
+# --- ios ---
+(^|/)info\.plist$
+(^|/)[^/]*\.(entitlements|xcconfig|storekit|mobileprovision)$
+(^|/)project\.pbxproj$
+(^|/)(appdelegate|scenedelegate)[^/]*$
+# --- react native / expo / flutter ---
+(^|/)(app\.json|app\.config\.(js|ts)|eas\.json|expo-env\.d\.ts)$
+(^|/)modules/[^ ]*\.(swift|kt|java|m|mm)$
+(^|/)(android|ios)/app/src/main/
