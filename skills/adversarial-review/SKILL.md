@@ -20,9 +20,13 @@ A CLEAN verdict is never given from this skill alone.
 
 - On request (`/adversarial-review`, optionally with a PR number).
 - Without being asked, before the merge prompt, on any PR touching: auth,
-  sessions or tokens; uploads or media handling; payments; the admin;
-  API endpoints taking input; anything an attacker can reach; and any
+  sessions or tokens; uploads or media handling; payments; **admin
+  actions that move money or change accounts or permissions**; API
+  endpoints taking input; anything an attacker can reach; and any
   script or job that runs with access rules off or deletes records.
+- **Not** for admin changes that are only wording, layout, help text or
+  read-only display (2026-11-10, to cut usage): skip with one line
+  saying why; the loop and the code review still run.
 - A project's CLAUDE.md or memory may widen this (for example "on every
   PR of mine"). The wider rule wins.
 - For a change that is none of the above (copy, styling, docs with no
