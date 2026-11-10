@@ -8,12 +8,13 @@ Review cost limits. Usage was hitting plan limits, and late review
 passes were mostly finding PR-description wording, so the loop got
 limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
 
-- **Pass cap:** at most 3 loop passes. Wording-only findings are fixed
-  in one batch and never start a pass; only a MEDIUM or HIGH code
-  finding earns a 4th; still open after that is NOT CLEAN.
-- **Models by risk:** in the loop and in `/code-review`, Opus for the
-  bug reviewer on sensitive PRs only; Sonnet for everything else and for
-  compliance reviewers.
+- **Pass cap:** 3 loop passes, plus a 4th only for an open MEDIUM or
+  HIGH code finding; still open after that is NOT CLEAN. Wording-only
+  findings are fixed in one batch and never start a pass.
+- **Models by risk:** in the loop, Opus for the bug reviewer on
+  sensitive PRs only; Sonnet for everything else and for compliance
+  reviewers. `/code-review` keeps its Opus bug agents except on small
+  normal-risk PRs.
 - **`/code-review` size:** normal-risk PRs of 150 changed lines or fewer
   get 2 Sonnet agents instead of 4.
 - **Risk is mechanical, and missed files fail safe:** new
@@ -26,7 +27,12 @@ limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
   project `.claude/risk-paths.txt`). Anything else is sensitive. It
   fails safe on a bad pattern, a missing or empty shared list, or a diff
   it can't read. Project lists are read from the PR's base branch, and
-  any change under `.claude/` is sensitive. New-project rule:
+  any change under `.claude/` is sensitive. Docs are told apart by
+  extension, so code under a `docs/` folder is still checked; added
+  lines are taken from the diff's hunks, so one starting with `++`
+  still counts. The content words also cover Payload CMS's Local API
+  (`getPayload`, `payload.find(` and so on), which skips access rules
+  by default. New-project rule:
   `pr-risk.sh --suggest` drafts a safe list of folders where no file
   trips a risky check; a session reviews every line and opens it as its
   own PR.

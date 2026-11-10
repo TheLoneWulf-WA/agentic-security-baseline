@@ -51,22 +51,22 @@ The default merge strategy is `squash + delete branch`. If your team prefers reb
 
 The safe list:
 
-- `_default-safe.txt` — what is safe in any project: docs, Markdown and text files, licence and changelog files, images, video and audio, fonts, stylesheets, editor config. Matched case-insensitively.
+- `_default-safe.txt` — what is safe in any project: pages and PDFs under `docs/` (not code there), Markdown and text files, licence and changelog files, images, video and audio, fonts, stylesheets, editor config. Matched case-insensitively.
 
 The sensitive signals, any one of which makes a PR sensitive even if all its files are on a safe list:
 
 - `_default-paths.txt` — file paths, matched case-insensitively: secrets, CI, deploy, dependency files, migrations, API and server code, Android / iOS / Expo security files, anything under `.claude/`, and a root `CLAUDE.md` or `AGENTS.md`.
-- `_default-names.txt` — folder and file names such as `auth`, `payment`, `upload`, matched on code files only (docs are skipped).
+- `_default-names.txt` — folder and file names such as `auth`, `payment`, `upload`, matched on every file except docs (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`), so code under a `docs/` folder is checked.
 - `_default-content.txt` — words in the PR's *added* lines, matched case-sensitively: billing and in-app-purchase APIs, payment providers by name, keychain and crypto calls, webview bridges, exported Android components, cleartext settings, service-role keys, deletes, third-party scripts, iframes and forms that post elsewhere. The backstop for mobile code, where a risky call often sits in an ordinary-looking file.
 
 Add your payment provider and auth library to `_default-content.txt` if they're not there. Keep project-specific paths out of the shared lists: `install.sh` replaces the shared lists on a re-run when they differ from the repo's copy (it backs yours up first). A shared list that is missing, empty, or has a pattern that doesn't compile makes every PR sensitive, so a typo can't quietly switch a check off.
 
 Each project gets its own lists in `<repo>/.claude/`:
 
-- `safe-paths.txt` — the project's folders whose changes can't touch money, sign-in, access, customer data, uploads, deletes, jobs, webhooks, config or third-party scripts. **Until it exists, only PRs of docs, images, fonts and styles get the cheaper review.** To write it, run `~/.claude/scripts/pr-risk.sh --suggest` inside the project. It prints a draft of the folders where no file trips a risky check. Review every line, and when unsure, delete it: an unlisted folder is just reviewed in full. Then save the file and open it in its own small PR.
+- `safe-paths.txt` — the project's folders whose changes can't touch money, sign-in, access, customer data, uploads, deletes, jobs, webhooks, config or third-party scripts. **Until it exists, only PRs of docs, images, fonts and styles get the cheaper review.** To write it, run `~/.claude/scripts/pr-risk.sh --suggest` inside the project. It prints a draft of the folders, below the top level, where no file's path or name trips a risky check. It doesn't read file contents. Review every line, and when unsure, delete it: an unlisted folder is just reviewed in full. Then save the file and open it in its own small PR.
 - `risk-paths.txt` (optional) — extra risky paths only this project knows about. They override the safe lists.
 
-Both are read from the PR's **base** branch, so a PR can't loosen the lists it is judged by, and any change under `.claude/` is sensitive anyway. (Files at `~/.claude/risk-paths/<repo-name>.safe.txt` and `<repo-name>.txt` are used when the base branch has none, for a repo where you'd rather not commit them.)
+Both are read from the PR's **base** branch (your local `origin/<base>`, so fetch first), so a PR based on the default branch can't loosen the lists it is judged by. A stacked PR is judged by its parent branch's lists, and any change under `.claude/` is sensitive anyway. (Files at `~/.claude/risk-paths/<repo-name>.safe.txt` and `<repo-name>.txt` are used when the base branch has none, for a repo where you'd rather not commit them.)
 
 The 150-line threshold that makes a PR "small" is in `pr-risk.py` (`lines <= 150`).
 

@@ -335,9 +335,10 @@ The loop:
   themselves; the final code review covers them. After pass 3 only a
   MEDIUM or HIGH code finding earns a 4th pass; still open after that →
   NOT CLEAN, surfaced to the user.
-- **Models by risk** (in the loop and in `/code-review`): Opus for the
-  bug reviewer only on sensitive PRs; Sonnet for everything else, and
-  for compliance reviewers always.
+- **Models by risk:** in the loop, Opus for the bug reviewer only on
+  sensitive PRs; Sonnet for everything else, and for compliance
+  reviewers always. `/code-review` keeps its Opus bug agents except on
+  the small normal-risk PRs below.
 - **Risk is mechanical, not judged, and missed files fail safe:**
   `~/.claude/scripts/pr-risk.sh <PR>`, for any project, web or mobile.
   A PR is **normal only when every changed file is on a safe list**: the
