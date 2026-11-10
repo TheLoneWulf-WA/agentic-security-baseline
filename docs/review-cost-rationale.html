@@ -611,9 +611,9 @@
           <thead><tr><th>Limit</th><th>What it does</th></tr></thead>
           <tbody>
             <tr><td>Pass cap</td><td>At most 3 loop passes. Wording-only findings (PR body, comments, docs prose) are fixed in one batch and never start a pass by themselves; the final code review checks them. After pass 3, only a MEDIUM or HIGH code finding earns a 4th pass. Still open after that: the verdict is NOT CLEAN and the user is told.</td></tr>
-            <tr><td>Models by risk</td><td>On a sensitive PR the bug reviewer runs on Opus. Everything else, and every compliance reviewer, runs on Sonnet.</td></tr>
+            <tr><td>Models by risk</td><td>In the <code>/until-clean</code> loop: on a sensitive PR the bug reviewer runs on Opus; everything else, and every compliance reviewer, runs on Sonnet. <code>/code-review</code> keeps its Opus bug agents except on small normal-risk PRs, and <code>/adversarial-review</code> is unchanged.</td></tr>
             <tr><td><code>/code-review</code> size</td><td>A normal-risk PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the risk script can&rsquo;t run, gets all 4.</td></tr>
-            <tr><td>Layer 0 model</td><td>The in-session security plugin runs on Sonnet 5.5. It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
+            <tr><td>Layer 0 model</td><td>The in-session security plugin is set to Sonnet 5.5 via <code>SECURITY_REVIEW_MODEL</code> / <code>SG_AGENTIC_MODEL</code> (the installer sets neither). It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
             <tr><td>Adversarial trigger</td><td>The three-role review still runs on auth, uploads, payments, input endpoints and anything an attacker can reach. For the admin it now runs on actions that move money or change accounts or permissions, not on admin wording, layout, help text or read-only display.</td></tr>
             <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass and the final code review. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane.</td></tr>
           </tbody>
@@ -670,7 +670,7 @@
       <span class="section-num">Section 04</span>
       <h2>Unknown means sensitive</h2>
       <p class="section-blurb">
-        Every way the script can fail to decide ends in the full review.
+        When the script can&rsquo;t read the PR, or the project has no list, the answer is the full review.
       </p>
       <div class="rule">
         <span class="rule-label">Fail closed</span>
@@ -679,7 +679,7 @@
           <p>The script answers <code>sensitive</code> when:</p>
           <ul>
             <li>it isn&rsquo;t inside a git repository, can&rsquo;t read the PR, or the PR lists no files;</li>
-            <li>a shared default list is missing;</li>
+            <li>the shared default path list is missing;</li>
             <li>the project has no list of its own yet.</li>
           </ul>
           <p>
@@ -790,7 +790,7 @@
             <li>service-role keys, row-level-security policy changes, <code>DELETE FROM</code>, <code>DROP</code>, <code>TRUNCATE</code>;</li>
             <li>secret-shaped names (<code>*_SECRET</code>, <code>*_API_KEY</code>), cookie and CORS headers, redirect parameters, <code>eval(</code> and shell execution.</li>
           </ul>
-          <p>The words are matched case-sensitively, so <code>Stripe</code> counts and a sentence about stripes doesn&rsquo;t.</p>
+          <p>The words are matched case-sensitively and mostly as whole words, so <code>DELETE FROM</code> counts and a sentence saying &ldquo;delete from the list&rdquo; doesn&rsquo;t.</p>
         </div>
       </div>
     </section>
@@ -843,6 +843,7 @@
             <li><strong>New folders are missed until added.</strong> When a project grows a new area that moves money or deletes data, nothing flags it until someone adds its path. The rule says to add it when it appears; that step is a person&rsquo;s, not the script&rsquo;s.</li>
             <li><strong>A PR can change its own project list.</strong> The script reads <code>.claude/risk-paths.txt</code> from the checkout, and that file matches no default path, so a PR that edits the list is judged by its own edited list. That is why list changes go in their own PR; reviewing a list change as normal risk is a known gap.</li>
             <li><strong>The lists in <code>~/.claude/</code> are not guarded.</strong> The config-edit gate asks before an agent edits hooks, skills, commands, settings or <code>CLAUDE.md</code>; it does not cover <code>~/.claude/scripts/</code> or <code>~/.claude/risk-paths/</code>.</li>
+            <li><strong>Some checks fail open.</strong> If <code>_default-names.txt</code> or <code>_default-content.txt</code> is missing, or the script can&rsquo;t fetch the PR&rsquo;s diff (GitHub refuses very large diffs), that check is skipped without a reason being printed, and the PR can come out normal on the remaining checks.</li>
             <li><strong>Content words only look at added lines.</strong> A PR that only deletes a guard, in a file no path list names, isn&rsquo;t caught by the word list.</li>
             <li><strong>Size is lines, not meaning.</strong> A one-line change can be the dangerous one. Size only decides the code review&rsquo;s agent count on PRs already judged normal.</li>
           </ul>

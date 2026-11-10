@@ -11,8 +11,9 @@ limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
 - **Pass cap:** at most 3 loop passes. Wording-only findings are fixed
   in one batch and never start a pass; only a MEDIUM or HIGH code
   finding earns a 4th; still open after that is NOT CLEAN.
-- **Models by risk:** Opus for the bug reviewer on sensitive PRs only;
-  Sonnet for everything else and for compliance reviewers.
+- **Models by risk:** in the loop, Opus for the bug reviewer on
+  sensitive PRs only; Sonnet for everything else and for compliance
+  reviewers.
 - **`/code-review` size:** normal-risk PRs of 150 changed lines or fewer
   get 2 Sonnet agents instead of 4.
 - **Risk is mechanical:** new `scripts/pr-risk.sh`, with shared default
