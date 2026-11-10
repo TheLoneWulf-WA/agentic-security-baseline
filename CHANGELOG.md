@@ -2,6 +2,58 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-11-10
+
+Review cost limits. Usage was hitting plan limits, and late review
+passes were mostly finding PR-description wording, so the loop got
+limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
+
+- **Pass cap:** at most 3 loop passes. Wording-only findings are fixed
+  in one batch and never start a pass; only a MEDIUM or HIGH code
+  finding earns a 4th; still open after that is NOT CLEAN.
+- **Models by risk:** Opus for the bug reviewer on sensitive PRs only;
+  Sonnet for everything else and for compliance reviewers.
+- **`/code-review` size:** normal-risk PRs of 150 changed lines or fewer
+  get 2 Sonnet agents instead of 4.
+- **Risk is mechanical:** new `scripts/pr-risk.sh`, with shared default
+  lists in `risk-paths/` (paths, code-file names, and words in added
+  lines, covering web, Android, iOS and Expo) plus each project's own
+  `.claude/risk-paths.txt`. Anything it can't decide is sensitive, and
+  so is every PR in a project with no list yet. New-project rule:
+  `pr-risk.sh --suggest` drafts the list, a session reviews it and opens
+  it as its own PR.
+
+Also in `CLAUDE.md`: the light lane for docs-only and look-only PRs (one
+loop pass, then the final code review; from 2026-11-05); the
+`/adversarial-review` trigger for the admin narrowed to actions that
+move money or change accounts or permissions, not wording, layout, help
+text or read-only display; and Layer 0 on Sonnet 5.5, because it fires
+every turn in every session.
+
+`skills/until-clean/SKILL.md` now carries the pass cap, models by risk,
+the light lane, wording-only findings, a final `/code-review --comment`
+at the clean head before the marker is written, and a report file.
+`skills/adversarial-review/SKILL.md` carries the narrowed admin trigger.
+
+New `commands/code-review.md`: a modified copy of the official
+`code-review` plugin's command (Apache License 2.0, in
+`commands/LICENSE-code-review`). It re-reviews each new head commit,
+posts a "Reviewed at `<sha>`" summary, and sizes itself with
+`pr-risk.sh`.
+
+`install.sh` and `docs/INSTALL.md` install the script, the three lists
+and the command. Files that already exist and differ from the repo's
+copy, the two skills included, are backed up with a timestamp first;
+identical ones are left alone. The command's `allowed-tools` line gets
+your home path substituted, as the settings snippet does.
+`docs/CUSTOMIZE.md` has a new section 8 on the risk lists (package
+manager configuration is now 9).
+
+New `docs/review-cost-rationale.html` explains the reasoning, what still
+protects money and data, and the known weaknesses. Linked from the
+README, `CLAUDE.md` and `docs/protocol-rationale.html`, whose Layer 0 and
+Review-until-clean cards are updated to match.
+
 ## 2026-10-21
 
 Feature branches push freely. Claude may now push its own `claude/*`

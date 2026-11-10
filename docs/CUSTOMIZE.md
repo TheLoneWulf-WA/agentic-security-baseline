@@ -45,7 +45,21 @@ Reports save to `~/.claude/reports/<project-name>/...` by default. Change the pa
 
 The default merge strategy is `squash + delete branch`. If your team prefers rebase or merge commits, change it in the **PR Merge Follow-up** section.
 
-## 8. Package manager configuration (npm / pnpm / yarn / bun)
+## 8. Review risk lists (`~/.claude/risk-paths/` and each project's `.claude/risk-paths.txt`)
+
+`~/.claude/scripts/pr-risk.sh` decides whether a PR gets the sensitive-level review (an Opus bug reviewer in `/until-clean`, the full four agents in `/code-review`). It reads three shared lists, all extended regex, one pattern per line, `#` for comments:
+
+- `_default-paths.txt` — file paths, matched case-insensitively: secrets, CI, deploy, dependency files, migrations, API and server code, Android / iOS / Expo security files.
+- `_default-names.txt` — folder and file names such as `auth`, `payment`, `upload`, matched on code files only (docs are skipped).
+- `_default-content.txt` — words in the PR's *added* lines, matched case-sensitively: billing and in-app-purchase APIs, keychain and crypto calls, webview bridges, exported Android components, cleartext settings, service-role keys, deletes. This is the backstop for mobile code, where a risky call often sits in an ordinary-looking file.
+
+Add your payment provider and auth library to `_default-content.txt` if they're not there. Keep project-specific paths out of the shared lists: `install.sh` replaces the shared lists on a re-run when they differ from the repo's copy (it backs yours up first).
+
+Each project gets its own list. Until it has one, **every PR in that project counts as sensitive**. To write it, run `~/.claude/scripts/pr-risk.sh --suggest` inside the project: it prints a draft built from the project's own folders that match the shared lists. Review it, add the folders that hold money, access, customer data, uploads or deletes that the shared lists can't know about, remove false hits, and save it as `<repo>/.claude/risk-paths.txt` in its own small PR. (A list at `~/.claude/risk-paths/<repo-name>.txt` also works, for a repo where you'd rather not commit one.) When the project grows a new risky folder, add it.
+
+The 150-line threshold that makes a PR "small" is in `pr-risk.sh` (`[ "$lines" -le 150 ]`).
+
+## 9. Package manager configuration (npm / pnpm / yarn / bun)
 
 The `install.sh` sets two npm configs by default: `ignore-scripts=true` and `min-release-age=2` (when supported). Both can be tuned, and equivalents for other package managers are below.
 

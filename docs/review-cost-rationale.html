@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>agentic-security-baseline · review cost rationale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0b;
+    --bg-deep: #050505;
+    --bg-card: #131313;
+    --bg-card-warm: #161513;
+    --bg-code: #0a0a0a;
+    --border: #232323;
+    --border-light: #2a2a2a;
+    --border-accent: rgba(201, 184, 150, 0.40);
+    --border-danger: rgba(210, 103, 79, 0.45);
+    --text: #ededed;
+    --text-2: #a8a8a8;
+    --text-3: #6a6a6a;
+    --text-4: #4a4a4a;
+    --accent: #c9b896;
+    --danger: #d2674f;
+    --gold-soft: #b89a3e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse 1200px 800px at 15% 0%, #161616 0%, transparent 55%),
+      radial-gradient(ellipse 1000px 800px at 85% 100%, #131313 0%, transparent 50%),
+      var(--bg);
+    min-height: 100vh;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.05;
+    mix-blend-mode: screen;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* layout */
+  .shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 32px 96px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 56px;
+  }
+
+  /* header */
+  .hero {
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+
+  .breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  .breadcrumb a {
+    color: var(--text-2);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 1px;
+  }
+
+  .breadcrumb a:hover { color: var(--accent); border-color: var(--accent); }
+
+  .hero h1 {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+
+  .hero h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+
+  .hero .subtitle {
+    font-size: 18px;
+    color: var(--text-2);
+    max-width: 720px;
+    line-height: 1.55;
+    margin-bottom: 24px;
+  }
+
+  .hero .meta {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hero .meta span { display: inline-flex; align-items: center; gap: 8px; }
+  .hero .meta i {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); display: inline-block;
+  }
+
+  /* TOC */
+  .toc {
+    position: sticky;
+    top: 32px;
+    align-self: start;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+
+  .toc-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc ol { list-style: none; padding: 0; counter-reset: toc; }
+  .toc > ol > li { counter-increment: toc; margin-bottom: 6px; }
+  .toc > ol > li > a {
+    display: block;
+    font-size: 13px;
+    color: var(--text-2);
+    text-decoration: none;
+    padding: 5px 0 5px 28px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .toc > ol > li > a::before {
+    content: counter(toc, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-4);
+    letter-spacing: 0.04em;
+  }
+  .toc > ol > li > a:hover { color: var(--accent); }
+  .toc > ol > li > a:hover::before { color: var(--accent); }
+
+  .toc ol ol { padding: 4px 0 4px 28px; }
+  .toc ol ol li { margin-bottom: 2px; }
+  .toc ol ol li a {
+    display: block;
+    font-size: 12px;
+    color: var(--text-3);
+    text-decoration: none;
+    padding: 3px 0;
+    line-height: 1.35;
+  }
+  .toc ol ol li a:hover { color: var(--text); }
+
+  /* active section/rule highlight as you scroll */
+  .toc a.active { color: var(--accent); }
+  .toc > ol > li > a.active::before { color: var(--accent); }
+  .toc > ol > li > a.in-section { color: var(--text-2); }
+  .toc > ol > li > a.in-section::before { color: var(--text-2); }
+  .toc ol ol li a.active {
+    color: var(--accent);
+    position: relative;
+  }
+  .toc ol ol li a.active::after {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+  }
+
+  /* main column */
+  main { min-width: 0; }
+
+  section {
+    margin-bottom: 96px;
+    scroll-margin-top: 32px;
+  }
+
+  .rule[id] { scroll-margin-top: 32px; }
+
+  .section-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+
+  .section-blurb {
+    font-size: 16px;
+    color: var(--text-2);
+    max-width: 720px;
+    margin-bottom: 36px;
+    line-height: 1.6;
+  }
+
+  /* rule blocks */
+  .rule {
+    margin-bottom: 44px;
+    padding: 28px 30px 30px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    position: relative;
+  }
+
+  .rule.rule-accent { border-color: var(--border-accent); background: var(--bg-card-warm); }
+
+  .rule-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .rule.rule-accent .rule-label { color: var(--accent); }
+
+  .rule h3 {
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 14px;
+    letter-spacing: -0.005em;
+  }
+
+  .rule-body {
+    font-size: 15px;
+    color: var(--text-2);
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+
+  .rule-body p { margin-bottom: 10px; }
+  .rule-body p:last-child { margin-bottom: 0; }
+
+  .rule-body code, .rule-body kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .rule-body ul, .rule-body ol {
+    margin: 12px 0 12px 20px;
+    color: var(--text-2);
+  }
+
+  .rule-body li { margin-bottom: 6px; line-height: 1.55; }
+
+  /* why callout */
+  .why {
+    margin-top: 18px;
+    padding: 18px 22px;
+    background: rgba(201, 184, 150, 0.04);
+    border-left: 2px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+  }
+
+  .why-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .why-body {
+    font-size: 14.5px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .why-body p { margin-bottom: 8px; }
+  .why-body p:last-child { margin-bottom: 0; }
+
+  .why-body code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--accent);
+  }
+
+  /* danger variant for callouts */
+  .why.why-danger {
+    background: rgba(210, 103, 79, 0.05);
+    border-left-color: var(--danger);
+  }
+  .why.why-danger .why-label { color: var(--danger); }
+
+  /* code blocks */
+  pre.code {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: #d4d4d4;
+    overflow-x: auto;
+    margin: 14px 0;
+    line-height: 1.6;
+  }
+
+  pre.code .c { color: var(--text-4); font-style: italic; }
+  pre.code .k { color: var(--accent); }
+  pre.code .s { color: #9ec597; }
+  pre.code .v { color: #d2a06b; }
+
+  /* surface list (Strict Gate items) */
+  .surfaces {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0;
+    border-top: 1px solid var(--border);
+  }
+  .surfaces li {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 18px;
+    align-items: baseline;
+  }
+  .surfaces li:last-child { border-bottom: none; }
+  .surfaces .surface-name {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .surfaces .surface-name code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--accent);
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+  .surfaces .surface-why {
+    font-size: 13.5px;
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+
+  /* ecosystem header */
+  .eco-header {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin: 28px 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* diagram wrapper */
+  .diagram {
+    margin: 22px 0 8px;
+    padding: 24px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+
+  .diagram-caption {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* footer */
+  footer {
+    margin-top: 64px;
+    padding: 36px 0 0;
+    border-top: 1px solid var(--border);
+    font-size: 13.5px;
+    color: var(--text-3);
+    line-height: 1.65;
+  }
+
+  footer .foot-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 40px;
+    margin-bottom: 28px;
+  }
+
+  footer .foot-grid h4 {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  footer .foot-grid p { margin-bottom: 10px; color: var(--text-2); }
+  footer .foot-grid ul { list-style: none; padding: 0; }
+  footer .foot-grid li { margin-bottom: 6px; }
+  footer .foot-grid a { color: var(--text-2); text-decoration: none; border-bottom: 1px solid var(--border-light); padding-bottom: 1px; }
+  footer .foot-grid a:hover { color: var(--accent); border-color: var(--accent); }
+
+  footer .colophon {
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--text-4);
+    text-transform: uppercase;
+  }
+
+  /* mobile */
+  @media (max-width: 920px) {
+    .shell { padding: 40px 20px 64px; }
+    .layout {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .toc {
+      position: static;
+      max-height: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 22px;
+    }
+    .hero h1 { font-size: 30px; }
+    .hero .subtitle { font-size: 16px; }
+    .rule { padding: 22px 20px; }
+    .surfaces li { grid-template-columns: 1fr; gap: 4px; }
+    .surfaces .surface-name { font-size: 14px; }
+  }
+
+  .toc ol ol { display: none; }
+  table.limits { width: 100%; border-collapse: collapse; margin: 14px 0 4px; font-size: 13.5px; }
+  table.limits th, table.limits td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--border); color: var(--text-2); line-height: 1.5; }
+  table.limits th { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); font-weight: 500; }
+  table.limits td:first-child { color: var(--text); font-weight: 500; width: 26%; }
+  table.limits code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--bg-code); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: var(--accent); }
+  .table-wrap { overflow-x: auto; }
+  @media (max-width: 920px) { table.limits td:first-child { width: auto; } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="breadcrumb">
+      <a href="../README.md">← README</a> &nbsp;·&nbsp;
+      <a href="../CLAUDE.md">CLAUDE.md</a> &nbsp;·&nbsp;
+      <a href="./protocol-rationale.html">Protocol rationale</a> &nbsp;·&nbsp;
+      <a href="../CHANGELOG.md">CHANGELOG</a>
+    </div>
+    <h1>Review cost &mdash; <em>why the reviews were capped, and how risk is decided</em></h1>
+    <p class="subtitle">
+      On 2026-11-10 the review loop got limits: a pass cap, cheaper models
+      where the risk is low, a smaller code review for small low-risk PRs,
+      and a cheaper model for Layer 0. This page explains why, how a PR&rsquo;s
+      risk is decided without anyone&rsquo;s judgment, and what still stands
+      between a PR and the money and data it could touch.
+    </p>
+    <div class="meta">
+      <span><i></i>Companion to the &ldquo;Cost limits&rdquo; block in <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">CLAUDE.md</code></span>
+      <span><i></i>Self-contained &middot; no build step</span>
+    </div>
+  </div>
+
+  <div class="layout">
+
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-label">Contents</div>
+    <ol>
+      <li><a href="#why-capped">Why the reviews were capped</a></li>
+      <li><a href="#what-changed">What the limits are</a></li>
+      <li><a href="#files-not-judgment">Risk from files, not judgment</a></li>
+      <li><a href="#unknown-sensitive">Unknown means sensitive</a></li>
+      <li><a href="#lists">Shared defaults plus a project list</a></li>
+      <li><a href="#content-words">The content-word backstop</a></li>
+      <li><a href="#still-protects">What still protects money and data</a></li>
+      <li><a href="#weaknesses">Known weaknesses</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="why-capped">
+      <span class="section-num">Section 01</span>
+      <h2>Why the reviews were capped</h2>
+      <p class="section-blurb">
+        The loop was working. It was also costing more than the plan allowed.
+      </p>
+      <div class="rule rule-accent">
+        <span class="rule-label">The problem</span>
+        <h3>Usage was hitting plan limits, and late passes found little</h3>
+        <div class="rule-body">
+          <p>
+            Review-until-clean has no natural stop: every fix earns a fresh
+            pass, and every pass ran on the most capable model. On top of
+            that, Layer 0 reviews every turn of every session. Across several
+            sessions a day, usage was hitting plan limits.
+          </p>
+          <p>
+            Looking at what the passes actually found showed where the money
+            went. The first one or two passes found the real problems. Later
+            passes mostly found wording in the PR description: a sentence that
+            no longer matched the code after a fix. Those are worth fixing, but
+            they do not need a whole new round of reviewers to find, and fixing
+            them does not change what the code does.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">The aim</div>
+          <div class="why-body">
+            <p>
+              Spend the expensive review where a mistake is expensive, and stop
+              paying full price to re-check prose. The limits below cut cost on
+              low-risk PRs and late passes. None of them removes a review from a
+              PR that touches money, access or customer data.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="what-changed">
+      <span class="section-num">Section 02</span>
+      <h2>What the limits are</h2>
+      <p class="section-blurb">
+        The exact rules live in <code>CLAUDE.md</code> and the skills. This is
+        the summary.
+      </p>
+      <div class="rule">
+        <span class="rule-label">Summary</span>
+        <h3>Six changes, one direction</h3>
+        <div class="table-wrap">
+        <table class="limits">
+          <thead><tr><th>Limit</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td>Pass cap</td><td>At most 3 loop passes. Wording-only findings (PR body, comments, docs prose) are fixed in one batch and never start a pass by themselves; the final code review checks them. After pass 3, only a MEDIUM or HIGH code finding earns a 4th pass. Still open after that: the verdict is NOT CLEAN and the user is told.</td></tr>
+            <tr><td>Models by risk</td><td>On a sensitive PR the bug reviewer runs on Opus. Everything else, and every compliance reviewer, runs on Sonnet.</td></tr>
+            <tr><td><code>/code-review</code> size</td><td>A normal-risk PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the risk script can&rsquo;t run, gets all 4.</td></tr>
+            <tr><td>Layer 0 model</td><td>The in-session security plugin runs on Sonnet 5.5. It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
+            <tr><td>Adversarial trigger</td><td>The three-role review still runs on auth, uploads, payments, input endpoints and anything an attacker can reach. For the admin it now runs on actions that move money or change accounts or permissions, not on admin wording, layout, help text or read-only display.</td></tr>
+            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass and the final code review. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane.</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="files-not-judgment">
+      <span class="section-num">Section 03</span>
+      <h2>Risk from files, not judgment</h2>
+      <p class="section-blurb">
+        Two of the limits depend on whether a PR is sensitive. Who decides
+        that matters more than the limits themselves.
+      </p>
+      <div class="rule rule-accent">
+        <span class="rule-label">The rule</span>
+        <h3>A script decides, from the files the PR changes</h3>
+        <div class="rule-body">
+          <p>
+            <code>~/.claude/scripts/pr-risk.sh &lt;PR&gt;</code> reads the PR&rsquo;s
+            changed files and added lines, matches them against lists, and prints
+            <code>RISK=sensitive</code> or <code>RISK=normal</code>, with
+            <code>SIZE=small</code> or <code>large</code> and the reasons.
+            <code>/until-clean</code> and <code>/code-review</code> run it and use
+            what it says. A session may review a PR at <em>higher</em> risk than
+            the script says, never lower.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why not let the session decide</div>
+          <div class="why-body">
+            <p>
+              Models are probabilistic. Ask the session that wrote a PR whether
+              its PR is sensitive, and the answer can vary from one run to the
+              next. Worse, the session has a reason to prefer one answer: the
+              cheaper review finishes sooner. A session judging its own PR can
+              talk itself into the cheaper review: &ldquo;this only touches the
+              admin&rsquo;s labels&rdquo;, when the same diff also changed who can
+              see the page.
+            </p>
+            <p>
+              A file list doesn&rsquo;t argue. The same PR gets the same answer
+              every time, the reasons are printed, and anyone can check them. The
+              judgment goes into writing the list, once, in the open, where it can
+              be reviewed. Not into each PR, under time pressure, by the author.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="unknown-sensitive">
+      <span class="section-num">Section 04</span>
+      <h2>Unknown means sensitive</h2>
+      <p class="section-blurb">
+        Every way the script can fail to decide ends in the full review.
+      </p>
+      <div class="rule">
+        <span class="rule-label">Fail closed</span>
+        <h3>When the script can&rsquo;t tell, the PR is sensitive</h3>
+        <div class="rule-body">
+          <p>The script answers <code>sensitive</code> when:</p>
+          <ul>
+            <li>it isn&rsquo;t inside a git repository, can&rsquo;t read the PR, or the PR lists no files;</li>
+            <li>a shared default list is missing;</li>
+            <li>the project has no list of its own yet.</li>
+          </ul>
+          <p>
+            And <code>/code-review</code> runs its full set of four agents if the
+            script can&rsquo;t run at all.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why a project with no list gets the full review</div>
+          <div class="why-body">
+            <p>
+              The shared lists know common shapes: <code>api/</code>,
+              <code>migrations/</code>, <code>AndroidManifest.xml</code>, a file
+              named <code>payment</code>. They can&rsquo;t know that in one project
+              the money moves through a folder called <code>ledger/</code>, or that
+              customer records are deleted from <code>housekeeping/</code>. Until
+              someone has looked at the project and written those folders down, a
+              &ldquo;normal&rdquo; answer would only mean &ldquo;nothing matched
+              a list that was never written for this project&rdquo;. That is not
+              evidence of low risk, so it isn&rsquo;t treated as such.
+            </p>
+            <p>
+              This also makes the cost of skipping the list visible: a project
+              without one pays for the full review on every PR, which is a reason
+              to write it.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="lists">
+      <span class="section-num">Section 05</span>
+      <h2>Shared defaults plus a project list</h2>
+      <p class="section-blurb">
+        Two layers of lists: one that ships with the baseline and covers common
+        stacks, and one per project that covers what only that project knows.
+      </p>
+      <div class="rule">
+        <span class="rule-label">Shared defaults</span>
+        <h3><code>~/.claude/risk-paths/_default-*.txt</code> &mdash; web, Android, iOS, Expo</h3>
+        <div class="rule-body">
+          <ul class="surfaces">
+            <li><span class="surface-name"><code>_default-paths.txt</code></span><span class="surface-why">File paths, for every project: <code>.env</code> files, CI and deploy config, dependency and lock files, infrastructure, <code>scripts/</code>. Web: framework config, middleware, migrations and schema, SQL, API, server, webhook and action routes. Android: the manifest, network-security and backup rules, ProGuard, keystores, native code. iOS: <code>Info.plist</code>, entitlements, build config, the project file, app delegates. React Native and Expo: <code>app.json</code>, <code>eas.json</code>, native modules.</span></li>
+            <li><span class="surface-name"><code>_default-names.txt</code></span><span class="surface-why">Folder and file names such as <code>auth</code>, <code>session</code>, <code>admin</code>, <code>payment</code>, <code>checkout</code>, <code>upload</code>, <code>keychain</code>, <code>webview</code>, <code>deeplink</code>. Applied to code files only, so a guide titled &ldquo;security&rdquo; doesn&rsquo;t count.</span></li>
+            <li><span class="surface-name"><code>_default-content.txt</code></span><span class="surface-why">Words in the PR&rsquo;s added lines. See the next section.</span></li>
+          </ul>
+        </div>
+      </div>
+      <div class="rule rule-accent">
+        <span class="rule-label">Project list &middot; new-project rule</span>
+        <h3><code>&lt;repo&gt;/.claude/risk-paths.txt</code>, drafted by <code>--suggest</code></h3>
+        <div class="rule-body">
+          <p>
+            The first time a session works in a project with no list, it runs
+            <code>~/.claude/scripts/pr-risk.sh --suggest</code>. That prints a draft
+            built from the project&rsquo;s own folders that already match the shared
+            lists. The session then reviews the draft: it removes false hits, and adds
+            the project&rsquo;s own money, access, customer-data, upload and delete
+            areas that the shared lists can&rsquo;t know. It opens the result as
+            <code>&lt;repo&gt;/.claude/risk-paths.txt</code> in its own small PR, for
+            the owner&rsquo;s OK. Later, when a new risky area appears, its path is
+            added to the list.
+          </p>
+          <p>
+            A list at <code>~/.claude/risk-paths/&lt;repo-name&gt;.txt</code> also
+            works, for a repo where you&rsquo;d rather not commit one.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why a draft, a review and its own PR</div>
+          <div class="why-body">
+            <p>
+              The draft saves the tedious part: it finds the folders the defaults
+              already flag. The review adds the part only someone looking at this
+              project can add. The separate PR keeps the list from riding along
+              inside a feature PR, where the change that makes a PR cheaper to
+              review would be reviewed at the cheaper level.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="content-words">
+      <span class="section-num">Section 06</span>
+      <h2>The content-word backstop</h2>
+      <p class="section-blurb">
+        Paths work well on the web, where risky code tends to live in risky
+        folders. Mobile code is less tidy.
+      </p>
+      <div class="rule">
+        <span class="rule-label">Backstop</span>
+        <h3>Risky calls in ordinary-looking files</h3>
+        <div class="rule-body">
+          <p>
+            In an Android or iOS app, a purchase, a keychain write or a webview
+            bridge often sits in a screen file such as
+            <code>ProfileScreen.kt</code> or <code>SettingsView.swift</code>, which no
+            path or name list would flag. So the script also reads the PR&rsquo;s
+            <em>added</em> lines, and a match on any of these makes it sensitive:
+          </p>
+          <ul>
+            <li>billing and in-app purchase APIs (<code>BillingClient</code>, <code>StoreKit</code>, RevenueCat) and payment providers by name;</li>
+            <li>keychain, keystore and crypto calls (<code>SecItemAdd</code>, <code>KeyStore</code>, <code>CryptoKit</code>, <code>javax.crypto</code>);</li>
+            <li>webview bridges (<code>addJavascriptInterface</code>, <code>WKScriptMessageHandler</code>, <code>evaluateJavaScript</code>);</li>
+            <li>exported Android components, cleartext traffic, backup and file-protection settings;</li>
+            <li>service-role keys, row-level-security policy changes, <code>DELETE FROM</code>, <code>DROP</code>, <code>TRUNCATE</code>;</li>
+            <li>secret-shaped names (<code>*_SECRET</code>, <code>*_API_KEY</code>), cookie and CORS headers, redirect parameters, <code>eval(</code> and shell execution.</li>
+          </ul>
+          <p>The words are matched case-sensitively, so <code>Stripe</code> counts and a sentence about stripes doesn&rsquo;t.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="still-protects">
+      <span class="section-num">Section 07</span>
+      <h2>What still protects money and data</h2>
+      <p class="section-blurb">
+        The limits make the loop cheaper. They don&rsquo;t touch the layers that
+        guard the sensitive surfaces.
+      </p>
+      <div class="rule rule-accent">
+        <span class="rule-label">Unchanged</span>
+        <h3>Four layers no limit reaches</h3>
+        <div class="rule-body">
+          <ul class="surfaces">
+            <li><span class="surface-name"><code>/security-review</code></span><span class="surface-why">Still runs before the first push on any Strict Gate surface (payments, auth, secrets, input endpoints and the rest), and still blocks on HIGH.</span></li>
+            <li><span class="surface-name">The three-role review</span><span class="surface-why"><code>/adversarial-review</code> still runs on auth, sessions, uploads, payments, admin actions that move money or change access, input endpoints, and scripts that run with access rules off or delete records. On those PRs it is the step that finds the most.</span></li>
+            <li><span class="surface-name">The code review</span><span class="surface-why"><code>/code-review --comment</code> still runs on every PR, at the clean head. Only a normal-risk PR of 150 lines or fewer gets the smaller version.</span></li>
+            <li><span class="surface-name">The runtime tests</span><span class="surface-why">The local checks and the real run of the thing (a production build, real requests) come first in the review order, and a project&rsquo;s tests for its critical flows still run. The light lane skips those flow tests only on PRs that are docs or styling outside those flows.</span></li>
+          </ul>
+        </div>
+        <div class="why">
+          <div class="why-label">Where the savings come from</div>
+          <div class="why-body">
+            <p>
+              Low-risk PRs, late passes, and Layer 0&rsquo;s per-turn reviews. A
+              sensitive PR still gets an Opus bug reviewer in every pass, the full
+              code review, and, on the surfaces above, the security review and the
+              three-role review.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="weaknesses">
+      <span class="section-num">Section 08</span>
+      <h2>Known weaknesses</h2>
+      <p class="section-blurb">
+        A list is a trade: it removes judgment from each PR, and puts all of it
+        into the list.
+      </p>
+      <div class="rule">
+        <span class="rule-label">Honest limits</span>
+        <h3>What this misses</h3>
+        <div class="rule-body">
+          <ul>
+            <li><strong>The list is only as good as its paths.</strong> A risky change in a file no list names, using no listed word, comes out normal: Sonnet reviewers, and the smaller code review if it&rsquo;s small.</li>
+            <li><strong>New folders are missed until added.</strong> When a project grows a new area that moves money or deletes data, nothing flags it until someone adds its path. The rule says to add it when it appears; that step is a person&rsquo;s, not the script&rsquo;s.</li>
+            <li><strong>A PR can change its own project list.</strong> The script reads <code>.claude/risk-paths.txt</code> from the checkout, and that file matches no default path, so a PR that edits the list is judged by its own edited list. That is why list changes go in their own PR; reviewing a list change as normal risk is a known gap.</li>
+            <li><strong>The lists in <code>~/.claude/</code> are not guarded.</strong> The config-edit gate asks before an agent edits hooks, skills, commands, settings or <code>CLAUDE.md</code>; it does not cover <code>~/.claude/scripts/</code> or <code>~/.claude/risk-paths/</code>.</li>
+            <li><strong>Content words only look at added lines.</strong> A PR that only deletes a guard, in a file no path list names, isn&rsquo;t caught by the word list.</li>
+            <li><strong>Size is lines, not meaning.</strong> A one-line change can be the dangerous one. Size only decides the code review&rsquo;s agent count on PRs already judged normal.</li>
+          </ul>
+        </div>
+        <div class="why why-danger">
+          <div class="why-label">What to do about it</div>
+          <div class="why-body">
+            <p>
+              Treat the project list as code: review it when the project changes
+              shape, and add a path the first time a review finds something the
+              list should have flagged. When in doubt about a PR, review it higher;
+              the rule is never lower than the script, and higher is always allowed.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  </div>
+
+  <footer>
+    <div class="foot-grid">
+      <div>
+        <h4>Maintenance discipline</h4>
+        <p>
+          This page explains the &ldquo;Cost limits&rdquo; block of
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">CLAUDE.md</code>,
+          the skills, and <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">scripts/pr-risk.sh</code>.
+          When one of those changes, update this page in the same commit.
+        </p>
+      </div>
+      <div>
+        <h4>Read alongside</h4>
+        <ul>
+          <li><a href="../README.md">README</a></li>
+          <li><a href="../CLAUDE.md">CLAUDE.md</a></li>
+          <li><a href="./protocol-rationale.html">Protocol rationale</a></li>
+          <li><a href="./CUSTOMIZE.md">CUSTOMIZE (risk lists)</a></li>
+          <li><a href="../CHANGELOG.md">CHANGELOG</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="colophon">
+      agentic-security-baseline &middot; review cost rationale &middot; 2026-11-10
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
