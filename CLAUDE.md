@@ -630,8 +630,9 @@ critical finding), warns on sensitive files, yields to project hooks
 (Husky etc.), and skips with `--no-verify`. Details in
 `docs/protocol-rationale.html`.
 
-Only if `git config --global core.hooksPath` is unset: ask once per
-session whether to set it up. Never configure git silently.
+If not yet installed, ask the user once per session whether to set it
+up. If declined, don't ask again that session. Don't configure git
+silently.
 
 ---
 
