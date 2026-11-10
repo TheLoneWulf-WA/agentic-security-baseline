@@ -40,7 +40,7 @@ findings (this has happened in practice).
    - **RISK=sensitive (any PR with code):** bug agent **always on opus**,
      compliance agent on **sonnet**.
    - **RISK=normal (docs, images or styles only):** both on **sonnet**.
-   - Record the script's output (RISK, SIZE, matched paths) in the report.
+   - Record the script's output (RISK, SIZE, LINES and REASON lines) in the report.
    Each agent gets: the full current diff, the prior-findings checklist,
    and two jobs — (a) verdict per prior finding: RESOLVED / NOT RESOLVED
    (resolved means actually fixed, not reworded; for security findings the

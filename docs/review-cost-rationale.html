@@ -763,7 +763,7 @@
         <h3><code>~/.claude/risk-paths/</code></h3>
         <div class="rule-body">
           <ul class="surfaces">
-            <li><span class="surface-name"><code>_default-safe.txt</code></span><span class="surface-why">The safe file types: pages and PDFs under <code>docs/</code>, Markdown and text files (but not <code>requirements*.txt</code>, <code>constraints*.txt</code> or <code>CMakeLists.txt</code>, which are build config), licence and changelog files, images, video, audio, fonts, stylesheets, editor config. Matched by type, not folder, so code under a <code>docs/</code> folder is still code.</span></li>
+            <li><span class="surface-name"><code>_default-safe.txt</code></span><span class="surface-why">The safe file types: pages and PDFs under <code>docs/</code>; Markdown and text files, but not dependency or build files (<code>requirements</code> and <code>constraints</code> files, <code>CMakeLists.txt</code>) and not the files that steer the agent and its reviews (<code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>SKILL.md</code>, anything under <code>.claude/</code>, <code>commands/</code> or <code>risk-paths/</code>); licence and changelog files without an extension; images, video, audio, fonts, stylesheets, and <code>.editorconfig</code>, <code>.gitattributes</code> and data-only Prettier config. Matched by type, not folder, so code under a <code>docs/</code> folder is still code.</span></li>
             <li><span class="surface-name"><code>_default-content.txt</code></span><span class="surface-why">Risky words in the PR&rsquo;s added lines. A match makes the PR sensitive even if every file is a safe type. See the next section.</span></li>
           </ul>
         </div>
@@ -781,8 +781,8 @@
         <h3>Risky words in what the PR adds</h3>
         <div class="rule-body">
           <p>
-            A Markdown page can hold a script tag; an MDX page can import code; an
-            SVG can carry script. So the script also reads every line the PR adds
+            A Markdown page can hold a script tag, and an SVG can carry script.
+            (MDX files run imports and JSX, so they are not on the safe list at all.) So the script also reads every line the PR adds
             (taken from the diff&rsquo;s hunks, so an added line that itself starts
             with <code>++</code> still counts), and a match on any of these makes it
             sensitive:
@@ -793,7 +793,7 @@
             <li>secret-shaped names (<code>*_SECRET</code>, <code>*_API_KEY</code>), cookie and CORS headers, redirect parameters, <code>eval(</code> and shell execution;</li>
             <li>billing, in-app purchase and payment-provider names; keychain, keystore and crypto calls; webview bridges; exported Android components, cleartext and backup settings.</li>
           </ul>
-          <p>The words are matched case-sensitively and mostly as whole words, so <code>DELETE FROM</code> counts and a sentence saying &ldquo;delete from the list&rdquo; doesn&rsquo;t.</p>
+          <p>The words are matched case-sensitively and mostly as whole words, so <code>DELETE FROM</code> counts and a sentence saying &ldquo;delete from the list&rdquo; doesn&rsquo;t. HTML tags are the exception: <code>&lt;SCRIPT</code> counts as much as <code>&lt;script</code>.</p>
         </div>
       </div>
     </section>
