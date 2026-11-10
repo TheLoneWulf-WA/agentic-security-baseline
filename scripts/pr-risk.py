@@ -41,11 +41,16 @@ def main():
     words = load("_default-content.txt")
     pr = sys.argv[1] if len(sys.argv) > 1 else ""
     try:
-        repo = run("gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner").strip()
-        meta = json.loads(run("gh", "pr", "view", *([pr] if pr else []), "--json", "number,additions,deletions"))
+        meta = json.loads(run("gh", "pr", "view", *([pr] if pr else []), "--json", "number,additions,deletions,url"))
         num, lines = meta["number"], meta["additions"] + meta["deletions"]
+        # Take the repo from the PR's own URL, not the current folder: given a
+        # PR link from another repo, the folder's repo would be read instead
+        # and could hand back the wrong PR's files (2026-11-10).
+        m = re.match(r"https://github\.com/([^/]+/[^/]+)/pull/\d+$", meta["url"])
+        if not m: fail(f"unexpected PR url {meta['url']}")
+        repo = m.group(1)
         rows = run("gh", "api", f"repos/{repo}/pulls/{num}/files", "--paginate", "--jq", '.[] | [.filename, (.previous_filename // "")] | @tsv')
-        diff = run("gh", "pr", "diff", str(num))
+        diff = run("gh", "pr", "diff", meta["url"])
     except Exception as e:
         fail(f"could not read the PR ({e})")
     files = {f for row in rows.splitlines() for f in row.split("\t") if f}
