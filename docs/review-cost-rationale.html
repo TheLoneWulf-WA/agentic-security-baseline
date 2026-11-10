@@ -527,10 +527,11 @@
     </div>
     <h1>Review cost &mdash; <em>why the reviews were capped, and how risk is decided</em></h1>
     <p class="subtitle">
-      On 2026-11-10 the review loop got limits: a pass cap, cheaper models
-      where the risk is low, a smaller code review for small low-risk PRs,
-      and a cheaper model for Layer 0. This page explains why, how a PR&rsquo;s
-      risk is decided without per-PR judgment, and what still stands
+      On 2026-11-10 the review loop got limits: a pass cap, a rule for
+      wording-only findings, a cheaper model for Layer 0, a narrower three-role
+      review, and cheaper reviewers for docs-only PRs. This page explains why,
+      how &ldquo;docs-only&rdquo; is decided without judgment, the file
+      classifier that was tried and dropped, and what still stands
       between a PR and the money and data it could touch.
     </p>
     <div class="meta">
@@ -546,10 +547,10 @@
     <ol>
       <li><a href="#why-capped">Why the reviews were capped</a></li>
       <li><a href="#what-changed">What the limits are</a></li>
-      <li><a href="#files-not-judgment">Risk from files, not judgment</a></li>
-      <li><a href="#flip">From a risky list to a safe list</a></li>
+      <li><a href="#files-not-judgment">A mechanical test, not judgment</a></li>
+      <li><a href="#dropped">The classifier tried and dropped</a></li>
       <li><a href="#unknown-sensitive">Unknown means sensitive</a></li>
-      <li><a href="#lists">Shared defaults plus project lists</a></li>
+      <li><a href="#lists">Two lists for every project</a></li>
       <li><a href="#content-words">The content-word backstop</a></li>
       <li><a href="#still-protects">What still protects money and data</a></li>
       <li><a href="#weaknesses">Known weaknesses</a></li>
@@ -612,11 +613,11 @@
           <thead><tr><th>Limit</th><th>What it does</th></tr></thead>
           <tbody>
             <tr><td>Pass cap</td><td>3 loop passes, plus a 4th only for an open MEDIUM or HIGH code finding. Wording-only findings (PR body, comments, docs prose) are fixed in one batch and never start a pass by themselves; the final code review checks them. Still open after the 4th: the verdict is NOT CLEAN and the user is told.</td></tr>
-            <tr><td>Models by risk</td><td>In the <code>/until-clean</code> loop: on a sensitive PR the bug reviewer runs on Opus; everything else, and every compliance reviewer, runs on Sonnet. In <code>/code-review</code>: the Opus bug agents stay on every PR except small normal-risk ones. <code>/adversarial-review</code> is unchanged.</td></tr>
-            <tr><td><code>/code-review</code> size</td><td>A normal-risk PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the risk script can&rsquo;t run, gets all 4.</td></tr>
+            <tr><td>Models</td><td>The bug reviewer is always Opus on any PR with code; compliance reviewers are always Sonnet. Only a PR of nothing but docs, images or styles gets two Sonnet reviewers. <code>/adversarial-review</code> is unchanged.</td></tr>
+            <tr><td><code>/code-review</code> size</td><td>A docs-, images- or styles-only PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the script can&rsquo;t run, gets all 4.</td></tr>
             <tr><td>Layer 0 model</td><td>The in-session security plugin is set to Sonnet 5.5 via <code>SECURITY_REVIEW_MODEL</code> / <code>SG_AGENTIC_MODEL</code> (the installer sets neither). It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
             <tr><td>Adversarial trigger</td><td>The three-role review still runs on auth, uploads, payments, input endpoints and anything an attacker can reach. For the admin it now runs on actions that move money or change accounts or permissions, not on admin wording, layout, help text or read-only display.</td></tr>
-            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass and the final code review. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane.</td></tr>
+            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass and the final code review. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane, and neither is a PR the script calls sensitive.</td></tr>
           </tbody>
         </table>
         </div>
@@ -625,24 +626,25 @@
 
     <section id="files-not-judgment">
       <span class="section-num">Section 03</span>
-      <h2>Risk from files, not judgment</h2>
+      <h2>A mechanical test, not judgment</h2>
       <p class="section-blurb">
-        Two of the limits depend on whether a PR is sensitive. Who decides
-        that matters more than the limits themselves.
+        One of the limits depends on whether a PR is docs-only. Who decides
+        that matters more than the limit itself.
       </p>
       <div class="rule rule-accent">
         <span class="rule-label">The rule</span>
         <h3>A script decides, from the files the PR changes</h3>
         <div class="rule-body">
           <p>
-            <code>~/.claude/scripts/pr-risk.sh &lt;PR&gt;</code> reads the PR&rsquo;s
-            changed files and added lines, checks them against safe and sensitive
-            lists, and prints
-            <code>RISK=sensitive</code> or <code>RISK=normal</code>, with
-            <code>SIZE=small</code> or <code>large</code> and the reasons.
-            <code>/until-clean</code> and <code>/code-review</code> run it and use
-            what it says. A session may review a PR at <em>higher</em> risk than
-            the script says, never lower.
+            <code>~/.claude/scripts/pr-risk.sh &lt;PR&gt;</code> prints
+            <code>RISK=normal</code> only when <strong>every</strong> changed file,
+            including the old name of a renamed one, is docs, images or styles by
+            file type, <strong>and</strong> no added line contains a risky word.
+            Anything else is <code>RISK=sensitive</code>. It also prints
+            <code>SIZE=small</code> (150 changed lines or fewer) or
+            <code>large</code>, and its reasons. <code>/until-clean</code> and
+            <code>/code-review</code> run it and use what it says. A session may
+            review a PR at <em>higher</em> risk than the script says, never lower.
           </p>
         </div>
         <div class="why">
@@ -650,61 +652,63 @@
           <div class="why-body">
             <p>
               Models are probabilistic. Ask the session that wrote a PR whether
-              its PR is sensitive, and the answer can vary from one run to the
-              next. Worse, the session has a reason to prefer one answer: the
-              cheaper review finishes sooner. A session judging its own PR can
-              talk itself into the cheaper review: &ldquo;this only touches the
-              admin&rsquo;s labels&rdquo;, when the same diff also changed who can
-              see the page.
+              its PR is docs-only, and the answer can vary from one run to the next.
+              Worse, the session has a reason to prefer one answer: the cheaper
+              review finishes sooner. A session judging its own PR can talk itself
+              into the cheaper review: &ldquo;this is basically a docs change&rdquo;,
+              when the same diff also touched a config file.
             </p>
             <p>
-              A file list doesn&rsquo;t argue. The same PR gets the same answer
-              every time, the reasons are printed, and anyone can check them. The
-              judgment goes into writing the list, once, in the open, where it can
-              be reviewed. Not into each PR, under time pressure, by the author.
+              A file-type test doesn&rsquo;t argue. The same PR gets the same answer
+              every time, the reasons are printed, and anyone can check them.
             </p>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="flip">
+    <section id="dropped">
       <span class="section-num">Section 04</span>
-      <h2>From a risky list to a safe list</h2>
+      <h2>The classifier that was tried and dropped</h2>
       <p class="section-blurb">
-        The first version listed what was risky. Reviewing that list showed why
-        a list of risky things can&rsquo;t be trusted to be complete.
+        The first design tried to sort every PR in every project into risky
+        and not risky. It was cut back to the docs-only test above.
       </p>
       <div class="rule rule-accent">
-        <span class="rule-label">The flip &middot; 2026-11-10</span>
-        <h3>Normal only when every file is known to be safe</h3>
+        <span class="rule-label">What was tried &middot; 2026-11-10</span>
+        <h3>A per-project file classifier</h3>
         <div class="rule-body">
           <p>
-            The first version of <code>pr-risk.sh</code> called a PR sensitive
-            when a file matched a risky list, and normal otherwise. Then the list
-            itself was reviewed. Over four passes, each pass found risky files the
-            list had missed: 18 in all. There was also a bug in a pattern that made
-            a check fail open, so it passed what it should have flagged. All were
-            fixed, but the lesson was plain: with a risky list, every file nobody
-            thought of gets the cheap review.
+            The first version used lists of risky paths, risky file names and risky
+            words, shared across projects, plus a list for each project. Any PR
+            that matched nothing got cheaper reviewers, including a cheaper bug
+            reviewer. When that kept missing things, it was flipped to a safe list:
+            each project listed the folders it considered safe, and everything else
+            was sensitive.
           </p>
           <p>
-            So the logic is now the other way round. A PR is <code>normal</code>
-            only when <strong>every</strong> changed file, including the old name
-            of a renamed one, is on a safe list, <strong>and</strong> no sensitive
-            signal fires. Everything else is <code>sensitive</code>.
+            Its own review took four passes and about twenty review agents. Each
+            pass found more risky files the lists had missed, and one pass found a
+            pattern bug that made a check fail open, passing what it should have
+            flagged. All of it was fixed, but the pattern was clear: every new
+            folder, framework and project needs the lists kept up, forever.
           </p>
         </div>
         <div class="why">
-          <div class="why-label">Why missed files must fail safe</div>
+          <div class="why-label">Why it was dropped</div>
           <div class="why-body">
             <p>
-              Both kinds of list will have gaps. The question is which way a gap
-              fails. A gap in a risky list sends a risky file to the cheap review,
-              which is the expensive mistake. A gap in a safe list sends a harmless
-              file to the full review, which only costs tokens. Safe things are also
-              easier to list: docs, images, fonts and styles look much the same in
-              every project. Risky things don&rsquo;t.
+              Classifying every file in every project is open-ended work, and the
+              saving it bought was the smallest of the changes: a cheaper bug
+              reviewer on code PRs that happened to be low risk. The real savings
+              are elsewhere: the pass cap, the wording rule, Layer 0 on Sonnet and
+              the narrower three-role review.
+            </p>
+            <p>
+              So the classifier was cut back to a test that needs no upkeep: is this
+              PR only docs, images or styles? The bug reviewer stays on Opus for
+              every PR with code. Where the old design would have guessed &ldquo;low
+              risk&rdquo; about code, the new one doesn&rsquo;t guess at all.
             </p>
           </div>
         </div>
@@ -715,8 +719,7 @@
       <span class="section-num">Section 05</span>
       <h2>Unknown means sensitive</h2>
       <p class="section-blurb">
-        A file nobody listed is sensitive, and so is anything the script
-        can&rsquo;t read.
+        Every way the script can fail ends in the normal, full review.
       </p>
       <div class="rule">
         <span class="rule-label">Fail closed</span>
@@ -724,9 +727,9 @@
         <div class="rule-body">
           <p>The script answers <code>sensitive</code> when:</p>
           <ul>
-            <li>a changed file is on no safe list;</li>
-            <li>it isn&rsquo;t inside a git repository, can&rsquo;t read the PR, its file list or its diff, or the PR lists no files;</li>
-            <li>a shared list is missing or empty, or a pattern in any list doesn&rsquo;t compile;</li>
+            <li>any changed file is not docs, images or styles by type;</li>
+            <li>it can&rsquo;t read the PR, its file list or its diff, or the PR lists no files;</li>
+            <li>a list is missing or empty, or a pattern in it doesn&rsquo;t compile;</li>
             <li>it fails in any other way, or Python can&rsquo;t run it at all.</li>
           </ul>
           <p>
@@ -735,19 +738,14 @@
           </p>
         </div>
         <div class="why">
-          <div class="why-label">Why a project with no safe list gets the full review</div>
+          <div class="why-label">Why</div>
           <div class="why-body">
             <p>
-              The shared safe list knows what is harmless everywhere. It can&rsquo;t
-              know which of a project&rsquo;s own code folders are harmless, so until
-              someone has looked and written them down, only PRs of docs, images,
-              fonts and styles get the cheaper review. &ldquo;Nobody has said this
-              folder is safe&rdquo; is not evidence that it is.
-            </p>
-            <p>
-              This also makes the cost of skipping the list visible: a project
-              without one pays for the full review on nearly every PR, which is a
-              reason to write it.
+              &ldquo;Sensitive&rdquo; here only means the review this protocol ran
+              before the limits: an Opus bug reviewer and the full code review. A
+              wrong &ldquo;sensitive&rdquo; costs some tokens. A wrong
+              &ldquo;normal&rdquo; puts code in front of cheaper reviewers. So every
+              doubt goes the cheap-to-be-wrong way.
             </p>
           </div>
         </div>
@@ -756,60 +754,18 @@
 
     <section id="lists">
       <span class="section-num">Section 06</span>
-      <h2>Shared defaults plus project lists</h2>
+      <h2>Two lists, the same for every project</h2>
       <p class="section-blurb">
-        Lists that ship with the baseline and cover common stacks, and lists
-        per project that cover what only that project knows.
+        No per-project lists, nothing to draft or keep up per repo.
       </p>
       <div class="rule">
-        <span class="rule-label">Shared defaults</span>
-        <h3><code>~/.claude/risk-paths/_default-*.txt</code> &mdash; web, Android, iOS, Expo</h3>
+        <span class="rule-label">The lists</span>
+        <h3><code>~/.claude/risk-paths/</code></h3>
         <div class="rule-body">
           <ul class="surfaces">
-            <li><span class="surface-name"><code>_default-safe.txt</code></span><span class="surface-why">The safe list for every project: pages and PDFs under <code>docs/</code> (not code there), Markdown and text files, licence and changelog files, images, video, audio, fonts, stylesheets, editor config.</span></li>
-            <li><span class="surface-name"><code>_default-paths.txt</code></span><span class="surface-why">Sensitive, and it overrides safe. For every project: <code>.env</code> files, CI and deploy config, dependency and lock files, infrastructure, <code>scripts/</code>, anything under <code>.claude/</code>, a root <code>CLAUDE.md</code> or <code>AGENTS.md</code>. Web: framework config, middleware, migrations and schema, SQL, API, server, webhook and action routes. Android: the manifest, network-security and backup rules, ProGuard, keystores, native code. iOS: <code>Info.plist</code>, entitlements, build config, the project file, app delegates. React Native and Expo: <code>app.json</code>, <code>eas.json</code>, native modules.</span></li>
-            <li><span class="surface-name"><code>_default-names.txt</code></span><span class="surface-why">Sensitive names such as <code>auth</code>, <code>session</code>, <code>admin</code>, <code>payment</code>, <code>checkout</code>, <code>upload</code>, <code>keychain</code>, <code>webview</code>, <code>deeplink</code>. Applied to every file except docs (<code>.md</code>, <code>.mdx</code>, <code>.txt</code>, <code>.rst</code>, <code>.adoc</code>), so a guide titled &ldquo;security&rdquo; doesn&rsquo;t count, but code under a <code>docs/</code> folder does.</span></li>
-            <li><span class="surface-name"><code>_default-content.txt</code></span><span class="surface-why">Sensitive words in the PR&rsquo;s added lines. See the next section.</span></li>
+            <li><span class="surface-name"><code>_default-safe.txt</code></span><span class="surface-why">The safe file types: pages and PDFs under <code>docs/</code>, Markdown and text files (but not <code>requirements*.txt</code>, <code>constraints*.txt</code> or <code>CMakeLists.txt</code>, which are build config), licence and changelog files, images, video, audio, fonts, stylesheets, editor config. Matched by type, not folder, so code under a <code>docs/</code> folder is still code.</span></li>
+            <li><span class="surface-name"><code>_default-content.txt</code></span><span class="surface-why">Risky words in the PR&rsquo;s added lines. A match makes the PR sensitive even if every file is a safe type. See the next section.</span></li>
           </ul>
-        </div>
-      </div>
-      <div class="rule rule-accent">
-        <span class="rule-label">Project lists &middot; new-project rule</span>
-        <h3><code>&lt;repo&gt;/.claude/safe-paths.txt</code>, drafted by <code>--suggest</code></h3>
-        <div class="rule-body">
-          <p>
-            The first time a session works in a project with no safe list, it runs
-            <code>~/.claude/scripts/pr-risk.sh --suggest</code>. That prints
-            folders, below the top level, where no file&rsquo;s path or name trips a
-            risky check. It doesn&rsquo;t read file contents, so a drafted folder can
-            still hold a risky call. The session reviews every
-            line, and keeps only folders whose changes can&rsquo;t touch money,
-            sign-in, access, customer data, uploads, deletes, jobs, webhooks, config
-            or third-party scripts. It opens the result as
-            <code>&lt;repo&gt;/.claude/safe-paths.txt</code> in its own small PR, for
-            the owner&rsquo;s OK. When unsure, a line is deleted: an unlisted folder
-            is only reviewed in full.
-          </p>
-          <p>
-            A project can also keep <code>&lt;repo&gt;/.claude/risk-paths.txt</code>,
-            extra risky paths only it knows about, which override safe. Both project
-            lists are read from the PR&rsquo;s <strong>base</strong> branch (the local
-            copy of <code>origin/&lt;base&gt;</code>).
-          </p>
-        </div>
-        <div class="why">
-          <div class="why-label">Why the base branch, and why its own PR</div>
-          <div class="why-body">
-            <p>
-              A PR based on the default branch is judged by the lists as they were
-              before it, so it can&rsquo;t add its own files to the safe list or take
-              them off the risky one. A PR
-              that changes the lists is itself sensitive, because everything under
-              <code>.claude/</code> is on the shared risky paths. Keeping the list in
-              its own small PR means that change gets reviewed on its own, at full
-              strength.
-            </p>
-          </div>
         </div>
       </div>
     </section>
@@ -818,38 +774,29 @@
       <span class="section-num">Section 07</span>
       <h2>The content-word backstop</h2>
       <p class="section-blurb">
-        A folder can be on the safe list and still pick up a risky call. The
-        script also reads what the PR adds.
+        A file can be a safe type and still carry code.
       </p>
       <div class="rule">
         <span class="rule-label">Backstop</span>
-        <h3>Risky calls in ordinary-looking files</h3>
+        <h3>Risky words in what the PR adds</h3>
         <div class="rule-body">
           <p>
-            In an Android or iOS app, a purchase, a keychain write or a webview
-            bridge often sits in a screen file such as
-            <code>ProfileScreen.kt</code> or <code>SettingsView.swift</code>. On the
-            web, a safe-looking page can gain a third-party script or a form that
-            posts elsewhere. So the script also reads every line the PR adds
+            A Markdown page can hold a script tag; an MDX page can import code; an
+            SVG can carry script. So the script also reads every line the PR adds
             (taken from the diff&rsquo;s hunks, so an added line that itself starts
-            with <code>++</code> still counts), and a match on any of these makes it sensitive, whatever the safe
-            lists say:
+            with <code>++</code> still counts), and a match on any of these makes it
+            sensitive:
           </p>
           <ul>
-            <li>billing and in-app purchase APIs (<code>BillingClient</code>, <code>StoreKit</code>, RevenueCat) and payment providers by name;</li>
-            <li>keychain, keystore and crypto calls (<code>SecItemAdd</code>, <code>KeyStore</code>, <code>CryptoKit</code>, <code>javax.crypto</code>);</li>
-            <li>webview bridges (<code>addJavascriptInterface</code>, <code>WKScriptMessageHandler</code>, <code>evaluateJavaScript</code>);</li>
-            <li>exported Android components, cleartext traffic, backup and file-protection settings;</li>
-            <li>service-role keys, row-level-security policy changes, <code>DELETE FROM</code>, <code>DROP</code>, <code>TRUNCATE</code>;</li>
-            <li>secret-shaped names (<code>*_SECRET</code>, <code>*_API_KEY</code>), cookie and CORS headers, redirect parameters, <code>eval(</code> and shell execution;</li>
             <li>third-party scripts and frames (<code>&lt;script</code>, <code>&lt;iframe</code>, <code>next/script</code>) and forms whose action is an outside URL;</li>
-            <li>direct database access from a page or component (Payload CMS&rsquo;s Local API, such as <code>getPayload</code> and <code>payload.find(</code>, which skips access rules by default).</li>
+            <li>database access, including Payload CMS&rsquo;s Local API (<code>getPayload</code>, <code>payload.find(</code>), which skips access rules by default, service-role keys, row-level-security changes, <code>DELETE FROM</code>, <code>DROP</code>, <code>TRUNCATE</code>;</li>
+            <li>secret-shaped names (<code>*_SECRET</code>, <code>*_API_KEY</code>), cookie and CORS headers, redirect parameters, <code>eval(</code> and shell execution;</li>
+            <li>billing, in-app purchase and payment-provider names; keychain, keystore and crypto calls; webview bridges; exported Android components, cleartext and backup settings.</li>
           </ul>
           <p>The words are matched case-sensitively and mostly as whole words, so <code>DELETE FROM</code> counts and a sentence saying &ldquo;delete from the list&rdquo; doesn&rsquo;t.</p>
         </div>
       </div>
     </section>
-
 
     <section id="still-protects">
       <span class="section-num">Section 08</span>
@@ -860,12 +807,13 @@
       </p>
       <div class="rule rule-accent">
         <span class="rule-label">Unchanged</span>
-        <h3>Four layers no limit reaches</h3>
+        <h3>Five layers no limit reaches</h3>
         <div class="rule-body">
           <ul class="surfaces">
+            <li><span class="surface-name">The Opus bug reviewer</span><span class="surface-why">Every PR with code gets an Opus bug reviewer in every loop pass, and the full four-agent code review.</span></li>
             <li><span class="surface-name"><code>/security-review</code></span><span class="surface-why">Still runs before the first push on any Strict Gate surface (payments, auth, secrets, input endpoints and the rest), and still blocks on HIGH.</span></li>
             <li><span class="surface-name">The three-role review</span><span class="surface-why"><code>/adversarial-review</code> still runs on auth, sessions, uploads, payments, admin actions that move money or change access, input endpoints, and scripts that run with access rules off or delete records. On those PRs it is the step that finds the most.</span></li>
-            <li><span class="surface-name">The code review</span><span class="surface-why"><code>/code-review --comment</code> still runs on every PR, at the clean head. Only a normal-risk PR of 150 lines or fewer gets the smaller version.</span></li>
+            <li><span class="surface-name">The code review</span><span class="surface-why"><code>/code-review --comment</code> still runs on every PR, at the clean head. Only a docs-, images- or styles-only PR of 150 lines or fewer gets the smaller version.</span></li>
             <li><span class="surface-name">The runtime tests</span><span class="surface-why">The local checks and the real run of the thing (a production build, real requests) come first in the review order, and a project&rsquo;s tests for its critical flows still run. The light lane skips those flow tests only on PRs that are docs or styling outside those flows.</span></li>
           </ul>
         </div>
@@ -873,10 +821,9 @@
           <div class="why-label">Where the savings come from</div>
           <div class="why-body">
             <p>
-              Low-risk PRs, late passes, and Layer 0&rsquo;s per-turn reviews. A
-              sensitive PR still gets an Opus bug reviewer in every pass, the full
-              code review, and, on the surfaces above, the security review and the
-              three-role review.
+              Late passes, wording-only fixes, Layer 0&rsquo;s per-turn reviews, the
+              three-role review no longer running on admin wording and layout, and
+              cheaper reviewers on docs-only PRs. Code is reviewed as it was before.
             </p>
           </div>
         </div>
@@ -888,31 +835,25 @@
       <span class="section-num">Section 09</span>
       <h2>Known weaknesses</h2>
       <p class="section-blurb">
-        A list is a trade: it removes judgment from each PR, and puts all of it
-        into the lists.
+        The test is small on purpose. These are its limits.
       </p>
       <div class="rule">
         <span class="rule-label">Honest limits</span>
         <h3>What this misses</h3>
         <div class="rule-body">
           <ul>
-            <li><strong>The lists are only as good as their paths.</strong> A risky folder wrongly put on a project&rsquo;s safe list, changed without any listed name or word, comes out normal: Sonnet reviewers, and the smaller code review if the PR is small.</li>
-            <li><strong>Folders drift.</strong> A folder that was harmless when it went on the safe list can later gain code that moves money or deletes data. Nothing flags that until someone takes the folder off the list, or adds it to the risky list. The rule says to do that when the new area appears; that step is a person&rsquo;s, not the script&rsquo;s.</li>
-            <li><strong>Some &ldquo;safe&rdquo; files can carry code.</strong> SVG images can hold script, and a stylesheet can load from elsewhere. The word list catches <code>&lt;script</code> in added lines, but not every trick.</li>
-            <li><strong>A stacked PR is judged by its parent&rsquo;s lists.</strong> When a PR&rsquo;s base is another feature branch, the project lists come from that branch, which may carry an unreviewed change to them. And the base is read from the local <code>origin/&lt;base&gt;</code>, which can be out of date until the next fetch.</li>
-            <li><strong><code>--suggest</code> doesn&rsquo;t read contents.</strong> It drafts folders from paths and names only, so every drafted line still needs a person&rsquo;s review.</li>
-            <li><strong>The lists in <code>~/.claude/</code> are not guarded.</strong> The config-edit gate asks before an agent edits hooks, skills, commands, settings or <code>CLAUDE.md</code>. It does not cover <code>~/.claude/scripts/</code> or <code>~/.claude/risk-paths/</code>, so an agent could loosen the shared lists without a prompt.</li>
-            <li><strong>Content words only look at added lines.</strong> A PR that only deletes a guard, in a folder on the safe list, isn&rsquo;t caught by the word list.</li>
-            <li><strong>Size is lines, not meaning.</strong> A one-line change can be the dangerous one. Size only decides the code review&rsquo;s agent count, and only on PRs already judged normal.</li>
+            <li><strong>The word list is only as good as its words.</strong> A docs or styles PR that adds something risky using no listed word (a stylesheet that loads from elsewhere, an SVG trick) comes out normal and gets Sonnet reviewers.</li>
+            <li><strong>Content words only look at added lines.</strong> A docs PR that deletes a warning or a step from a runbook isn&rsquo;t flagged; the reviewers still read it.</li>
+            <li><strong>The lists in <code>~/.claude/</code> are not guarded.</strong> The config-edit gate asks before an agent edits hooks, skills, commands, settings or <code>CLAUDE.md</code>. It does not cover <code>~/.claude/scripts/</code> or <code>~/.claude/risk-paths/</code>, so an agent could widen the safe list without a prompt.</li>
+            <li><strong>Size is lines, not meaning.</strong> It only decides the code review&rsquo;s agent count, and only on PRs already judged docs-only.</li>
           </ul>
         </div>
         <div class="why why-danger">
           <div class="why-label">What to do about it</div>
           <div class="why-body">
             <p>
-              Keep the project safe list short. Review it when the project changes
-              shape. Take a folder off it the first time a review finds something
-              risky there. When in doubt about a PR, review it higher: the rule is
+              Be slow to add types to the safe list, and quick to add words to the
+              content list. When in doubt about a PR, review it higher: the rule is
               never lower than the script, and higher is always allowed.
             </p>
           </div>

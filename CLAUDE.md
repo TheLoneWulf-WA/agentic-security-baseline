@@ -145,7 +145,8 @@ For a light-lane PR:
 
 Anything touching payments, sign-in, sessions, customer data, the
 admin, uploads, or a critical flow is never light lane: the full
-order above applies. When unsure, it is not light lane. The merge
+order above applies. A PR the script calls sensitive is never light
+lane. When unsure, it is not light lane. The merge
 gate, the base check and the user's "merge it" are unchanged.
 
 ### Layer 0 — security-guidance plugin (in-session, non-blocking)
@@ -335,36 +336,20 @@ The loop:
   themselves; the final code review covers them. After pass 3 only a
   MEDIUM or HIGH code finding earns a 4th pass; still open after that →
   NOT CLEAN, surfaced to the user.
-- **Models by risk:** in the loop, Opus for the bug reviewer only on
-  sensitive PRs; Sonnet for everything else, and for compliance
-  reviewers always. `/code-review` keeps its Opus bug agents except on
-  the small normal-risk PRs below.
-- **Risk is mechanical, not judged, and missed files fail safe:**
-  `~/.claude/scripts/pr-risk.sh <PR>`, for any project, web or mobile.
-  A PR is **normal only when every changed file is on a safe list**: the
-  shared safe defaults (docs, images, fonts, styles) or the project's
-  `<repo>/.claude/safe-paths.txt`. It must also trip **no sensitive
-  signal**: shared risky paths (secrets, CI, deploy, dependency files,
-  migrations, API and server code, Android/iOS/Expo security files),
-  risky names in code files (auth, payment, upload and so on), risky
-  words in added lines (billing, keychain, webview bridges, exported
-  components, cleartext, service-role keys, deletes), or the project's
-  `<repo>/.claude/risk-paths.txt`. Anything else is sensitive, so a
-  file nobody listed gets the full review (2026-11-10: four review
-  passes each found risky files that a "risky list" had missed).
-  **New project rule:** the first time a session works in a project
-  with no safe list, it runs `~/.claude/scripts/pr-risk.sh --suggest`,
-  which offers only folders where no file trips a risky check. It
-  reviews every line, keeps only folders that can't touch money,
-  sign-in, access, customer data, uploads, deletes, jobs, webhooks,
-  config or third-party scripts, and opens the result as
-  `<repo>/.claude/safe-paths.txt` in its own small PR for the user's OK.
-  Until then, only docs-and-images PRs get the cheaper review. Never
-  review a PR at lower risk than the script says.
-  When a new money, access, upload, input or data-deleting area appears,
-  add its path to the project list.
-- **`/code-review` size:** normal-risk PRs of 150 changed lines or fewer
-  get 2 Sonnet agents instead of 4.
+- **Models:** the bug reviewer is **always Opus** on any PR with code;
+  compliance reviewers are always Sonnet. Only a PR that changes nothing
+  but docs, images or styles gets two Sonnet reviewers.
+- **Docs-only test is mechanical, not judged:** `~/.claude/scripts/pr-risk.sh
+  <PR>` says `RISK=normal` only when every changed file is docs, images or
+  styles by file type (`~/.claude/risk-paths/_default-safe.txt`) and no
+  added line has a risky word (`_default-content.txt`: scripts, iframes,
+  database access, secrets). Everything else, and any error, is
+  sensitive. Works for every project, web or mobile, with no per-project
+  lists (2026-11-10: a per-project file classifier was tried and dropped;
+  its own review took four passes and found more missed files each time,
+  and its saving was the smallest of these changes).
+- **`/code-review` size:** docs, images or styles-only PRs (`RISK=normal`)
+  of 150 changed lines or fewer get 2 Sonnet agents instead of 4.
 - The skills (`until-clean`, `code-review`, `adversarial-review`) carry
   the exact procedure.
 

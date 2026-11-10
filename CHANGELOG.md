@@ -11,45 +11,34 @@ limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
 - **Pass cap:** 3 loop passes, plus a 4th only for an open MEDIUM or
   HIGH code finding; still open after that is NOT CLEAN. Wording-only
   findings are fixed in one batch and never start a pass.
-- **Models by risk:** in the loop, Opus for the bug reviewer on
-  sensitive PRs only; Sonnet for everything else and for compliance
-  reviewers. `/code-review` keeps its Opus bug agents except on small
-  normal-risk PRs.
-- **`/code-review` size:** normal-risk PRs of 150 changed lines or fewer
-  get 2 Sonnet agents instead of 4.
-- **Risk is mechanical, and missed files fail safe:** new
-  `scripts/pr-risk.py` (with a `pr-risk.sh` wrapper) and shared lists in
-  `risk-paths/`. A PR is normal only when every changed file, renames'
-  old names included, is on a safe list (`_default-safe.txt`: docs,
-  images, fonts, styles; plus the project's `.claude/safe-paths.txt`)
-  and no sensitive signal fires (shared risky paths, code-file names and
-  words in added lines for web, Android, iOS and Expo, plus an optional
-  project `.claude/risk-paths.txt`). Anything else is sensitive. It
-  fails safe on a bad pattern, a missing or empty shared list, or a diff
-  it can't read. Project lists are read from the PR's base branch, and
-  any change under `.claude/` is sensitive. Docs are told apart by
-  extension, so code under a `docs/` folder is still checked; added
-  lines are taken from the diff's hunks, so one starting with `++`
-  still counts. The content words also cover Payload CMS's Local API
-  (`getPayload`, `payload.find(` and so on), which skips access rules
-  by default. New-project rule:
-  `pr-risk.sh --suggest` drafts a safe list of folders where no file
-  trips a risky check; a session reviews every line and opens it as its
-  own PR.
-- **Why a safe list:** the first version was a risky list. Reviewing it
-  took four passes, and each pass found risky files the list had missed,
-  18 in all, plus a pattern bug that made a check fail open. All were
-  fixed before release. With a risky list, a file nobody thought of gets
-  the cheap review; with a safe list, it gets the full one.
+- **Models:** the bug reviewer is always Opus on any PR with code;
+  compliance reviewers are always Sonnet. Only a PR of nothing but docs,
+  images or styles gets two Sonnet reviewers, and, at 150 changed lines
+  or fewer, the two-agent `/code-review`.
+- **The docs-only test is mechanical:** new `scripts/pr-risk.py` (with a
+  `pr-risk.sh` wrapper) prints `RISK=normal` only when every changed
+  file, renames' old names included, is docs, images or styles by type
+  (`risk-paths/_default-safe.txt`) and no added line has a risky word
+  (`risk-paths/_default-content.txt`: scripts, iframes, forms posting
+  elsewhere, database access including Payload CMS's Local API, secrets,
+  payments, keychain, webview bridges, deletes). Anything else, and any
+  error, is sensitive. Added lines are read from the diff's hunks. There
+  are no per-project lists.
+- **Tried and dropped:** a per-project file classifier, with shared and
+  per-project risky lists that were later flipped to safe lists. Its own
+  review took four passes and about twenty review agents, each pass
+  finding more missed files, plus a pattern bug that failed open.
+  Classifying every file forever is open-ended, and its saving was the
+  smallest of these changes, so it was cut back to the docs-only test.
 
 Also in `CLAUDE.md`: the light lane for docs-only and look-only PRs (one
-loop pass, then the final code review; from 2026-11-05); the
-`/adversarial-review` trigger for the admin narrowed to actions that
-move money or change accounts or permissions, not wording, layout, help
-text or read-only display; and Layer 0 on Sonnet 5.5, because it fires
-every turn in every session.
+loop pass, then the final code review; from 2026-11-05), never for a PR
+the script calls sensitive; the `/adversarial-review` trigger for the
+admin narrowed to actions that move money or change accounts or
+permissions, not wording, layout, help text or read-only display; and
+Layer 0 on Sonnet 5.5, because it fires every turn in every session.
 
-`skills/until-clean/SKILL.md` now carries the pass cap, models by risk,
+`skills/until-clean/SKILL.md` now carries the pass cap, the model rule,
 the light lane, wording-only findings, a final `/code-review --comment`
 at the clean head before the marker is written, and a report file.
 `skills/adversarial-review/SKILL.md` carries the narrowed admin trigger.
@@ -60,18 +49,19 @@ New `commands/code-review.md`: a modified copy of the official
 posts a "Reviewed at `<sha>`" summary, and sizes itself with
 `pr-risk.sh`.
 
-`install.sh` and `docs/INSTALL.md` install the script, its four lists
-and the command. Files that already exist and differ from the repo's
-copy, the two skills included, are backed up with a timestamp first;
+`install.sh` and `docs/INSTALL.md` install the script, its two lists and
+the command. Files that already exist and differ from the repo's copy,
+the two skills included, are backed up with a timestamp first;
 identical ones are left alone. The command's `allowed-tools` line gets
 your home path substituted, as the settings snippet does.
-`docs/CUSTOMIZE.md` has a new section 8 on the risk lists (package
+`docs/CUSTOMIZE.md` has a new section 8 on the docs-only test (package
 manager configuration is now 9).
 
-New `docs/review-cost-rationale.html` explains the reasoning, what still
-protects money and data, and the known weaknesses. Linked from the
-README, `CLAUDE.md` and `docs/protocol-rationale.html`, whose Layer 0 and
-Review-until-clean cards are updated to match.
+New `docs/review-cost-rationale.html` explains the reasoning, the
+classifier that was dropped, what still protects money and data, and
+the known weaknesses. Linked from the README, `CLAUDE.md` and
+`docs/protocol-rationale.html`, whose Layer 0 and Review-until-clean
+cards are updated to match.
 
 ## 2026-10-21
 

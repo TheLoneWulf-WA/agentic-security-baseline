@@ -1281,15 +1281,13 @@
           <div class="why-label">Cost limits (2026-11-10)</div>
           <div class="why-body">
             <p>
-              The loop has limits now: at most 3 passes (wording-only
-              findings never start one; only a MEDIUM or HIGH code finding
-              earns a 4th), Opus only for the bug reviewer on sensitive
-              PRs, and a smaller <code>/code-review</code> for small
-              normal-risk PRs. Whether a PR is sensitive is decided by
-              <code>scripts/pr-risk.py</code> from the files it changes,
-              never by the session&rsquo;s judgment: a PR is normal only
-              when every file is on a safe list and no sensitive signal
-              fires, so a file nobody listed gets the full review. Docs-only and
+              The loop has limits now: 3 passes, plus a 4th only for an
+              open MEDIUM or HIGH code finding, and wording-only findings
+              never start one. The bug reviewer stays on Opus for every PR
+              with code; only a PR of docs, images or styles gets Sonnet
+              reviewers and a smaller <code>/code-review</code>. That test
+              is mechanical, done by <code>scripts/pr-risk.py</code>, never
+              the session&rsquo;s judgment. Docs-only and
               look-only PRs take the light lane. The reasons, and what
               still protects money and data:
               <a href="./review-cost-rationale.html">review cost rationale</a>.

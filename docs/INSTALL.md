@@ -74,13 +74,13 @@ For these skills and for steps 2d and 2e: if a file is already there and differs
 
 ### Step 2d — Install the review-risk script and its shared lists
 
-`pr-risk.sh` decides each PR's review level from the files it changes; `/until-clean` and `/code-review` call it. It is a thin wrapper for `pr-risk.py`, which needs `python3` and an authenticated `gh`; if either is missing, every PR comes out sensitive. Why: [`review-cost-rationale.html`](review-cost-rationale.html).
+`pr-risk.sh` tells `/until-clean` and `/code-review` whether a PR is docs, images or styles only, so only those get the cheaper reviewers. It is a thin wrapper for `pr-risk.py`, which needs `python3` and an authenticated `gh`; if either is missing, every PR comes out sensitive. Why: [`review-cost-rationale.html`](review-cost-rationale.html).
 
 ```bash
 mkdir -p ~/.claude/scripts ~/.claude/risk-paths
 cp scripts/pr-risk.py scripts/pr-risk.sh ~/.claude/scripts/
 chmod +x ~/.claude/scripts/pr-risk.py ~/.claude/scripts/pr-risk.sh
-cp risk-paths/_default-safe.txt risk-paths/_default-paths.txt risk-paths/_default-names.txt risk-paths/_default-content.txt ~/.claude/risk-paths/
+cp risk-paths/_default-safe.txt risk-paths/_default-content.txt ~/.claude/risk-paths/
 ```
 
 ### Step 2e — Install the /code-review command
@@ -166,13 +166,13 @@ Tell the user what should now be true:
 - PR merges Claude runs (`gh pr merge` and the API routes) will pause on a confirmation prompt showing the review-loop marker state (ask mode)
 - Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands) will prompt (the config-edit gate)
 - `/until-clean`, `/adversarial-review` and `/code-review` will be available as slash commands in new sessions
-- `~/.claude/scripts/pr-risk.sh <PR>` prints `RISK=` and `SIZE=` for a PR; a PR that changes anything other than docs, images, fonts or styles comes out sensitive until the project has its own safe list (`--suggest` drafts one)
+- `~/.claude/scripts/pr-risk.sh <PR>` prints `RISK=` and `SIZE=` for a PR; `RISK=normal` only for a PR of docs, images or styles with no risky words added
 - Direct terminal pushes to those branches will run `npm audit` and warn on sensitive file changes (the global git hook)
 - PRs will be scanned by Socket.dev (once the GitHub App is installed)
 
 ### Step 9 — Customize for the user's stack
 
-Direct the user to [`CUSTOMIZE.md`](CUSTOMIZE.md) to adapt the strict gate list, sensitive file patterns, branch naming, and protected branches for their projects, and to write each project's safe list (`~/.claude/scripts/pr-risk.sh --suggest`).
+Direct the user to [`CUSTOMIZE.md`](CUSTOMIZE.md) to adapt the strict gate list, sensitive file patterns, branch naming, and protected branches for their projects.
 
 ## Uninstall
 
@@ -190,7 +190,7 @@ rm -r ~/.claude/skills/adversarial-review
 
 # Remove the review-risk script, its lists and the /code-review command
 rm ~/.claude/scripts/pr-risk.py ~/.claude/scripts/pr-risk.sh
-rm ~/.claude/risk-paths/_default-safe.txt ~/.claude/risk-paths/_default-paths.txt ~/.claude/risk-paths/_default-names.txt ~/.claude/risk-paths/_default-content.txt
+rm ~/.claude/risk-paths/_default-safe.txt ~/.claude/risk-paths/_default-content.txt
 rm ~/.claude/commands/code-review.md ~/.claude/commands/LICENSE-code-review
 
 # Restore the previous settings.json

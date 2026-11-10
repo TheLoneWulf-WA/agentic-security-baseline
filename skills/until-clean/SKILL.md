@@ -31,17 +31,15 @@ findings (this has happened in practice).
    project's convention (project CLAUDE.md may specify a count; default
    2: one compliance/CLAUDE.md agent and one bug agent). **Models by
    risk** (2026-11-10, to cut usage; replaces the earlier rule of the
-   most capable model for every reviewer). Risk is decided
-   **mechanically, never by judgment**: run
-   `~/.claude/scripts/pr-risk.sh <PR>` and use its `RISK=` line. It
-   returns normal only when every changed file is on a safe list (the
-   shared defaults or the project's `.claude/safe-paths.txt`) and no
-   sensitive signal fires; anything else, or anything it can't decide,
-   is sensitive. Never treat a PR as lower risk than the script says;
-   you may treat it as higher.
-   - **RISK=sensitive:** bug agent on **opus**, compliance agent on
-     **sonnet**.
-   - **RISK=normal:** both agents on **sonnet**.
+   most capable model for every reviewer). Decided **mechanically, never
+   by judgment**: run `~/.claude/scripts/pr-risk.sh <PR>` and use its
+   `RISK=` line. It returns normal only when every changed file is docs,
+   images or styles by file type and no added line has a risky word;
+   anything else, or any error, is sensitive. Never treat a PR as lower
+   risk than it says.
+   - **RISK=sensitive (any PR with code):** bug agent **always on opus**,
+     compliance agent on **sonnet**.
+   - **RISK=normal (docs, images or styles only):** both on **sonnet**.
    - Record the script's output (RISK, SIZE, matched paths) in the report.
    Each agent gets: the full current diff, the prior-findings checklist,
    and two jobs — (a) verdict per prior finding: RESOLVED / NOT RESOLVED

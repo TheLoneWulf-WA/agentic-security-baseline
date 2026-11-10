@@ -45,30 +45,14 @@ Reports save to `~/.claude/reports/<project-name>/...` by default. Change the pa
 
 The default merge strategy is `squash + delete branch`. If your team prefers rebase or merge commits, change it in the **PR Merge Follow-up** section.
 
-## 8. Review risk lists (`~/.claude/risk-paths/` and each project's `.claude/`)
+## 8. The docs-only test (`~/.claude/risk-paths/`)
 
-`~/.claude/scripts/pr-risk.sh` decides whether a PR gets the sensitive-level review (an Opus bug reviewer in `/until-clean`, the full four agents in `/code-review`). It works as a **safe list**: a PR is normal only when every changed file (and the old name of a renamed one) is on a safe list, and no sensitive signal fires. Everything else is sensitive. All lists are extended regex (Python `re`), one pattern per line, `#` for comments.
+`~/.claude/scripts/pr-risk.sh` decides one thing: is a PR docs, images or styles only? Those PRs get two Sonnet reviewers in `/until-clean` and, at 150 changed lines or fewer, the two-agent `/code-review`. Every other PR keeps an Opus bug reviewer. The script reads two lists, both regex (Python `re`), one pattern per line, `#` for comments:
 
-The safe list:
+- `_default-safe.txt` — the safe file types, matched case-insensitively: pages and PDFs under `docs/`, Markdown and text files (except `requirements*.txt`, `constraints*.txt` and `CMakeLists.txt`), licence and changelog files, images, video, audio, fonts, stylesheets, editor config. A PR is normal only when **every** changed file, and the old name of a renamed one, matches.
+- `_default-content.txt` — risky words in the PR's *added* lines, matched case-sensitively: scripts and iframes, forms that post elsewhere, database access, secrets, payment and billing APIs, keychain and crypto calls, webview bridges, deletes. A match makes the PR sensitive even if every file is safe, since Markdown pages and SVGs can carry code.
 
-- `_default-safe.txt` — what is safe in any project: pages and PDFs under `docs/` (not code there), Markdown and text files, licence and changelog files, images, video and audio, fonts, stylesheets, editor config. Matched case-insensitively.
-
-The sensitive signals, any one of which makes a PR sensitive even if all its files are on a safe list:
-
-- `_default-paths.txt` — file paths, matched case-insensitively: secrets, CI, deploy, dependency files, migrations, API and server code, Android / iOS / Expo security files, anything under `.claude/`, and a root `CLAUDE.md` or `AGENTS.md`.
-- `_default-names.txt` — folder and file names such as `auth`, `payment`, `upload`, matched on every file except docs (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`), so code under a `docs/` folder is checked.
-- `_default-content.txt` — words in the PR's *added* lines, matched case-sensitively: billing and in-app-purchase APIs, payment providers by name, keychain and crypto calls, webview bridges, exported Android components, cleartext settings, service-role keys, deletes, third-party scripts, iframes and forms that post elsewhere. The backstop for mobile code, where a risky call often sits in an ordinary-looking file.
-
-Add your payment provider and auth library to `_default-content.txt` if they're not there. Keep project-specific paths out of the shared lists: `install.sh` replaces the shared lists on a re-run when they differ from the repo's copy (it backs yours up first). A shared list that is missing, empty, or has a pattern that doesn't compile makes every PR sensitive, so a typo can't quietly switch a check off.
-
-Each project gets its own lists in `<repo>/.claude/`:
-
-- `safe-paths.txt` — the project's folders whose changes can't touch money, sign-in, access, customer data, uploads, deletes, jobs, webhooks, config or third-party scripts. **Until it exists, only PRs of docs, images, fonts and styles get the cheaper review.** To write it, run `~/.claude/scripts/pr-risk.sh --suggest` inside the project. It prints a draft of the folders, below the top level, where no file's path or name trips a risky check. It doesn't read file contents. Review every line, and when unsure, delete it: an unlisted folder is just reviewed in full. Then save the file and open it in its own small PR.
-- `risk-paths.txt` (optional) — extra risky paths only this project knows about. They override the safe lists.
-
-Both are read from the PR's **base** branch (your local `origin/<base>`, so fetch first), so a PR based on the default branch can't loosen the lists it is judged by. A stacked PR is judged by its parent branch's lists, and any change under `.claude/` is sensitive anyway. (Files at `~/.claude/risk-paths/<repo-name>.safe.txt` and `<repo-name>.txt` are used when the base branch has none, for a repo where you'd rather not commit them.)
-
-The 150-line threshold that makes a PR "small" is in `pr-risk.py` (`lines <= 150`).
+There are no per-project lists. Add your payment provider or database client to `_default-content.txt` if it isn't there. Be slow to add to `_default-safe.txt`: everything on it gets the cheaper review. `install.sh` replaces both lists on a re-run when they differ from the repo's copy (it backs yours up first). A list that is missing, empty or has a pattern that doesn't compile makes every PR sensitive.
 
 ## 9. Package manager configuration (npm / pnpm / yarn / bun)
 
