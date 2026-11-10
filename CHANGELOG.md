@@ -11,18 +11,30 @@ limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
 - **Pass cap:** at most 3 loop passes. Wording-only findings are fixed
   in one batch and never start a pass; only a MEDIUM or HIGH code
   finding earns a 4th; still open after that is NOT CLEAN.
-- **Models by risk:** in the loop, Opus for the bug reviewer on
-  sensitive PRs only; Sonnet for everything else and for compliance
-  reviewers.
+- **Models by risk:** in the loop and in `/code-review`, Opus for the
+  bug reviewer on sensitive PRs only; Sonnet for everything else and for
+  compliance reviewers.
 - **`/code-review` size:** normal-risk PRs of 150 changed lines or fewer
   get 2 Sonnet agents instead of 4.
-- **Risk is mechanical:** new `scripts/pr-risk.sh`, with shared default
-  lists in `risk-paths/` (paths, code-file names, and words in added
-  lines, covering web, Android, iOS and Expo) plus each project's own
-  `.claude/risk-paths.txt`. A PR it can't read is sensitive, and so
-  is every PR in a project with no list yet. New-project rule:
-  `pr-risk.sh --suggest` drafts the list, a session reviews it and opens
-  it as its own PR.
+- **Risk is mechanical, and missed files fail safe:** new
+  `scripts/pr-risk.py` (with a `pr-risk.sh` wrapper) and shared lists in
+  `risk-paths/`. A PR is normal only when every changed file, renames'
+  old names included, is on a safe list (`_default-safe.txt`: docs,
+  images, fonts, styles; plus the project's `.claude/safe-paths.txt`)
+  and no sensitive signal fires (shared risky paths, code-file names and
+  words in added lines for web, Android, iOS and Expo, plus an optional
+  project `.claude/risk-paths.txt`). Anything else is sensitive. It
+  fails safe on a bad pattern, a missing or empty shared list, or a diff
+  it can't read. Project lists are read from the PR's base branch, and
+  any change under `.claude/` is sensitive. New-project rule:
+  `pr-risk.sh --suggest` drafts a safe list of folders where no file
+  trips a risky check; a session reviews every line and opens it as its
+  own PR.
+- **Why a safe list:** the first version was a risky list. Reviewing it
+  took four passes, and each pass found risky files the list had missed,
+  18 in all, plus a pattern bug that made a check fail open. All were
+  fixed before release. With a risky list, a file nobody thought of gets
+  the cheap review; with a safe list, it gets the full one.
 
 Also in `CLAUDE.md`: the light lane for docs-only and look-only PRs (one
 loop pass, then the final code review; from 2026-11-05); the
@@ -42,7 +54,7 @@ New `commands/code-review.md`: a modified copy of the official
 posts a "Reviewed at `<sha>`" summary, and sizes itself with
 `pr-risk.sh`.
 
-`install.sh` and `docs/INSTALL.md` install the script, the three lists
+`install.sh` and `docs/INSTALL.md` install the script, its four lists
 and the command. Files that already exist and differ from the repo's
 copy, the two skills included, are backed up with a timestamp first;
 identical ones are left alone. The command's `allowed-tools` line gets

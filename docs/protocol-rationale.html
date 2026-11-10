@@ -1286,9 +1286,10 @@
               earns a 4th), Opus only for the bug reviewer on sensitive
               PRs, and a smaller <code>/code-review</code> for small
               normal-risk PRs. Whether a PR is sensitive is decided by
-              <code>scripts/pr-risk.sh</code> from the files it changes,
-              never by the session&rsquo;s judgment, and a project with no
-              risk list of its own gets the full review. Docs-only and
+              <code>scripts/pr-risk.py</code> from the files it changes,
+              never by the session&rsquo;s judgment: a PR is normal only
+              when every file is on a safe list and no sensitive signal
+              fires, so a file nobody listed gets the full review. Docs-only and
               look-only PRs take the light lane. The reasons, and what
               still protects money and data:
               <a href="./review-cost-rationale.html">review cost rationale</a>.

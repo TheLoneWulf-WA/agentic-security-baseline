@@ -31,7 +31,7 @@ Note: Still review Claude generated PR's.
 
 3. Launch a sonnet agent to view the pull request and return a summary of the changes
 
-4. **Size the review by risk** (2026-11-10, to cut usage). Decide it **mechanically, never by judgment**: run `~/.claude/scripts/pr-risk.sh <PR>` (Bash). It prints `RISK=sensitive|normal` (from the shared default lists in `~/.claude/risk-paths/` and the project's own list; anything it can't read, such as no repo, no PR or a missing path list, is sensitive, and so is a project with no list yet) and `SIZE=small|large` (150 changed lines or fewer is small). Never treat a PR as lower risk than the script says.
+4. **Size the review by risk** (2026-11-10, to cut usage). Decide it **mechanically, never by judgment**: run `~/.claude/scripts/pr-risk.sh <PR>` (Bash). It prints `RISK=sensitive|normal` (normal only when every changed file is on a safe list and no sensitive signal fires; anything it can't decide is sensitive) and `SIZE=small|large` (150 changed lines or fewer is small). Never treat a PR as lower risk than the script says.
    - **RISK=normal AND SIZE=small:** launch only **2** agents in parallel, both **sonnet**: one CLAUDE.md compliance agent (as agents 1+2 below) and one bug agent (as agents 3+4 below, combined). In step 5, validate with **sonnet** agents.
    - **Anything else:** run the full set of 4 below, unchanged.
    - If the script can't run, run the full set of 4.
