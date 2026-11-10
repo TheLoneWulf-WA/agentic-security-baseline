@@ -514,6 +514,7 @@
       <a href="../README.md">← README</a> &nbsp;·&nbsp;
       <a href="../CLAUDE.md">CLAUDE.md</a> &nbsp;·&nbsp;
       <a href="../CHANGELOG.md">CHANGELOG</a> &nbsp;·&nbsp;
+      <a href="./review-cost-rationale.html">Review cost</a> &nbsp;·&nbsp;
       <a href="https://atmr.substack.com/p/you-can-just-do-things-but-maybe">Article 1</a> &nbsp;·&nbsp;
       <a href="https://atmr.substack.com/p/it-is-next-time-already">Article 2</a>
     </div>
@@ -559,6 +560,7 @@
       <li><a href="#push-routing">Push Routing</a>
         <ol>
           <li><a href="#routing-default">Default routing</a></li>
+          <li><a href="#feature-branches-push-freely">Feature branches push freely</a></li>
           <li><a href="#routing-overrides">Explicit overrides</a></li>
           <li><a href="#branch-naming">Branch naming</a></li>
           <li><a href="#graceful-degradation">Graceful degradation</a></li>
@@ -849,11 +851,16 @@
             </li>
           </ul>
           <p>
-            Default model: <strong>Claude Opus 4.7</strong>. Override
-            via <code>SECURITY_REVIEW_MODEL</code> (end-of-turn) and
+            Model: <strong>Sonnet 5.5</strong>, set via
+            <code>SECURITY_REVIEW_MODEL</code> (end-of-turn) and
             <code>SG_AGENTIC_MODEL</code> (on-commit) in
-            <code>~/.claude/settings.json</code> if you want to bound
-            per-PR token spend with a smaller model.
+            <code>~/.claude/settings.json</code> (2026-11-10). Layer 0
+            fires every turn in every session, so its model sets a
+            per-turn cost, not a per-PR one, and usage was hitting plan
+            limits. It is a non-blocking early net; the gates behind it
+            still decide. The installer sets neither variable; without
+            them the plugin uses its own default. Why:
+            <a href="./review-cost-rationale.html">review cost rationale</a>.
           </p>
           <p>
             <strong>Canonical docs:</strong>
@@ -1270,6 +1277,24 @@
           </div>
         </div>
 
+        <div class="why">
+          <div class="why-label">Cost limits (2026-11-10)</div>
+          <div class="why-body">
+            <p>
+              The loop has limits now: 3 passes, plus a 4th only for an
+              open MEDIUM or HIGH code finding, and wording-only findings
+              never start one. The bug reviewer stays on Opus for every PR
+              with code; only a PR of docs, images or styles gets Sonnet
+              reviewers and a smaller <code>/code-review</code>. That test
+              is mechanical, done by <code>scripts/pr-risk.py</code>, never
+              the session&rsquo;s judgment. Docs-only and
+              look-only PRs take the light lane. The reasons, and what
+              still protects money and data:
+              <a href="./review-cost-rationale.html">review cost rationale</a>.
+            </p>
+          </div>
+        </div>
+
         <div class="why why-danger">
           <div class="why-label">Carve-out for CLAUDE.md itself</div>
           <div class="why-body">
@@ -1464,6 +1489,61 @@
               category that gets less rigor (a "personal project" today
               can become a serious one tomorrow without the protocol
               catching up).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.0b FEATURE BRANCHES PUSH FREELY -->
+      <div class="rule" id="feature-branches-push-freely">
+        <span class="rule-label">Rule 3.0b &middot; standing permission</span>
+        <h3>Feature branches push freely</h3>
+        <div class="rule-body">
+          <p>
+            Claude may push its own <code>claude/*</code> branch and open
+            the PR without being asked, after the Strict Gate&rsquo;s
+            <code>/security-review</code> where it applies. Only the plain
+            shape runs without a prompt:
+            <code>git push [-u] origin claude/&lt;name&gt;</code> as the whole
+            command, optionally followed by <code>&amp;&amp; gh pr create</code>.
+            Nothing may run before the push in the same command: a
+            <code>git config</code> or <code>export GIT_*</code> there would
+            change where the push lands after the hook has checked.
+          </p>
+          <p>
+            Two layers hold it there. The settings snippet allows only that
+            shape. The push-routing hook fails closed: it answers
+            <code>ask</code> on every push that is not exactly that shape
+            &mdash; <code>main</code>/<code>master</code>/<code>production</code>,
+            force, <code>--all</code>/<code>--mirror</code>, tags, deletes,
+            other remotes or URLs, refspecs, a bare <code>git push</code>,
+            or anything it cannot parse &mdash; and on every merge. It also reads the repo&rsquo;s git config and asks when config could move or widen the push: <code>remote.origin.push</code>, a pushurl or <code>pushInsteadOf</code> rewrite, <code>push.default</code> set to upstream (which sends a branch tracking <code>main</code> to <code>main</code>), <code>push.followTags</code>, submodule pushes, or a tag with the branch&rsquo;s name. Per the
+            Claude Code hooks reference, a hook&rsquo;s <code>ask</code>
+            brings up the prompt in auto mode too; an allow entry cannot
+            approve it silently. The hook reads command text, so a push
+            hidden in a script file or <code>eval</code> is outside it;
+            such commands match no allow entry either.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">Why this exists</div>
+          <div class="why-body">
+            <p>
+              A feature branch is reversible and reaches nobody until it is
+              merged; the irreversible steps are the merge, a push to a
+              protected branch, and pushes that rewrite or delete what
+              others rely on. Asking on every feature push spent the
+              user&rsquo;s attention where the risk is lowest and taught
+              reflexive approval. The approval now sits only where the risk
+              is.
+            </p>
+            <p>
+              The hook fails closed because the old check matched
+              protected names in the command text, and that missed
+              <code>--mirror</code>, <code>--all</code>, force-pushes,
+              URLs and a name followed by <code>;</code>. That was
+              harmless while every push prompted anyway; it stopped being
+              harmless the moment feature pushes were allowed.
             </p>
           </div>
         </div>
@@ -2218,6 +2298,7 @@ Say 'merge it' / 'ship it' / 'merge the PR' when you're ready.</pre>
           <li><a href="../CHANGELOG.md">CHANGELOG</a></li>
           <li><a href="./INSTALL.md">INSTALL</a></li>
           <li><a href="./CUSTOMIZE.md">CUSTOMIZE</a></li>
+          <li><a href="./review-cost-rationale.html">Review cost rationale</a></li>
           <li><a href="https://atmr.substack.com/p/you-can-just-do-things-but-maybe">Article: You Can Just Do Things</a></li>
           <li><a href="https://atmr.substack.com/p/it-is-next-time-already">Article: It Is "Next Time" Already</a></li>
         </ul>

@@ -2,6 +2,113 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-11-10
+
+Review cost limits. Usage was hitting plan limits, and late review
+passes were mostly finding PR-description wording, so the loop got
+limits (new "Cost limits" block in `CLAUDE.md`, under Review-until-clean):
+
+- **Pass cap:** 3 loop passes, plus a 4th only for an open MEDIUM or
+  HIGH code finding; still open after that is NOT CLEAN. Wording-only
+  findings are fixed in one batch and never start a pass.
+- **Models:** the bug reviewer is always Opus on any PR with code;
+  compliance reviewers are always Sonnet. Only a PR of nothing but docs,
+  images or styles gets two Sonnet reviewers, and, at 150 changed lines
+  or fewer, the two-agent `/code-review`.
+- **The docs-only test is mechanical:** new `scripts/pr-risk.py` (with a
+  `pr-risk.sh` wrapper) prints `RISK=normal` only when every changed
+  file, renames' old names included, is docs, images or styles by type
+  (`risk-paths/_default-safe.txt`) and no added line has a risky word
+  (`risk-paths/_default-content.txt`: scripts, iframes, forms posting
+  elsewhere, database access including Payload CMS's Local API, secrets,
+  payments, keychain, webview bridges, deletes). Anything else, and any
+  error, is sensitive. Added lines are read from the diff's hunks. There
+  are no per-project lists.
+- **Tried and dropped:** a per-project file classifier, with shared and
+  per-project risky lists that were later flipped to safe lists. Its own
+  review took four passes and about twenty review agents, each pass
+  finding more missed files, plus a pattern bug that failed open.
+  Classifying every file forever is open-ended, and its saving was the
+  smallest of these changes, so it was cut back to the docs-only test.
+
+Also in `CLAUDE.md`: the light lane for docs-only and look-only PRs (one
+loop pass, then the final code review; from 2026-11-05), which decides
+how many passes a PR gets while `pr-risk.sh` decides only which models
+review it; the `/adversarial-review` trigger for the
+admin narrowed to actions that move money or change accounts or
+permissions, not wording, layout, help text or read-only display; and
+Layer 0 on Sonnet 5.5, because it fires every turn in every session.
+
+`skills/until-clean/SKILL.md` now carries the pass cap, the model rule,
+the light lane, wording-only findings, a final `/code-review --comment`
+at the clean head before the marker is written, and a report file.
+`skills/adversarial-review/SKILL.md` carries the narrowed admin trigger.
+
+New `commands/code-review.md`: a modified copy of the official
+`code-review` plugin's command (Apache License 2.0, in
+`commands/LICENSE-code-review`). It re-reviews each new head commit,
+posts a "Reviewed at `<sha>`" summary, and sizes itself with
+`pr-risk.sh`.
+
+`install.sh` and `docs/INSTALL.md` install the script, its two lists and
+the command. Files that already exist and differ from the repo's copy,
+the two skills included, are backed up with a timestamp first;
+identical ones are left alone. The command's `allowed-tools` line gets
+your home path substituted, as the settings snippet does.
+`docs/CUSTOMIZE.md` has a new section 8 on the docs-only test (package
+manager configuration is now 9).
+
+Both gates now treat `~/.claude/scripts/` and `~/.claude/risk-paths/` as
+enforcement config, since the script decides how hard each PR is
+reviewed: `hooks/config-edit-gate.sh` asks on edits to them, and
+`hooks/push-routing-gate.sh` asks on shell writes to them. The shell
+check also asks on python, perl, ruby, node and awk one-liners that
+touch enforcement config, which can write a file without any shell
+redirection.
+
+New `docs/review-cost-rationale.html` explains the reasoning, the
+classifier that was dropped, what still protects money and data, and
+the known weaknesses. Linked from the README, `CLAUDE.md` and
+`docs/protocol-rationale.html`, whose Layer 0 and Review-until-clean
+cards are updated to match.
+
+## 2026-10-21
+
+Feature branches push freely. Claude may now push its own `claude/*`
+branch and open the PR without being asked, after the Strict Gate's
+`/security-review` where it applies. New paragraph in `CLAUDE.md` (Push
+Routing) and rule 3.0b in `docs/protocol-rationale.html`.
+
+Two layers keep it to that one case. `settings.snippet.json` allows only
+`git push [-u|--set-upstream] origin claude/*` and `gh pr create`. The
+push gate in `hooks/push-routing-gate.sh` now fails closed: it lets a
+push through only when every push segment in the command is exactly
+`git push [-u] origin claude/<name>`, and asks on everything else.
+Before, it asked only when main/master/production appeared in the
+command text, which missed `--all`, `--mirror`, force-pushes, tags,
+deletes, other remotes and URLs, a protected name followed directly by
+`;`, and names hidden in quotes or variables. That did not matter while
+every push prompted; with feature pushes allowed, it would have. A push
+command the hook cannot parse asks too, as do `git send-pack`, `git
+subtree push`, pushes with global options (`--no-pager`, `--git-dir`,
+`-c`), anything before `git` (`VAR=`, `env`, a subshell), a push with
+`cd`/`pushd`/`popd` anywhere in the command, and a push in a repo whose
+config could redirect or widen it: `remote.origin.push`, `push.default`
+upstream or tracking (a branch created from `origin/main` would push to
+`main`), `push.followTags`, `push.recurseSubmodules`, or a tag named
+like the branch, a pushurl or `pushInsteadOf` rewrite, or
+`remote.origin.mirror`. Booleans are read with git's own parser. The
+whole command must be the push, optionally followed by `&& gh pr
+create`: anything before it in the same command (`git config`, `export
+GIT_*`, `git tag`) could change where it lands after the hook checked.
+Input the hook cannot read (no `jq`, not JSON) asks.
+
+`install.sh` and `docs/INSTALL.md` now concatenate `permissions.allow`
+and `permissions.ask` when merging the snippet, the same way they
+already did for `hooks.PreToolUse`. Without it, jq's `*` would have
+replaced the user's own allow and ask lists with the snippet's. The
+installer now says what it allowed and how to keep prompting.
+
 ## 2026-10-10
 
 Fixed the `min-release-age` value everywhere it is set or suggested

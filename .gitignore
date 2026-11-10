@@ -26,3 +26,6 @@ Thumbs.db
 
 # Backups created by install.sh during testing
 *.bak.*
+
+# Python bytecode (scripts/pr-risk.py)
+__pycache__/

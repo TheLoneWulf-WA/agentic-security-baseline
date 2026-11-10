@@ -1,0 +1,16 @@
+# Default SENSITIVE words in ADDED lines of a PR's diff (extended regex, case-sensitive). A hit makes the PR sensitive.
+# The backstop for mobile and other code where risky calls sit inside ordinary files.
+["']use server["']
+\b(BillingClient|StoreKit|SKPayment|SKProduct|Transaction\.currentEntitlements|RevenueCat|Purchases\.(shared|configure))\b
+\b(SecItem(Add|Update|CopyMatching|Delete)|kSecAttr|CryptoKit|CommonCrypto|LAContext|KeyStore|KeyChain|EncryptedSharedPreferences|MasterKey|Cipher\.getInstance|javax\.crypto|MessageDigest|createHmac|createCipheriv|crypto\.subtle|bcrypt|argon2|jsonwebtoken)\b
+\b(addJavascriptInterface|setJavaScriptEnabled|WebViewClient|WebChromeClient|WKScriptMessageHandler|evaluateJavaScript|JSContext|JSExport|postMessage)\b
+android:exported="true"|usesCleartextTraffic|NSAllowsArbitraryLoads|NSExceptionDomains|android:allowBackup|dataExtractionRules|NSFileProtection|isExcludedFromBackup
+\b([Ss]tripe|STRIPE|[Pp]ay[Pp]al|PAYPAL|[Rr]azorpay|[Pp]aystack|[Ff]lutterwave|[Aa]dyen|[Bb]raintree|[Ss]quareup)\b
+\b(service_role|serviceRoleKey|SUPABASE_SERVICE_ROLE|createPolicy|ROW LEVEL SECURITY|DROP (TABLE|POLICY|COLUMN)|DELETE FROM|TRUNCATE|overrideAccess:\s*true)\b
+\b(dangerouslySetInnerHTML|child_process|execSync|spawnSync)\b|\beval\(|new Function\(
+\b[A-Z0-9_]*(SECRET|PRIVATE_KEY|API_KEY|ACCESS_KEY|WEBHOOK)[A-Z0-9_]*\b
+\b(Set-Cookie|httpOnly|sameSite|Access-Control-Allow-Origin|redirect_uri|callbackUrl|returnTo)\b
+# Third-party scripts, frames and forms that send data elsewhere: sensitive even on a safe page
+\bnext/script\b|(?i:<(script|iframe)\b)|action=\{?["'`]https?:
+# Reading the database from a page or component (Payload's Local API skips access rules by default)
+\bgetPayload\b|@payload-config|from ["']payload["']|\bpayload\.(find|findByID|create|update|delete|count)\(

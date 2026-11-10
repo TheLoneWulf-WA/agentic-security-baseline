@@ -27,13 +27,11 @@ The regex is case-insensitive (it's used with `grep -iE`).
 
 ## 3. The branch naming convention (`~/.claude/CLAUDE.md`)
 
-Push Routing creates feature branches with the prefix `claude/<short-slug>`. If you prefer `feat/<slug>` or your team's own convention, edit the **Branch naming** section.
+Push Routing creates feature branches with the prefix `claude/<short-slug>`. If you prefer `feat/<slug>` or your team's own convention, edit the **Branch naming** section. Change the prefix in two more places too, or your pushes will prompt every time: the `claude/` allow entries in `~/.claude/settings.json`, and `safe_re` in `~/.claude/hooks/push-routing-gate.sh`.
 
 ## 4. The protected branches list (`~/.claude/hooks/push-routing-gate.sh`)
 
-The PreToolUse hook treats `main`, `master`, and `production` as protected. If you have other protected branches (`release`, `staging`, `prod-au`, etc.), add them to the case statements near the top of the script.
-
-There are two case statements to update — one for explicit branch names in the push command, one for the current-branch check.
+The PreToolUse hook treats `main`, `master`, and `production` as protected. Pushes to them always ask, because the hook only lets the plain `git push [-u] origin claude/<name>` shape through. Naming them in the script changes the prompt's wording to the protected-branch warning: add them to the `(main|master|production)` pattern in the push gate.
 
 ## 5. Skip clauses (`~/.claude/CLAUDE.md`)
 
@@ -47,7 +45,16 @@ Reports save to `~/.claude/reports/<project-name>/...` by default. Change the pa
 
 The default merge strategy is `squash + delete branch`. If your team prefers rebase or merge commits, change it in the **PR Merge Follow-up** section.
 
-## 8. Package manager configuration (npm / pnpm / yarn / bun)
+## 8. The docs-only test (`~/.claude/risk-paths/`)
+
+`~/.claude/scripts/pr-risk.sh` decides one thing: is a PR docs, images or styles only? Those PRs get two Sonnet reviewers in `/until-clean` and, at 150 changed lines or fewer, the two-agent `/code-review`. Every other PR keeps an Opus bug reviewer. The script reads two lists, both regex (Python `re`), one pattern per line, `#` for comments:
+
+- `_default-safe.txt` — the safe file types, matched case-insensitively: pages and PDFs under `docs/`; Markdown and text files, except dependency and build files (`requirements` and `constraints` files, `CMakeLists.txt`) and the files that steer the agent and its reviews (`CLAUDE.md`, `AGENTS.md`, `SKILL.md`, anything under `.claude/`, `commands/` or `risk-paths/`); licence and changelog files without an extension; images, video, audio, fonts, stylesheets; `.editorconfig`, `.gitattributes` and data-only Prettier config. MDX is not on it (it runs imports and JSX). A PR is normal only when **every** changed file, and the old name of a renamed one, matches.
+- `_default-content.txt` — risky words in the PR's *added* lines, matched case-sensitively: scripts and iframes, forms that post elsewhere, database access, secrets, payment and billing APIs, keychain and crypto calls, webview bridges, deletes. A match makes the PR sensitive even if every file is safe, since Markdown pages and SVGs can carry code.
+
+There are no per-project lists. Add your payment provider or database client to `_default-content.txt` if it isn't there. Be slow to add to `_default-safe.txt`: everything on it gets the cheaper review. `install.sh` replaces both lists on a re-run when they differ from the repo's copy (it backs yours up first). A list that is missing, empty or has a pattern that doesn't compile makes every PR sensitive.
+
+## 9. Package manager configuration (npm / pnpm / yarn / bun)
 
 The `install.sh` sets two npm configs by default: `ignore-scripts=true` and `min-release-age=2` (when supported). Both can be tuned, and equivalents for other package managers are below.
 

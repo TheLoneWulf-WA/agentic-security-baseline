@@ -1,4 +1,12 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git push origin claude/*)",
+      "Bash(git push -u origin claude/*)",
+      "Bash(git push --set-upstream origin claude/*)",
+      "Bash(gh pr create *)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

@@ -3,7 +3,8 @@
 # Push Routing Gate — Claude Code PreToolUse hook
 #
 # Prompts for user confirmation when Claude attempts to:
-#   1. Push to protected branches (main/master/production)
+#   1. Push anything other than a plain claude/* branch to origin
+#      (protected branches, force, --all/--mirror, tags, deletes, URLs)
 #   2. Merge a PR via the known routes (gh pr merge, gh api, curl/wget to
 #      the API) — "ask mode": the command pauses on an in-session
 #      confirmation prompt; one user keypress approves or rejects it. The
@@ -30,8 +31,12 @@
 # Location: ~/.claude/hooks/push-routing-gate.sh
 
 input=$(cat)
-command=$(echo "$input" | jq -r '.tool_input.command // ""')
-cwd=$(echo "$input" | jq -r '.cwd // ""')
+# If the input cannot be read, ask: a gate that cannot see the command
+# must not let it through silently.
+unreadable='{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"Push routing gate could not read this command (jq missing or input not JSON), so it asks."}}'
+command -v jq >/dev/null 2>&1 || { printf '%s\n' "$unreadable"; exit 0; }
+command=$(printf '%s' "$input" | jq -er '.tool_input.command // ""') || { printf '%s\n' "$unreadable"; exit 0; }
+cwd=$(printf '%s' "$input" | jq -r '.cwd // ""' 2>/dev/null)
 
 # --- Merge gate: Claude does not merge PRs ---
 # Catches: gh pr merge; gh api .../pulls/<n>/merge; curl/wget to the merge API.
@@ -83,8 +88,11 @@ fi
 # Writing to the files that implement these gates must never happen
 # silently via Bash redirection, sed -i, mv, etc. Read-only access
 # (cat/grep/ls) stays frictionless.
-if echo "$command" | grep -qE '\.claude/(hooks|skills|commands|CLAUDE\.md|settings\.json|settings\.local\.json|keybindings\.json)'; then
-    if echo "$command" | grep -qE '>>|>[[:space:]]*[^&[:space:]]|\bsed[[:space:]]+-i\b|\btee\b|\brm\b|\bmv\b|\bcp\b|\bchmod\b|\bln\b|\btruncate\b'; then
+# scripts/ and risk-paths/ added 2026-11-10: pr-risk decides how hard each PR is reviewed, so it is enforcement config.
+# Interpreters (python/perl/ruby/node/awk) added the same day: a one-liner can write a file without any of the shell
+# operators below, and edits to CLAUDE.md had gone through that way unprompted.
+if echo "$command" | grep -qE '\.claude/(hooks|skills|commands|scripts|risk-paths|CLAUDE\.md|settings\.json|settings\.local\.json|keybindings\.json)'; then
+    if echo "$command" | grep -qE '>>|>[[:space:]]*[^&[:space:]]|\bsed[[:space:]]+-i\b|\btee\b|\brm\b|\bmv\b|\bcp\b|\bchmod\b|\bln\b|\btruncate\b|\b(python3?|perl|ruby|node|awk)\b'; then
         jq -n '{
             hookSpecificOutput: {
                 hookEventName: "PreToolUse",
@@ -96,46 +104,127 @@ if echo "$command" | grep -qE '\.claude/(hooks|skills|commands|CLAUDE\.md|settin
     fi
 fi
 
-# Not a git push? Allow immediately.
-if ! echo "$command" | grep -qE '\bgit\s+push\b'; then
+# --- Push gate: fail closed ---
+# Feature-branch pushes are on the settings allow list, so this hook is
+# the only thing between Claude and a push it should not make silently.
+# It allows exactly one shape and asks on everything else:
+#
+#   git push [-u | --set-upstream] origin claude/<name>
+#
+# as the whole command: nothing before `git` (no VAR=, env, git config,
+# cd, subshell), and after the branch name only an optional 2>&1 and an
+# optional `&& gh pr create ...`. So these ask: other
+# branches and refspecs (claude/x:main), flags (--force, --all,
+# --mirror, --tags, --delete), other remotes or URLs, quotes, variables,
+# a bare `git push`, `git -C dir push`, `git send-pack`, `git subtree
+# push`, and any push the hook cannot parse.
+#
+# The command text is not the whole story: git config decides where a
+# push lands. So the hook also reads the repo's effective config in the
+# session's cwd, and asks when any of these could move or widen the push:
+# remote.origin.push (remaps the refspec), a pushurl or pushInsteadOf
+# (sends it to another URL), remote.origin.mirror, push.default upstream/tracking
+# (sends claude/x to its upstream, often main), push.followTags (adds
+# tags), push.recurseSubmodules on-demand/only (pushes other repos), a
+# tag with the same name as the branch (git prefers the tag), or a cd /
+# pushd / popd anywhere in the command (the config read would be the
+# wrong repo's). This reads command text and config: a push hidden in a
+# script file or eval is outside it (see "Honest scope" above), and such
+# commands match no allow entry either, so the normal permission flow
+# decides them.
+#
+# Why ask rather than deny: the user may want any of these, and says so
+# with an override ("push to main"); the keypress is theirs to give.
+
+# A push is `git`, any global options (-C dir, -c k=v, --no-pager,
+# --git-dir=...), then push, send-pack or `subtree push`. Options are
+# matched broadly so an unusual form still counts as a push and asks.
+push_re='\bgit([[:space:]]+(-[Cc][[:space:]]+[^[:space:];&|]+|-[^[:space:];&|]+))*[[:space:]]+(push|send-pack|subtree[[:space:]]+push)\b'
+if ! printf '%s' "$command" | grep -qE "$push_re"; then
     exit 0
 fi
 
-# --- Check 1: Protected branch named as a push target ---
-# Catches: git push origin main (also with trailing flags like
-# --no-verify), refspec forms (HEAD:main, feature:main,
-# HEAD:refs/heads/main, +main force-refspecs), quoted branch names,
-# -u variants. Left boundary admits space, colon, slash, plus, and
-# quotes — so feature-main does NOT match; right boundary admits
-# space, quotes, or end-of-command — so trailing flags don't defeat it.
-if echo "$command" | grep -qE "[[:space:]:/+\"'](main|master|production)([[:space:]\"']|\$)"; then
-    jq -n '{
+ask() {
+    jq -n --arg r "$1" '{
         hookSpecificOutput: {
             hookEventName: "PreToolUse",
             permissionDecision: "ask",
-            permissionDecisionReason: "Push to protected branch detected. Push Routing protocol requires feature branch + PR by default. Only confirm if you explicitly said \"push to main\"."
+            permissionDecisionReason: $r
         }
     }'
     exit 0
+}
+unparsed="Push gate could not read this push command, so it asks. Confirm only if you asked for this push."
+
+# The whole command must be the safe push, optionally with a trailing
+# 2>&1, optionally followed by `&& gh pr create ...`. Nothing may run
+# before the push: a `git config`, `export GIT_*=...`, `git tag` or `cd`
+# earlier in the same command would change where the push lands after
+# this hook has read the config. Whatever follows `&& gh pr create` runs
+# only once the push has finished, so it cannot move the push; a second
+# push anywhere in the command asks.
+flat=$(printf '%s' "$command" | tr '\n' ';')
+npush=$(printf '%s' "$flat" | grep -oE "$push_re" | wc -l | tr -d ' ')
+[ "$npush" = "1" ] || ask "This command has more than one push, so it asks. Confirm only if you asked for these pushes."
+lead=$(printf '%s' "$flat" | sed -E 's/^[[:space:]]+//')
+if printf '%s' "$lead" | grep -qE "^git[^;&|]*[[:space:]:/+\"'](main|master|production)([^A-Za-z0-9._-]|\$)"; then
+    ask "Push to protected branch detected. Push Routing requires feature branch + PR by default. Only confirm if you explicitly said \"push to main\"."
+fi
+safe_re='^git[[:space:]]+push([[:space:]]+(-u|--set-upstream))?[[:space:]]+origin[[:space:]]+(claude/[A-Za-z0-9._/-]+)([[:space:]]+2>&1)?[[:space:]]*(&&[[:space:]]*gh[[:space:]]+pr[[:space:]]+create([[:space:]].*)?)?$'
+if ! printf '%s' "$lead" | grep -qE "$safe_re"; then
+    ask "This push is not the plain feature-branch shape (git push [-u] origin claude/<name>, optionally then && gh pr create). Anything before the push, other flags, remotes, refspecs or chained commands ask. Confirm only if you asked for this push."
+fi
+# A lone & after the push backgrounds `push && gh pr create`, so a command
+# after it would run while the push is still reading its config. ;, |
+# and newlines run later and cannot move the push. Text such as "Q&A"
+# in a PR body also matches and simply asks.
+tail=${lead#*&&}
+if [ "$tail" != "$lead" ] && printf '%s' "$tail" | grep -qE '(^|[^&>|])&([^&>]|$)'; then
+    ask "A lone & after the push would run the next command alongside it, so it asks. Confirm only if you asked for this push."
+fi
+branches=$(printf '%s' "$lead" | sed -E 's/^git[[:space:]]+push([[:space:]]+(-u|--set-upstream))?[[:space:]]+origin[[:space:]]+(claude\/[A-Za-z0-9._\/-]+).*$/\3/')
+
+# A directory change anywhere in the command means the config read below
+# would be the wrong repo's.
+if printf '%s' "$command" | grep -qE '(^|[^A-Za-z0-9_-])(cd|pushd|popd)([^A-Za-z0-9_-]|$)'; then
+    ask "This push comes with a directory change, so the push gate cannot check that repo's config. Confirm only if you asked for this push."
 fi
 
-# --- Check 2: Bare push while on a protected branch ---
-# Catches: git push, git push origin (no branch = pushes current branch)
-if [ -n "$cwd" ] && [ -d "$cwd" ]; then
-    current_branch=$(cd "$cwd" && git branch --show-current 2>/dev/null || echo "")
-    case "$current_branch" in
-        main|master|production)
-            jq -n --arg branch "$current_branch" '{
-                hookSpecificOutput: {
-                    hookEventName: "PreToolUse",
-                    permissionDecision: "ask",
-                    permissionDecisionReason: ("Currently on protected branch " + $branch + ". Push Routing requires feature branch + PR. Only confirm if you explicitly requested pushing to this branch.")
-                }
-            }'
-            exit 0
-            ;;
-    esac
+# Read the effective git config of the repo the push runs in.
+if [ -z "$cwd" ] || [ ! -d "$cwd" ] || ! git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
+    ask "Push gate could not find the repo for this push, so it asks. Confirm only if you asked for this push."
 fi
+cfg() { git -C "$cwd" config --get "$1" 2>/dev/null; }
+if [ -n "$(git -C "$cwd" config --get-all remote.origin.push 2>/dev/null)" ]; then
+    ask "This repo sets remote.origin.push, which can redirect a claude/* push to another branch. Confirm only if you asked for this push."
+fi
+case "$(cfg push.default)" in
+    upstream|tracking)
+        ask "push.default is upstream here, so a claude/* push goes to the branch's upstream, which may be main. Confirm only if you asked for this push." ;;
+esac
+# Booleans are parsed by git itself; a value git cannot parse asks.
+for key in push.followTags remote.origin.mirror; do
+    if git -C "$cwd" config --get "$key" >/dev/null 2>&1; then
+        v=$(git -C "$cwd" config --type=bool --get "$key" 2>/dev/null) || ask "Push gate could not read $key here, so it asks. Confirm only if you asked for this push."
+        [ "$v" = "true" ] && ask "$key is on here, so this push would push more than the branch. Confirm only if you asked for this push."
+    fi
+done
+# The push URL must be origin's own URL: a pushurl or a pushInsteadOf
+# rewrite would send the branch somewhere else.
+if [ -n "$(git -C "$cwd" config --get-all remote.origin.pushurl 2>/dev/null)" ] ||
+   [ "$(git -C "$cwd" remote get-url --push origin 2>/dev/null)" != "$(git -C "$cwd" remote get-url origin 2>/dev/null)" ]; then
+    ask "origin's push URL differs from its fetch URL here, so this push may go somewhere else. Confirm only if you asked for this push."
+fi
+case "$(cfg push.recurseSubmodules)" in
+    on-demand|only)
+        ask "push.recurseSubmodules would push submodule repos too. Confirm only if you asked for this push." ;;
+esac
+for b in $branches; do
+    if git -C "$cwd" show-ref --verify --quiet "refs/tags/$b"; then
+        ask "A tag named $b exists, and git pushes the tag before the branch of the same name. Confirm only if you asked for this push."
+    fi
+done
 
-# Feature branch or non-protected target — allow silently
+# The command is the plain push of one claude/* branch to origin, and
+# the repo's config cannot move it.
 exit 0

@@ -70,6 +70,29 @@ mkdir -p ~/.claude/skills/adversarial-review
 cp skills/adversarial-review/SKILL.md ~/.claude/skills/adversarial-review/SKILL.md
 ```
 
+For these skills and for steps 2d and 2e: if a file is already there and differs from the repo's copy, back it up first (`cp <file> <file>.bak.$(date +%Y%m%d-%H%M%S)`). `install.sh` does this for you and leaves identical files alone.
+
+### Step 2d — Install the review-risk script and its shared lists
+
+`pr-risk.sh` tells `/until-clean` and `/code-review` whether a PR is docs, images or styles only, so only those get the cheaper reviewers. It is a thin wrapper for `pr-risk.py`, which needs `python3` and an authenticated `gh`; if either is missing, every PR comes out sensitive. Why: [`review-cost-rationale.html`](review-cost-rationale.html).
+
+```bash
+mkdir -p ~/.claude/scripts ~/.claude/risk-paths
+cp scripts/pr-risk.py scripts/pr-risk.sh ~/.claude/scripts/
+chmod +x ~/.claude/scripts/pr-risk.py ~/.claude/scripts/pr-risk.sh
+cp risk-paths/_default-safe.txt risk-paths/_default-content.txt ~/.claude/risk-paths/
+```
+
+### Step 2e — Install the /code-review command
+
+A modified copy of the official `code-review` plugin's command (Apache License 2.0, license file alongside): it re-reviews each new head commit, posts a "Reviewed at `<sha>`" summary, and sizes the review with `pr-risk.sh`. Its `allowed-tools` line names the script by absolute path, so substitute your home directory:
+
+```bash
+mkdir -p ~/.claude/commands
+sed "s|__USER_HOME__|$HOME|g" commands/code-review.md > ~/.claude/commands/code-review.md
+cp commands/LICENSE-code-review ~/.claude/commands/LICENSE-code-review
+```
+
 ### Step 3 — Wire the hook into settings.json
 
 The snippet uses `__USER_HOME__` as a placeholder. Claude Code does **not** expand `~` or `$HOME` in hook command paths, so we substitute the literal absolute path before merging.
@@ -82,10 +105,13 @@ if [ ! -f ~/.claude/settings.json ]; then
     cp "$SNIPPET" ~/.claude/settings.json
 else
     cp ~/.claude/settings.json ~/.claude/settings.json.bak.$(date +%Y%m%d-%H%M%S)
-    # hooks.PreToolUse is concatenated explicitly — jq's * replaces arrays,
-    # which would drop any PreToolUse hooks you already have.
+    # hooks.PreToolUse and permissions.allow/ask are concatenated explicitly —
+    # jq's * replaces arrays, which would drop the hooks and rules you have.
     jq -s '((.[0].hooks.PreToolUse // []) + (.[1].hooks.PreToolUse // []) | unique) as $pt
-           | (.[0] * .[1]) | .hooks.PreToolUse = $pt' \
+           | ((.[0].permissions.allow // []) + (.[1].permissions.allow // []) | unique) as $al
+           | ((.[0].permissions.ask // []) + (.[1].permissions.ask // []) | unique) as $as
+           | (.[0] * .[1]) | .hooks.PreToolUse = $pt
+           | .permissions.allow = $al | .permissions.ask = $as' \
         ~/.claude/settings.json "$SNIPPET" > ~/.claude/settings.json.new
     mv ~/.claude/settings.json.new ~/.claude/settings.json
 fi
@@ -93,7 +119,7 @@ fi
 rm "$SNIPPET"
 ```
 
-Sibling keys (permissions, plugins, etc.) deep-merge via `*`; `hooks.PreToolUse` is concatenated explicitly because `*` would replace the array and drop any hooks you already have. `unique` makes re-runs idempotent — note it sorts, so entry order may change (harmless: all matching PreToolUse hooks run).
+Sibling keys (plugins, etc.) deep-merge via `*`; `hooks.PreToolUse`, `permissions.allow` and `permissions.ask` are concatenated explicitly because `*` would replace each array and drop the hooks and rules you already have. Your `permissions.deny` is left untouched and still beats any allow entry. The snippet allows only `git push [-u] origin claude/<name>` and `gh pr create`, so Claude can push its own feature branch and open the PR without a prompt. Every other push still prompts: the push-routing hook asks on anything that is not that plain shape, when the repo's git config could redirect it (for example `push.default=upstream` on a branch tracking main), and on every merge. To keep prompting on all pushes, add `Bash(git push *)` to your `permissions.ask`. `unique` makes re-runs idempotent — note it sorts, so entry order may change (harmless: all matching PreToolUse hooks run).
 
 ### Step 4 — Install the global git pre-push hook
 
@@ -111,11 +137,9 @@ git config --global core.hooksPath ~/.config/git/hooks
 
 If `core.hooksPath` is already set to something else, do **not** overwrite. Tell the user there's an existing config so they can decide. Overwriting could break a setup they rely on (e.g. a Husky path or a corporate hooks bundle).
 
-### Step 6 — Install the slash commands (separately)
+### Step 6 — Install `/security-review` (separately)
 
-`/security-review` and `/code-review` are not bundled in this repo. Install them from Anthropic's official sources:
-
-**`/security-review`:**
+`/security-review` is not bundled in this repo. Install it from Anthropic's official source:
 
 ```bash
 mkdir -p ~/.claude/commands
@@ -123,12 +147,7 @@ curl -o ~/.claude/commands/security-review.md \
   https://raw.githubusercontent.com/anthropics/claude-code-security-review/main/.claude/commands/security-review.md
 ```
 
-**`/code-review`:**
-
-This ships as part of the official `code-review` plugin. See the current install instructions at:
-https://github.com/anthropics/claude-code/tree/main/plugins/code-review
-
-Recent versions of Claude Code may bundle these by default. If `/code-review` and `/security-review` already work in your terminal, you can skip this step.
+Recent versions of Claude Code may bundle it by default. If `/security-review` already works in your terminal, you can skip this step. (`/code-review` was installed in step 2e. The original is the official [`code-review` plugin](https://github.com/anthropics/claude-code/tree/main/plugins/code-review).)
 
 ### Step 7 — Set up Socket.dev
 
@@ -142,10 +161,12 @@ The free tier covers solo and small-team use. Socket scans every PR for supply-c
 Tell the user what should now be true:
 
 - A new Claude Code session will load the protocol from `~/.claude/CLAUDE.md`
-- Pushes to `main`, `master`, or `production` will prompt for confirmation (the PreToolUse hook)
+- Claude can push its own branch with `git push [-u] origin claude/<name>` and open the PR with `gh pr create` without a prompt (the settings allow list)
+- Every other push will prompt for confirmation: `main`, `master` or `production`, force, `--all`/`--mirror`, tags, deletes, other remotes, refspecs, a bare `git push`, and a push the repo's config could redirect (the PreToolUse hook)
 - PR merges Claude runs (`gh pr merge` and the API routes) will pause on a confirmation prompt showing the review-loop marker state (ask mode)
-- Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands) will prompt (the config-edit gate)
-- `/until-clean` and `/adversarial-review` will be available as slash commands in new sessions
+- Agent edits to `~/.claude/` enforcement config (hooks, settings, CLAUDE.md, skills, commands, scripts, risk-paths) will prompt, including shell writes and interpreter one-liners (the config-edit gate and the push-routing hook)
+- `/until-clean`, `/adversarial-review` and `/code-review` will be available as slash commands in new sessions
+- `~/.claude/scripts/pr-risk.sh <PR>` prints `RISK=` and `SIZE=` for a PR; `RISK=normal` only for a PR of docs, images or styles with no risky words added
 - Direct terminal pushes to those branches will run `npm audit` and warn on sensitive file changes (the global git hook)
 - PRs will be scanned by Socket.dev (once the GitHub App is installed)
 
@@ -166,6 +187,11 @@ rm ~/.claude/hooks/push-routing-gate.sh
 rm ~/.claude/hooks/config-edit-gate.sh
 rm -r ~/.claude/skills/until-clean
 rm -r ~/.claude/skills/adversarial-review
+
+# Remove the review-risk script, its lists and the /code-review command
+rm ~/.claude/scripts/pr-risk.py ~/.claude/scripts/pr-risk.sh
+rm ~/.claude/risk-paths/_default-safe.txt ~/.claude/risk-paths/_default-content.txt
+rm ~/.claude/commands/code-review.md ~/.claude/commands/LICENSE-code-review
 
 # Restore the previous settings.json
 mv ~/.claude/settings.json.bak.<timestamp> ~/.claude/settings.json

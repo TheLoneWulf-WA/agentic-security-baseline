@@ -123,6 +123,32 @@ one does not replace an earlier one.
 **No CLEAN verdict before step 6 has run.** A pass of my own, however
 careful, is not the loop.
 
+### Light lane — docs-only and look-only PRs (2026-11-05)
+
+A PR qualifies only if it is one of these, and nothing else:
+- **Docs-only:** `.md` files, code comments, runbook text. No code
+  that runs.
+- **Look-only:** styling on pages outside the project's critical flows
+  (a buying flow, sign-in; any surfaces the project's CLAUDE.md protects
+  are excluded), with no logic, data, wording or shared-component
+  behaviour change.
+
+For a light-lane PR:
+- No adversarial review (it never applied) and no critical-flow suites.
+- **One `/until-clean` pass.** Fix any LOW it finds, then the
+  skill's final `/code-review` at the final commit is the re-check;
+  no further loop rounds unless that review finds something.
+- Docs-only runs lint and the docs build; look-only keeps the full
+  local check (a style change can break the build).
+- Look-only PRs attach before/after screenshots at the project's
+  test sizes; they are the main evidence.
+
+Anything touching payments, sign-in, sessions, customer data, the
+admin, uploads, or a critical flow is never light lane: the full
+order above applies. When unsure, it is not light lane. The light lane decides how many
+loop passes a PR gets; `pr-risk.sh` decides only which models review it. The merge
+gate, the base check and the user's "merge it" are unchanged.
+
 ### Layer 0 — security-guidance plugin (in-session, non-blocking)
 
 The `security-guidance@claude-plugins-official` plugin (enable at user
@@ -142,14 +168,15 @@ scope) is the earliest layer; runs automatically; nothing to invoke.
   `<project>/.claude/claude-security-guidance.local.md` (gitignored,
   personal overrides) feed the model-backed reviews.
 
-Set `SECURITY_REVIEW_MODEL` (end-of-turn) / `SG_AGENTIC_MODEL`
-(on-commit) in `~/.claude/settings.json` to the most capable model
-available; the plugin has its own default otherwise, and the installer
-sets neither. When that is the same model that writes the code, keep
-independence in other ways: fresh-context reviewers, and testing
-against a real running build (a preview deploy where you have one). Layer 0 fires every turn (end-of-turn +
-on-commit), so this is a recurring per-turn cost, not per-PR; point one
-var at a smaller model if steady-state usage bites.
+Reviews run on **Sonnet 5.5**, set via `SECURITY_REVIEW_MODEL`
+(end-of-turn) / `SG_AGENTIC_MODEL` (on-commit) in
+`~/.claude/settings.json` (2026-11-10: usage was hitting plan limits,
+and Layer 0 fires every turn in every session, end-of-turn and
+on-commit, so it's a per-turn cost, not per-PR). It's a non-blocking
+early net; the gates behind it (`/security-review`,
+`/adversarial-review` on sensitive PRs, the code review) still decide.
+The installer sets neither variable; without them the plugin uses its
+own default.
 
 **Does NOT replace the gates below.** Non-blocking, security-only, can
 miss things — *reduces* what reaches the gates; doesn't satisfy any.
@@ -268,11 +295,14 @@ README: is it true, and does it say what to do). They are given the
 code and the docs, never the author's conclusions.
 
 Run it **without being asked, before the merge prompt**, on any PR
-touching: auth, sessions or tokens; uploads or media; payments; the
-admin; API endpoints taking input; anything an attacker can reach; any
-script or job that runs with access rules off or deletes records. A
-project CLAUDE.md or memory may widen this; the wider rule wins. For a
-change that is none of these, say in one line that it is skipped.
+touching: auth, sessions or tokens; uploads or media; payments; admin
+actions that move money or change accounts or permissions; API
+endpoints taking input; anything an attacker can reach; any script or
+job that runs with access rules off or deletes records. Not for admin
+changes that are only wording, layout, help text or read-only display
+(2026-11-10, usage). A project CLAUDE.md or memory may widen this; the
+wider rule wins. For a change that is none of these, say in one line
+that it is skipped.
 
 - Fix every finding, LOW included, one commit each. What is the user's
   to decide (always-ask classes) is surfaced with a recommendation, not
@@ -299,6 +329,32 @@ The loop:
 4. **Re-run the same review on the new state**
 5. If new findings → step 2
 6. Stop only when a pass returns "no issues found"
+
+**Cost limits (2026-11-10, usage was hitting plan limits):**
+- **Pass cap:** at most 3 loop passes. Wording-only findings (PR body,
+  comments, docs prose) are fixed in a batch and never trigger a pass by
+  themselves; the final code review covers them. After pass 3 only a
+  MEDIUM or HIGH code finding earns a 4th pass; still open after that →
+  NOT CLEAN, surfaced to the user.
+- **Models:** the bug reviewer is **always Opus** on any PR with code;
+  compliance reviewers are always Sonnet. Only a PR that changes nothing
+  but docs, images or styles gets two Sonnet reviewers.
+- **Docs-only test is mechanical, not judged:** `~/.claude/scripts/pr-risk.sh
+  <PR>` says `RISK=normal` only when every changed file is docs, images or
+  styles by file type (`~/.claude/risk-paths/_default-safe.txt`) and no
+  added line has a risky word (`_default-content.txt`: scripts, iframes,
+  database access, secrets). Everything else, and any error, is
+  sensitive. Works for every project, web or mobile, with no per-project
+  lists (2026-11-10: a per-project file classifier was tried and dropped;
+  its own review took four passes and found more missed files each time,
+  and its saving was the smallest of these changes).
+- **`/code-review` size:** docs, images or styles-only PRs (`RISK=normal`)
+  of 150 changed lines or fewer get 2 Sonnet agents instead of 4.
+- The skills (`until-clean`, `code-review`, `adversarial-review`) carry
+  the exact procedure.
+
+Why each limit is set where it is, and what still protects money and
+data: [`docs/review-cost-rationale.html`](docs/review-cost-rationale.html).
 
 **For security findings:** also check the severity label after the fix
 to confirm it was downgraded or removed, not just reworded.
@@ -381,6 +437,21 @@ any push command without a target:
 5. Stop and prompt the user to merge (see PR Merge Follow-up)
 
 The strict gate runs before the push, exactly as specified above.
+
+**Feature branches push freely.** Claude may push its own `claude/*`
+branch and open the PR without being asked, after the Strict Gate's
+`/security-review` where it applies. Only the plain shape runs without a
+prompt: `git push [-u] origin claude/<name>` as the whole command,
+optionally followed by `&& gh pr create ...`, and `gh pr create` alone. Every
+other push asks: main/master/production, force, `--all`/`--mirror`,
+tags, deletes, other remotes or URLs, refspecs and a bare `git push`.
+It also asks when the repo's git config could move or widen that push
+(`remote.origin.push`, a pushurl or `pushInsteadOf`, `push.default`
+upstream, `push.followTags`, submodule pushes, a tag with the branch's
+name). Every merge still needs
+the user, per action. Two layers enforce it: the settings allow list
+names only the plain shape, and the push-routing hook asks on anything
+else.
 
 ### Explicit overrides (always honored)
 

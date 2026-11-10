@@ -4,8 +4,8 @@
 #
 # The guard guarding the guard: any Edit/Write targeting the enforcement
 # config itself — hooks, settings, keybindings, the protocol rulebook
-# (~/.claude/CLAUDE.md), and the skills/commands that are load-bearing
-# for the loop — prompts for user confirmation instead of applying
+# (~/.claude/CLAUDE.md), the skills/commands that are load-bearing
+# for the loop, and the review-risk script and lists (scripts/, risk-paths/) — prompts for user confirmation instead of applying
 # silently. Complements the shell-write check in push-routing-gate.sh
 # (which is wider: it also catches project-level .claude/settings.json).
 #
@@ -33,7 +33,7 @@ fi
 HOME_R="${HOME_R:-$HOME}"
 
 case "$file_path" in
-    "$HOME_R"/.claude/hooks/*|"$HOME_R"/.claude/skills/*|"$HOME_R"/.claude/commands/*|"$HOME_R"/.claude/CLAUDE.md|"$HOME_R"/.claude/settings.json|"$HOME_R"/.claude/settings.local.json|"$HOME_R"/.claude/keybindings.json)
+    "$HOME_R"/.claude/hooks/*|"$HOME_R"/.claude/skills/*|"$HOME_R"/.claude/commands/*|"$HOME_R"/.claude/scripts/*|"$HOME_R"/.claude/risk-paths/*|"$HOME_R"/.claude/CLAUDE.md|"$HOME_R"/.claude/settings.json|"$HOME_R"/.claude/settings.local.json|"$HOME_R"/.claude/keybindings.json)
         jq -n '{
             hookSpecificOutput: {
                 hookEventName: "PreToolUse",
