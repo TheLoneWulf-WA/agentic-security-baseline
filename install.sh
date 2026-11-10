@@ -92,14 +92,17 @@ install_file "$REPO_DIR/skills/until-clean/SKILL.md" "$HOME/.claude/skills/until
 install_file "$REPO_DIR/skills/adversarial-review/SKILL.md" "$HOME/.claude/skills/adversarial-review/SKILL.md"
 
 # ---- Step 2d: Install the review-risk script and its shared lists ----
-# pr-risk.sh decides a PR's review level from the files it changes, so the
-# loop and /code-review never size a review by judgment. The three
+# pr-risk.sh (a wrapper for pr-risk.py, which needs python3 and gh)
+# decides a PR's review level from the files it changes, so the loop and
+# /code-review never size a review by judgment. A PR is normal only when
+# every file is on a safe list and no risky list fires. The shared
 # _default-*.txt lists cover web, Android, iOS and Expo; each project adds
-# its own list (pr-risk.sh --suggest drafts one). See
+# its own .claude/safe-paths.txt (pr-risk.sh --suggest drafts one). See
 # docs/review-cost-rationale.html.
 
+install_file "$REPO_DIR/scripts/pr-risk.py" "$HOME/.claude/scripts/pr-risk.py" +x
 install_file "$REPO_DIR/scripts/pr-risk.sh" "$HOME/.claude/scripts/pr-risk.sh" +x
-for list in _default-paths.txt _default-names.txt _default-content.txt; do
+for list in _default-safe.txt _default-paths.txt _default-names.txt _default-content.txt; do
     install_file "$REPO_DIR/risk-paths/$list" "$HOME/.claude/risk-paths/$list"
 done
 
@@ -223,8 +226,8 @@ echo
 echo "  3. Customize the protocol for your stack:"
 echo "     See docs/CUSTOMIZE.md"
 echo
-echo "  4. In each project, draft its own risk list (until it has one, every"
-echo "     PR there gets the full review):"
+echo "  4. In each project, draft its own safe list (until it has one, only"
+echo "     docs-and-images PRs get the cheaper review):"
 echo "     ~/.claude/scripts/pr-risk.sh --suggest"
 echo
 echo "  5. Start a fresh Claude Code session to load the new protocol."

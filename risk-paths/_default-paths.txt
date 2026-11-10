@@ -31,3 +31,7 @@
 (^|/)(app\.json|app\.config\.(js|ts)|eas\.json|expo-env\.d\.ts)$
 (^|/)modules/[^ ]*\.(swift|kt|java|m|mm)$
 (^|/)(android|ios)/app/src/main/
+# The review routing itself (safe and risk lists) and project Claude permissions: always sensitive, whatever a project list says
+(^|/)\.claude/
+# A project's own rulebook
+^(CLAUDE|AGENTS)\.md$
