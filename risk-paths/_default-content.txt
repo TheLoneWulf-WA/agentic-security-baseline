@@ -12,3 +12,5 @@ android:exported="true"|usesCleartextTraffic|NSAllowsArbitraryLoads|NSExceptionD
 \b(Set-Cookie|httpOnly|sameSite|Access-Control-Allow-Origin|redirect_uri|callbackUrl|returnTo)\b
 # Third-party scripts, frames and forms that send data elsewhere: sensitive even on a safe page
 \bnext/script\b|<(script|iframe)\b|action=\{?["'`]https?:
+# Reading the database from a page or component (Payload's Local API skips access rules by default)
+\bgetPayload\b|@payload-config|from ["']payload["']|\bpayload\.(find|findByID|create|update|delete|count)\(

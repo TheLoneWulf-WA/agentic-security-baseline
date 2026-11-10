@@ -15,7 +15,7 @@ judged by; and any change under .claude/ is sensitive through the shared default
 import json, os, re, subprocess, sys
 
 D = os.path.expanduser("~/.claude/risk-paths")
-DOC = re.compile(r"(^|/)docs/|\.(md|mdx|txt|rst|adoc)$", re.I)
+DOC = re.compile(r"\.(md|mdx|txt|rst|adoc)$", re.I)  # by extension only: a code file under docs/ is still code
 
 def out(risk, size, lines, reasons):
     print(f"RISK={risk}\nSIZE={size}\nLINES={lines}")
@@ -97,7 +97,11 @@ def main():
     note("risky path (shared)", [f for f in files if any(p.search(f) for p in risk_p)])
     note("risky name (shared)", [f for f in files if not DOC.search(f) and any(p.search(f) for p in risk_n)])
     note("risky path (project)", [f for f in files if any(p.search(f) for p in risk_proj)])
-    added = [l[1:] for l in diff.splitlines() if l.startswith("+") and not l.startswith("+++")]
+    added, in_hunk = [], False
+    for l in diff.splitlines():
+        if l.startswith("diff --git "): in_hunk = False; continue
+        if l.startswith("@@"): in_hunk = True; continue
+        if in_hunk and l.startswith("+"): added.append(l[1:])  # inside a hunk every + line is added code, even "+++x"
     words = sorted({m.group(0)[:40] for l in added for p in risk_c for m in [p.search(l)] if m})
     note("added code mentions", words)
     unsafe = [f for f in files if not any(p.search(f) for p in safe_d + safe_p)]
