@@ -8,6 +8,9 @@
 (^|/)(vercel\.json|netlify\.toml|firebase\.json|\.firebaserc|[^/]*\.rules|database\.rules\.json|fly\.toml|render\.yaml|dockerfile|docker-compose[^/]*|app\.yaml|serverless\.ya?ml|wrangler\.toml|[^/]*\.tf)$
 (^|/)(supabase|terraform|infra|deploy|k8s|helm)/
 (^|/)scripts/
+(^|/)cmakelists\.txt$
+# This kit's own shared lists, wherever they are kept in a repo
+(^|/)risk-paths/
 # --- web ---
 (^|/)(next|nuxt|vite|astro|svelte|remix|webpack)\.config\.
 (^|/)(middleware|proxy)\.(ts|js|mjs)$

@@ -1,7 +1,8 @@
 # Default SAFE paths for every project (extended regex, case-insensitive): changes here alone can get the cheaper review.
 # Everything NOT safe is sensitive. Sensitive signals (risky paths, names, words in added lines, a project risk list) still override safe.
 # 2026-11-10: four review passes each found risky files a "risky list" missed, so a missed file must fail safe.
-(^|/)docs/
+# docs/ is safe for its documents and pages only; code under a docs/ folder (a docs site's routes) is not
+(^|/)docs/.*\.(html?|pdf)$
 \.(md|mdx|rst|txt|adoc)$
 (^|/)(license|licence|notice|authors|contributors|changelog)[^/]*$
 \.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|heic|mp4|webm|mov|mp3|wav|ogg|woff2?|ttf|otf|eot|lottie)$
