@@ -1,9 +1,10 @@
-# Default SAFE paths for every project (extended regex, case-insensitive): changes here alone can get the cheaper review.
-# Everything NOT safe is sensitive. Sensitive signals (risky paths, names, words in added lines, a project risk list) still override safe.
-# 2026-11-10: four review passes each found risky files a "risky list" missed, so a missed file must fail safe.
-# docs/ is safe for its documents and pages only; code under a docs/ folder (a docs site's routes) is not
+# SAFE file types for every project (extended regex, Python re, case-insensitive), read by ~/.claude/scripts/pr-risk.py.
+# A PR is RISK=normal only when EVERY changed file matches a line here AND no added line matches _default-content.txt.
+# Anything else is sensitive. Matched by file type, not folder: code under a docs/ folder is still code.
+# Pages and PDFs under docs/
 (^|/)docs/.*\.(html?|pdf)$
-\.(md|mdx|rst|txt|adoc)$
+# Prose, except text files that are build or dependency config
+^(?!(.*/)?(requirements[^/]*|constraints[^/]*|cmakelists)\.txt$).*\.(md|mdx|rst|txt|adoc)$
 (^|/)(license|licence|notice|authors|contributors|changelog)[^/]*$
 \.(png|jpe?g|gif|webp|avif|svg|ico|bmp|tiff?|heic|mp4|webm|mov|mp3|wav|ogg|woff2?|ttf|otf|eot|lottie)$
 \.(css|scss|sass|less)$

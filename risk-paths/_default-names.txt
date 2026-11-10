@@ -1,3 +1,0 @@
-# Default SENSITIVE folder or file NAMES (extended regex, case-insensitive), applied to every file except docs:
-# files ending .md, .mdx, .txt, .rst or .adoc are skipped, so a guide titled 'security' doesn't count.
-(^|/|[._-])(auth|authn|authz|login|signin|sign-in|signup|sign-up|session|sessions|oauth|sso|jwt|token|tokens|password|mfa|otp|security|access|permission|permissions|rbac|role|roles|admin|staff|billing|payment|payments|pay|checkout|cart|order|orders|invoice|refund|stripe|paypal|subscription|subscriptions|purchase|purchases|iap|wallet|crypto|cipher|keychain|keystore|secret|secrets|upload|uploads|media|webview|bridge|deeplink|deep-link|linking)([/._-]|s?$)
