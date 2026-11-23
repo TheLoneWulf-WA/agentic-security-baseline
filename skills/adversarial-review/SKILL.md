@@ -26,7 +26,7 @@ A CLEAN verdict is never given from this skill alone.
   script or job that runs with access rules off or deletes records.
 - **Not** for admin changes that are only wording, layout, help text or
   read-only display (2026-11-10, to cut usage): skip with one line
-  saying why; the loop and the code review still run.
+  saying why; the loop still runs.
 - A project's CLAUDE.md or memory may widen this (for example "on every
   PR of mine"). The wider rule wins.
 - For a change that is none of the above (copy, styling, docs with no
@@ -83,15 +83,19 @@ A CLEAN verdict is never given from this skill alone.
    Relay each report's headline to the user as it arrives.
 
 4. **Fix every finding.**
-   - One commit per finding, building between each. Closely related
-     findings in the same lines may share a commit; say so in the commit
-     message and the ledger.
-   - LOW findings are fixed too, or stated plainly as not fixed with the
-     reason. Never folded into "clean".
+   - HIGH and MEDIUM: one commit per finding, building between each.
+     Closely related findings in the same lines may share a commit; say
+     so in the commit message and the ledger.
+   - LOW findings are fixed too, in one batch commit (since 2026-11-23;
+     a commit each was churn for little), or stated plainly as not fixed
+     with the reason. Never folded into "clean".
+   - A problem the reviewer reported as pre-existing (equally true
+     on the default branch, not made worse by the change) is filed as an issue, not
+     fixed here.
    - A finding that is the user's to decide (wording a person reads, a
      product or design call, what survives a delete, a change in someone
      else's area, a canonical document) is surfaced with a recommendation,
-     not fixed. If it was not created by this change, file it as an issue.
+     not fixed.
    - Where behaviour matters, check it for real after the fix: a
      production build, a real run, real inputs sent the way a user or an
      attacker would send them. Say what was run.
@@ -106,7 +110,6 @@ A CLEAN verdict is never given from this skill alone.
 
 6. **Hand off to `/until-clean`.** It verifies every finding on the
    pushed state with fresh reviewers and loops until a pass is clean.
-   Then `/code-review --comment` if the project's protocol asks for it.
    The fixes themselves are where the next bug is: expect the first
    verification pass to find something.
 

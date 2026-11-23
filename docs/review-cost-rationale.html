@@ -301,12 +301,13 @@
     white-space: nowrap;
   }
 
-  .rule-body ul, .rule-body ol {
+  .rule-body ul, .rule-body ol, .why-body ul {
     margin: 12px 0 12px 20px;
     color: var(--text-2);
   }
 
-  .rule-body li { margin-bottom: 6px; line-height: 1.55; }
+  .rule-body li, .why-body li { margin-bottom: 6px; line-height: 1.55; }
+  main .rule a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--border-accent); }
 
   /* why callout */
   .why {
@@ -554,6 +555,7 @@
       <li><a href="#content-words">The content-word backstop</a></li>
       <li><a href="#still-protects">What still protects money and data</a></li>
       <li><a href="#weaknesses">Known weaknesses</a></li>
+      <li><a href="#no-second-review">No second review on top</a></li>
     </ol>
   </nav>
 
@@ -612,12 +614,12 @@
         <table class="limits">
           <thead><tr><th>Limit</th><th>What it does</th></tr></thead>
           <tbody>
-            <tr><td>Pass cap</td><td>3 loop passes, plus a 4th only for an open MEDIUM or HIGH code finding. Wording-only findings (PR body, comments, docs prose) are fixed in one batch and never start a pass by themselves; the final code review checks them. Still open after the 4th: the verdict is NOT CLEAN and the user is told.</td></tr>
+            <tr><td>Pass cap</td><td>3 loop passes, plus a 4th only for an open MEDIUM or HIGH finding. Every commit is read by a pass; only an edit to the PR&rsquo;s title or description needs none. A LOW finding in pass 3 or 4 is filed as an issue, not fixed unread. Still open after the 4th: the verdict is NOT CLEAN and the user is told. (From 2026-11-10 to 2026-11-23 wording-only fixes skipped the next pass, because a final code review read them; see the <a href="#no-second-review">last section</a>.)</td></tr>
             <tr><td>Models</td><td>The bug reviewer is always Opus on any PR with code; compliance reviewers are always Sonnet. Only a PR of nothing but docs, images or styles gets two Sonnet reviewers. <code>/adversarial-review</code> is unchanged.</td></tr>
-            <tr><td><code>/code-review</code> size</td><td>A docs-, images- or styles-only PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the script can&rsquo;t run, gets all 4.</td></tr>
+            <tr><td><code>/code-review</code> size</td><td>A docs-, images- or styles-only PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the script can&rsquo;t run, gets all 4. Since 2026-11-23 the command is no longer a required step (<a href="#no-second-review">last section</a>); this sizing applies when it is run by hand.</td></tr>
             <tr><td>Layer 0 model</td><td>The in-session security plugin is set to Sonnet 5.5 via <code>SECURITY_REVIEW_MODEL</code> / <code>SG_AGENTIC_MODEL</code> (the installer sets neither). It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
             <tr><td>Adversarial trigger</td><td>The three-role review still runs on auth, uploads, payments, input endpoints and anything an attacker can reach. For the admin it now runs on actions that move money or change accounts or permissions, not on admin wording, layout, help text or read-only display.</td></tr>
-            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass and the final code review. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane. The light lane decides how many passes a PR gets; the script decides only which models review it.</td></tr>
+            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass; since 2026-11-23, a second pass only if a fix was committed. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane. The light lane decides how many passes a PR gets; the script decides only which models review it.</td></tr>
           </tbody>
         </table>
         </div>
@@ -701,7 +703,7 @@
               Classifying every file in every project is open-ended work, and the
               saving it bought was the smallest of the changes: a cheaper bug
               reviewer on code PRs that happened to be low risk. The real savings
-              are elsewhere: the pass cap, the wording rule, Layer 0 on Sonnet and
+              are elsewhere: the pass cap, the wording rule (dropped again on 2026-11-23), Layer 0 on Sonnet and
               the narrower three-role review.
             </p>
             <p>
@@ -742,7 +744,7 @@
           <div class="why-body">
             <p>
               &ldquo;Sensitive&rdquo; here only means the review this protocol ran
-              before the limits: an Opus bug reviewer and the full code review. A
+              before the limits: an Opus bug reviewer in every pass. A
               wrong &ldquo;sensitive&rdquo; costs some tokens. A wrong
               &ldquo;normal&rdquo; puts code in front of cheaper reviewers. So every
               doubt goes the cheap-to-be-wrong way.
@@ -810,10 +812,10 @@
         <h3>Five layers no limit reaches</h3>
         <div class="rule-body">
           <ul class="surfaces">
-            <li><span class="surface-name">The Opus bug reviewer</span><span class="surface-why">Every PR with code gets an Opus bug reviewer in every loop pass, and the full four-agent code review.</span></li>
+            <li><span class="surface-name">The Opus bug reviewer</span><span class="surface-why">Every PR with code gets an Opus bug reviewer in every loop pass.</span></li>
             <li><span class="surface-name"><code>/security-review</code></span><span class="surface-why">Still runs before the first push on any Strict Gate surface (payments, auth, secrets, input endpoints and the rest), and still blocks on HIGH.</span></li>
             <li><span class="surface-name">The three-role review</span><span class="surface-why"><code>/adversarial-review</code> still runs on auth, sessions, uploads, payments, admin actions that move money or change access, input endpoints, and scripts that run with access rules off or delete records. On those PRs it is the step that finds the most.</span></li>
-            <li><span class="surface-name">The code review</span><span class="surface-why"><code>/code-review --comment</code> still runs on every PR, at the clean head. Only a docs-, images- or styles-only PR of 150 lines or fewer gets the smaller version.</span></li>
+            <li><span class="surface-name">The loop&rsquo;s compliance reviewer</span><span class="surface-why">Every pass still has a reviewer checking the change against <code>CLAUDE.md</code> and the always-flag list. What stopped on 2026-11-23 is the second review, <code>/code-review --comment</code>, that ran after a clean pass.</span></li>
             <li><span class="surface-name">The runtime tests</span><span class="surface-why">The local checks and the real run of the thing (a production build, real requests) come first in the review order, and a project&rsquo;s tests for its critical flows still run. The light lane skips those flow tests only on PRs that are docs or styling outside those flows.</span></li>
           </ul>
         </div>
@@ -821,7 +823,7 @@
           <div class="why-label">Where the savings come from</div>
           <div class="why-body">
             <p>
-              Late passes, wording-only fixes, Layer 0&rsquo;s per-turn reviews, the
+              Late passes, Layer 0&rsquo;s per-turn reviews, the
               three-role review no longer running on admin wording and layout, and
               cheaper reviewers on docs-only PRs. Code is reviewed as it was before.
             </p>
@@ -854,6 +856,74 @@
               Be slow to add types to the safe list, and quick to add words to the
               content list. When in doubt about a PR, review it higher: the rule is
               never lower than the script, and higher is always allowed.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="no-second-review">
+      <span class="section-num">Section 10 &middot; 2026-11-23</span>
+      <h2>No second review on top</h2>
+      <p class="section-blurb">
+        A clean loop pass used to be followed by a second full review of the
+        same commit. That step is gone.
+      </p>
+      <div class="rule rule-accent">
+        <span class="rule-label">The cut</span>
+        <h3>The clean pass is the last review</h3>
+        <div class="rule-body">
+          <p>
+            After the 2026-11-10 limits, a PR with code still ended with
+            <code>/code-review --comment</code>: four agents, plus one more
+            to validate each finding, re-reading a diff that two reviewers had
+            just passed at the same commit.
+          </p>
+          <p>
+            Measured on about 30 PRs in one project over three days, from the
+            sessions&rsquo; own review reports: that final review found
+            something real about once. The three-role review and the first
+            loop pass found the real problems; later passes found what the
+            fixes broke, or wording.
+          </p>
+          <p>
+            Two posts from the Claude Code team point the same way:
+            <a href="https://claude.dev/blog/solving-code-review-at-anthropic/">how they do code review</a>
+            and
+            <a href="https://claude.dev/blog/how-the-claude-code-team-thinks-about-verification/">how they think about verification</a>.
+            They tune one reviewer and do not stack a second on top of it.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">What went with it</div>
+          <div class="why-body">
+            <ul>
+              <li><strong>Every commit is read by a pass.</strong> Wording batches used to skip the next pass, because the final review read them. Nothing would now, so the skip is gone: only an edit to the PR&rsquo;s title or description, which is not a commit, needs no pass. An exemption for &ldquo;harmless&rdquo; docs was considered and dropped: any test of which Markdown is harmless leaves some file that steers an agent on the wrong side.</li>
+              <li><strong>A LOW finding in pass 3 or 4 is filed, not fixed</strong>, in code or in wording. It used to be fixed and read by the final review. A fix pushed after the last pass would now be a commit no reviewer reads.</li>
+              <li><strong>Pre-existing problems are filed as issues</strong> and don&rsquo;t make a pass unclean. Pre-existing means equally true on the default branch and not made worse by the change, and only a reviewer may tag a finding that way, never the session that made the change: otherwise a session could file its own bug as someone else&rsquo;s.</li>
+              <li><strong>LOW findings, wording included, share one batch commit.</strong> A commit each was churn for little.</li>
+              <li><strong>The PR&rsquo;s visible record</strong> is now a &ldquo;Review loop&rdquo; comment posted by the skill on every PR.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="rule">
+        <span class="rule-label">Honest limits</span>
+        <h3>What this gives up, and what was deliberately left alone</h3>
+        <div class="rule-body">
+          <ul>
+            <li><strong>The second lens is gone.</strong> The diff-only review caught one thing in about 30 PRs (a test that could not fail). And in the review of this very change it caught two real holes the loop passes had missed, both in rule text, where a loose sentence is a loophole. Both came from the one reviewer asked how a session could avoid review of its own change. So the loop&rsquo;s bug reviewer is now told to read test changes first and is asked, on every pass, where the change lets something go unchecked. Whether that keeps the benefit is not yet measured.</li>
+            <li><strong>The evidence is one project and three days.</strong> Other projects are assumed to behave the same way until their reports say otherwise.</li>
+            <li><strong>Nothing else about the loop changed.</strong> Passes still re-read the whole diff, and a merge of main still costs a fresh pass. A larger redesign (one review, then checks of only the fix commits) was drafted and parked: its bookkeeping between runs was prose for a model to interpret, and seven review rounds each found another way for it to call a PR clean when it wasn&rsquo;t. That part is to be rebuilt as a small script with tests.</li>
+          </ul>
+        </div>
+        <div class="why why-danger">
+          <div class="why-label">What to watch</div>
+          <div class="why-body">
+            <p>
+              Reverts, and bugs found after merge that a review should have
+              caught. If either rises, restore the final review before
+              touching anything else.
             </p>
           </div>
         </div>

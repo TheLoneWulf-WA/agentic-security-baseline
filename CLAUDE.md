@@ -107,16 +107,14 @@ one does not replace an earlier one.
 4. **`/adversarial-review`** on sensitive PRs (see its section). The
    deep finding step, and the one that finds the most. For a change
    that touches nothing sensitive, say in one line that it is skipped.
-5. **Fix every finding**, one commit per finding, pushed as you go.
-   What is the user's to decide is surfaced, not fixed.
+5. **Fix every finding**, pushed as you go: one commit per MEDIUM or
+   HIGH, one batch commit for LOW. What is the user's to decide is
+   surfaced, not fixed.
 6. **`/until-clean`**, looping until a pass after the last fix comes
-   back clean; it writes the marker. It catches what the fixes broke.
-7. **`/code-review --comment` last**, at the clean head, so what it
-   posts describes the code that will merge. Its diff-only lens still
-   finds things the earlier reviewers passed. If it finds anything:
-   fix, and one more `/until-clean` pass (that pass is the re-run the
-   Review-until-clean section asks for).
-8. **At merge, check the base.** If main moved under the same files,
+   back clean; it writes the marker and posts the "Review loop" comment.
+   It catches what the fixes broke, and its clean pass is the last
+   review: nothing runs on top of it.
+7. **At merge, check the base.** If main moved under the same files,
    merge main in and run one fresh `/until-clean` pass (no new
    adversarial round: nothing reviewed changed).
 
@@ -135,9 +133,10 @@ A PR qualifies only if it is one of these, and nothing else:
 
 For a light-lane PR:
 - No adversarial review (it never applied) and no critical-flow suites.
-- **One `/until-clean` pass.** Fix any LOW it finds, then the
-  skill's final `/code-review` at the final commit is the re-check;
-  no further loop rounds unless that review finds something.
+- **One `/until-clean` pass.** If it led to no commit (nothing found,
+  only findings filed as issues, or only the PR's title or
+  description), that is all. If a fix was
+  committed, one more pass is the re-check.
 - Docs-only runs lint and the docs build; look-only keeps the full
   local check (a style change can break the build).
 - Look-only PRs attach before/after screenshots at the project's
@@ -174,15 +173,14 @@ Reviews run on **Sonnet 5.5**, set via `SECURITY_REVIEW_MODEL`
 and Layer 0 fires every turn in every session, end-of-turn and
 on-commit, so it's a per-turn cost, not per-PR). It's a non-blocking
 early net; the gates behind it (`/security-review`,
-`/adversarial-review` on sensitive PRs, the code review) still decide.
+`/adversarial-review` on sensitive PRs, `/until-clean`) still decide.
 The installer sets neither variable; without them the plugin uses its
 own default.
 
 **Does NOT replace the gates below.** Non-blocking, security-only, can
 miss things — *reduces* what reaches the gates; doesn't satisfy any.
 Strict Gate still blocks on HIGH; `/until-clean` still covers
-correctness + conventions + verifies fixes; `/code-review --comment`
-still runs on every PR.
+correctness + conventions + verifies fixes on every PR.
 
 Plugin findings are **not** subject to the "ignore platform
 auto-suggestions" rule — they're security findings, not pattern-matched
@@ -265,11 +263,11 @@ If the user says `"skip review"`, `"just push"`, or `"no review needed"`,
 bypass the strict gate for that one push. Don't ask for confirmation.
 Trust the override.
 
-### Always — `/code-review --comment` on every PR
+### Always flag at review
 
-Before requesting human review on any PR, run `/code-review --comment`.
-
-In addition to what `/code-review` already checks, flag:
+Every PR is reviewed by `/until-clean` before the merge prompt; its
+reviewers apply this list on top of their own checks. `/code-review`
+is not a required step; run it by hand when wanted. Flag:
 
 - `any` types, `@ts-ignore`, loosened TypeScript strictness
 - Empty catch blocks, swallowed errors, generic error handling that hides failures
@@ -304,32 +302,42 @@ changes that are only wording, layout, help text or read-only display
 wider rule wins. For a change that is none of these, say in one line
 that it is skipped.
 
-- Fix every finding, LOW included, one commit each. What is the user's
-  to decide (always-ask classes) is surfaced with a recommendation, not
-  fixed; if this change didn't create it, it becomes an issue.
+- Fix every finding, LOW included: one commit per MEDIUM or HIGH, one
+  batch commit for LOW. A problem a reviewer reports as pre-existing
+  (defined under the cost limits below) becomes an issue, not a fix
+  here. What is the user's to decide (always-ask
+  classes) is surfaced with a recommendation, not fixed.
 - It finds and fixes; it never gives the verdict. **`/until-clean`
   follows it** and verifies the fixes on the pushed state.
-- In addition to the Strict Gate and `/code-review --comment`, not in
-  place of either.
+- In addition to the Strict Gate and `/until-clean`, not in place of
+  either.
 
 The skill (`skills/adversarial-review/SKILL.md`, installed to
 `~/.claude/skills/`) holds the briefs and the procedure.
 
 ### Review-until-clean — do NOT assume a fix worked
 
-Applies to `/security-review`, `/code-review`, and any ad-hoc review
-agent invocation. After applying a fix, **re-run the same review on
-the updated code**. A passing TypeScript check is not a verified fix.
+Applies to fixes for findings from any review: `/security-review`,
+`/adversarial-review`, an ad-hoc review agent. After applying a fix,
+**the updated code is reviewed again**. That re-review is the
+`/until-clean` loop, not another run of the review that raised the
+finding. A passing TypeScript check is not a verified fix.
 
 The loop is review → fix → push → re-run on the new state, until a
 pass returns no issues; `/until-clean` runs it.
 
 **Cost limits (2026-11-10, usage was hitting plan limits):**
-- **Pass cap:** at most 3 loop passes. Wording-only findings (PR body,
-  comments, docs prose) are fixed in a batch and never trigger a pass by
-  themselves; the final code review covers them. After pass 3 only a
-  MEDIUM or HIGH code finding earns a 4th pass; still open after that →
-  NOT CLEAN, surfaced to the user.
+- **Pass cap:** at most 3 loop passes. **Every commit is read by a
+  pass**: only an edit to the PR's title or description needs none. In
+  pass 3 (or 4) a LOW finding, in code or in wording, is filed as an
+  issue, not fixed unread. Only a MEDIUM or HIGH finding earns a 4th
+  pass; still open after that → NOT CLEAN, surfaced to the user.
+- **No second review on top (2026-11-23):** a clean pass is the last
+  review. `/code-review --comment` no longer follows it.
+- **Pre-existing problems** (equally true on the default branch, not
+  made worse by the change, and tagged so by a reviewer, never by the
+  session that made the change) are filed as issues, not
+  fixed in the PR, and do not make a pass unclean.
 - **Models:** the bug reviewer is **always Opus** on any PR with code;
   compliance reviewers are always Sonnet. Only a PR that changes nothing
   but docs, images or styles gets two Sonnet reviewers.
@@ -338,10 +346,8 @@ pass returns no issues; `/until-clean` runs it.
   styles by type (`~/.claude/risk-paths/`) and no added line has a risky
   word. Everything else, and any error, is sensitive. One set of lists
   for every project.
-- **`/code-review` size:** docs, images or styles-only PRs (`RISK=normal`)
-  of 150 changed lines or fewer get 2 Sonnet agents instead of 4.
-- The skills (`until-clean`, `code-review`, `adversarial-review`) carry
-  the exact procedure.
+- The skills (`until-clean`, `adversarial-review`) carry the exact
+  procedure.
 
 Why each limit is set where it is, and what still protects money and
 data: [`docs/review-cost-rationale.html`](docs/review-cost-rationale.html).
@@ -399,10 +405,11 @@ review-until-clean converge. Uniform across all projects.
   the description needs "also" or "plus," it's two PRs.
 - **Don't smuggle.** A "while I'm here" cleanup becomes a sibling PR; a
   bug found mid-refactor gets fixed in its own PR first.
-- **N findings → N fix commits.** Sequential, building between each.
-  Never one combined fix. The one exception: findings whose fixes touch
-  the same lines may share a commit, said so in the commit message and
-  the judgment ledger.
+- **N findings → N fix commits**, for MEDIUM and HIGH. Sequential,
+  building between each. Two exceptions: findings whose fixes touch the
+  same lines may share a commit, said so in the commit message and the
+  judgment ledger; and LOW findings, wording included, share one batch
+  commit.
 - **Sensitive surfaces ride alone.** Strict-gate diffs get their own
   focused PR so review sees the security surface in isolation.
 - **Split across sessions when heavy.** Finish the current PR and stop;
@@ -422,8 +429,7 @@ any push command without a target:
 2. Push the branch to origin
 3. Open a PR via `gh pr create`
 4. Run the review order (see "The order, for one PR"):
-   `/adversarial-review` where it applies, fixes, `/until-clean`, then
-   `/code-review --comment` on the PR
+   `/adversarial-review` where it applies, fixes, then `/until-clean`
 5. Stop and prompt the user to merge (see PR Merge Follow-up)
 
 The strict gate runs before the push, exactly as specified above.
@@ -684,7 +690,7 @@ intent.
 - **Tests protect intent, not just behavior:** where behavior is
   user-visible or load-bearing, the test name or a comment says *why*
   it matters — so a green refactor can't silently change what mattered.
-- **Enforced at review, not by memory:** the `/code-review` flag list
+- **Enforced at review, not by memory:** the review flag list
   and the pre-merge judgment ledger both check that non-obvious choices
   carry their why. Instructions are best-effort; the review gates are
   what make this hold.

@@ -2,6 +2,54 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-11-23
+
+No second review on top of a clean pass. Until now `/until-clean` ended
+with `/code-review --comment` at the clean head: four agents, plus one
+per finding, re-reading a diff two reviewers had just passed. Measured
+on about 30 PRs in one project over three days, it found something real
+about once. The clean pass is now the last review. `/code-review` stays
+in the repo, unchanged, to run by hand.
+
+What went with it, all in `skills/until-clean/SKILL.md` and `CLAUDE.md`:
+
+- **Every commit is read by a pass.** Wording batches used to skip the
+  next pass because the final review read them; nothing would now, so
+  the skip is gone. Only an edit to the PR's title or description, which
+  is not a commit, needs no pass.
+- **A LOW finding in pass 3 (or 4)**, in code or in wording, is filed as
+  an issue, not fixed: a fix pushed after the last pass would be a
+  commit no reviewer reads.
+- **Pre-existing problems** (equally true on the default branch, not
+  made worse by the change) are filed as issues and don't make a pass
+  unclean. Only a reviewer may tag a finding that way, never the
+  session that made the change.
+- **Fix commits:** one each for MEDIUM and HIGH; LOW findings, wording
+  included, share one batch commit. The same in `/adversarial-review`.
+- **The PR's visible record** is a "Review loop" comment the skill posts
+  on every PR.
+- **The loop's bug reviewer is asked one more question on every pass:**
+  where does this change let something go unchecked? In this change's
+  own review, the final code review caught two real holes the loop
+  passes had missed. Both came from the one reviewer given that
+  question, and neither from having a second review as such, so the
+  question moves into the loop.
+- **Light lane:** one pass; a second only if a fix was committed.
+- The "Always — `/code-review --comment` on every PR" section of
+  `CLAUDE.md` is now "Always flag at review": the same list, applied by
+  the loop's reviewers.
+
+A larger redesign was drafted first (one review, then checks of only
+the fix commits) and parked in PR #15: its bookkeeping between runs was
+prose for a model to interpret, and seven review rounds each found
+another way for it to call a PR clean when it wasn't. That part is to
+be rebuilt as a small script with tests. Reasoning and limits:
+`docs/review-cost-rationale.html`, last section.
+
+Updating an install: take `CLAUDE.md` and the `until-clean` skill
+together. The skill points at the "Always flag at review" list by name,
+and an older `CLAUDE.md` still says `/code-review --comment` runs last.
+
 ## 2026-11-10
 
 Trimmed `CLAUDE.md`, which loads into every session, without changing a
