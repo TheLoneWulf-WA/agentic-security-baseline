@@ -20,8 +20,10 @@ What went with it, all in `skills/until-clean/SKILL.md` and `CLAUDE.md`:
 - **A LOW finding in pass 3 (or 4)**, in code or in wording, is filed as
   an issue, not fixed: a fix pushed after the last pass would be a
   commit no reviewer reads.
-- **Problems a PR didn't introduce** are filed as issues and don't make
-  a pass unclean.
+- **Pre-existing problems** (equally true on the default branch, not
+  made worse by the change) are filed as issues and don't make a pass
+  unclean. Only a reviewer may tag a finding that way, never the
+  session that made the change.
 - **Fix commits:** one each for MEDIUM and HIGH; LOW and wording share
   one batch commit. The same in `/adversarial-review`.
 - **The PR's visible record** is a "Review loop" comment the skill posts

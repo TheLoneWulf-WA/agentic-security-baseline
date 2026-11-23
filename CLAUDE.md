@@ -134,7 +134,8 @@ A PR qualifies only if it is one of these, and nothing else:
 For a light-lane PR:
 - No adversarial review (it never applied) and no critical-flow suites.
 - **One `/until-clean` pass.** If it led to no commit (nothing found,
-  or only the PR's title or description), that is all. If a fix was
+  only findings filed as issues, or only the PR's title or
+  description), that is all. If a fix was
   committed, one more pass is the re-check.
 - Docs-only runs lint and the docs build; look-only keeps the full
   local check (a style change can break the build).
