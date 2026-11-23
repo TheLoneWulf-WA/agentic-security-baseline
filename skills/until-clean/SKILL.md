@@ -153,6 +153,12 @@ pass finds something, the normal loop and its cap apply. State in the report whi
 - A finding awaiting a user decision — report NOT CLEAN and stop looping
   until the decision lands.
 
+On a stop that is not CLEAN (the pass cap, a finding awaiting the user,
+an override), still append the report and post the `## Review loop`
+comment, with the verdict as it stands and every finding's state. Only
+the marker is withheld. A decision the user has made is written there,
+so the next run, or another session, does not ask again.
+
 ## Rules
 
 - Never mark a finding resolved without an agent verifying it on the
