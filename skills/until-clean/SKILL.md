@@ -133,7 +133,7 @@ findings (this has happened in practice).
 ## Light lane (docs-only or look-only PRs)
 
 When the global CLAUDE.md's light-lane test applies (and only then):
-run step 3 once. If it leads to no commit (nothing found, only
+run steps 3 and 4 once. If that leads to no commit (nothing found, only
 findings filed as issues, or only something about the PR's title or
 description), record (step 5) with "light lane" stated in the
 report. If a fix was committed, one more pass is the re-check; if that
