@@ -26,6 +26,10 @@ findings (this has happened in practice).
    - the report file in `~/.claude/reports/<project-name>/`,
    - findings mentioned in the session so far.
    Build the checklist of every finding ever raised on this branch.
+   A finding already filed as an issue (a Pre-existing problem, or a
+   LOW filed at the pass cap) stays on the list with its issue number
+   and is marked **filed**: reviewers are told not to judge it again,
+   and it never counts as unresolved or makes a pass unclean.
 
 3. **Re-review the CURRENT state.** Launch review agents per the
    project's convention (project CLAUDE.md may specify a count; default
