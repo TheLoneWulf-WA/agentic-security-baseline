@@ -113,9 +113,10 @@ one does not replace an earlier one.
    (`/code-review --comment`, once per PR), sees every finding answered,
    has one agent check the fixes, and writes the marker. See "One
    review, every finding answered" below.
-7. **At merge, check the base.** If main moved under the PR's files,
-   merge main in and run `/until-clean` again: it checks only what the
-   merge changed (no fresh full review, no new adversarial round).
+7. **At merge, check the base.** If main moved, merge it in and run
+   `/until-clean` again: a file test decides whether the merge needs a
+   check, and a check reads only the files both sides changed (no
+   fresh full review, no new adversarial round).
 
 **No CLEAN verdict before step 6 has run.** A pass of my own, however
 careful, is not the review.
@@ -332,11 +333,15 @@ back empty", which cost a whole extra review to hear nothing):
   commit each; Nit, LOW, wording: one batch commit), filed as an issue
   (a problem the PR didn't introduce), or closed with a written reason
   (in the judgment ledger when the finding was Important or above).
-- **One fix check:** a single fresh agent, given the findings and only
-  the fix commits, says whether each is resolved and what the fixes
-  broke. A wording-only batch needs none.
-- **Cap: two fix checks.** Still open after the second → NOT CLEAN,
+- **Every later commit checked:** a single fresh agent, given the
+  findings and only the commits since the last one a reviewer read,
+  says whether each finding is resolved and what those commits broke.
+  Wording-only commits need no check; no commit that changes what the
+  code does reaches CLEAN unread. New work after the review (not a fix)
+  gets a full review again.
+- **Cap: two checks.** Still open after the second → NOT CLEAN,
   surfaced to the user as "is the approach wrong?", not a third round.
+  Nits the second check finds are filed, not fixed unchecked.
 - **Models:** the bug reviewer and the fix check are **always Opus** on
   any PR with code; compliance is Sonnet. A PR of nothing but docs,
   images or styles gets Sonnet throughout.
@@ -360,9 +365,10 @@ the only acceptable stop signal short of a CLEAN verdict.
 
 **Verdict line (mandatory):** every pre-merge stop states the outcome
 explicitly, next to the judgment ledger:
-`Review loop: CLEAN (reviewed at <sha>, no findings)`,
-`Review loop: CLEAN (reviewed at <sha>, fixes checked at <sha>)` or
-`Review loop: NOT CLEAN — <n> open finding(s)`. Absence of this line
+`Review loop: CLEAN at <head> (reviewed at <sha>, no findings)`,
+`Review loop: CLEAN at <head> (reviewed at <sha>, checked at <sha>)`,
+`Review loop: NOT CLEAN — <n> open finding(s)` or, after the user's
+"ship it", `Review loop: OVERRIDDEN by user at <head>`. Absence of this line
 means the review wasn't closed — the user should never have to ask.
 The `/until-clean` skill (`skills/until-clean/SKILL.md`, installed to
 `~/.claude/skills/`) runs all of this and, on CLEAN, writes a

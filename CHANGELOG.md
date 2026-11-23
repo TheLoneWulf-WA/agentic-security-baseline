@@ -22,10 +22,12 @@ that look only at what changed, and every finding answered.
 - **`/until-clean`** no longer loops fresh full passes. It runs
   `/code-review --comment` once per PR, sees every finding answered
   (fixed, filed as an issue, or closed with a written reason), and has
-  one fresh agent check the fix commits: is each finding resolved, and
-  what did the fixes break? At most two such checks; still open after
-  that is NOT CLEAN, surfaced as a question about the approach. A
-  wording-only batch needs no check.
+  one fresh agent check the commits made since: is each finding
+  resolved, and what did those commits break? At most two such checks;
+  still open after that is NOT CLEAN, surfaced as a question about the
+  approach. Wording-only commits need no check; no commit that changes
+  what the code does reaches CLEAN unread, and new work after the review
+  gets a full review again.
 - **`/code-review`** runs two agents instead of four: an Opus bug
   reviewer and a Sonnet compliance reviewer on any PR with code, two
   Sonnet reviewers on a docs-, images- or styles-only PR. Findings are
@@ -35,12 +37,13 @@ that look only at what changed, and every finding answered.
   that surfaced them.
 - **Fix commits:** one each for Important, HIGH and MEDIUM findings; one
   batch commit for Nit, LOW and wording.
-- **When main moves under a PR:** a mechanical overlap test, then either
-  a re-stamped marker (no overlap, or docs only) or one fix check on
-  what the merge changed. No fresh full review.
-- **The verdict line** is now `Review loop: CLEAN (reviewed at <sha>, no
-  findings)` or `Review loop: CLEAN (reviewed at <sha>, fixes checked at
-  <sha>)`. The marker file, its path and the merge gate are unchanged.
+- **When main moves under a PR:** a file-overlap test, then either no
+  check (no overlap, or overlap only in Markdown other than the files
+  that steer the agent) or one check of the files both sides changed.
+  No fresh full review.
+- **The verdict line** now names the head the marker is written at:
+  `Review loop: CLEAN at <head> (reviewed at <sha>, no findings)` or
+  `Review loop: CLEAN at <head> (reviewed at <sha>, checked at <sha>)`. The marker file, its path and the merge gate are unchanged.
 
 Unchanged: `/security-review` before the first push, the three-role
 review on sensitive PRs, the local checks and runtime tests, the merge
