@@ -614,7 +614,7 @@
         <table class="limits">
           <thead><tr><th>Limit</th><th>What it does</th></tr></thead>
           <tbody>
-            <tr><td>Pass cap</td><td>3 loop passes, plus a 4th only for an open MEDIUM or HIGH code finding. Wording-only findings (PR body, comments, docs prose) are fixed in one batch and never start a pass by themselves. (Since 2026-11-23, with no code review after the loop to read them, that holds only for edits to the PR&rsquo;s title or description: every commit is read by a pass, and a LOW finding in pass 3 is filed, not fixed unread.) Still open after the 4th: the verdict is NOT CLEAN and the user is told.</td></tr>
+            <tr><td>Pass cap</td><td>3 loop passes, plus a 4th only for an open MEDIUM or HIGH finding. Every commit is read by a pass; only an edit to the PR&rsquo;s title or description needs none. A LOW finding in pass 3 or 4 is filed as an issue, not fixed unread. Still open after the 4th: the verdict is NOT CLEAN and the user is told. (From 2026-11-10 to 2026-11-23 wording-only fixes skipped the next pass, because a final code review read them; see the <a href="#no-second-review">last section</a>.)</td></tr>
             <tr><td>Models</td><td>The bug reviewer is always Opus on any PR with code; compliance reviewers are always Sonnet. Only a PR of nothing but docs, images or styles gets two Sonnet reviewers. <code>/adversarial-review</code> is unchanged.</td></tr>
             <tr><td><code>/code-review</code> size</td><td>A docs-, images- or styles-only PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the script can&rsquo;t run, gets all 4. Since 2026-11-23 the command is no longer a required step (<a href="#no-second-review">last section</a>); this sizing applies when it is run by hand.</td></tr>
             <tr><td>Layer 0 model</td><td>The in-session security plugin is set to Sonnet 5.5 via <code>SECURITY_REVIEW_MODEL</code> / <code>SG_AGENTIC_MODEL</code> (the installer sets neither). It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
@@ -823,7 +823,7 @@
           <div class="why-label">Where the savings come from</div>
           <div class="why-body">
             <p>
-              Late passes, wording-only fixes, Layer 0&rsquo;s per-turn reviews, the
+              Late passes, Layer 0&rsquo;s per-turn reviews, the
               three-role review no longer running on admin wording and layout, and
               cheaper reviewers on docs-only PRs. Code is reviewed as it was before.
             </p>

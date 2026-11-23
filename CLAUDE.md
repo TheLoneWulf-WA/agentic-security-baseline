@@ -265,9 +265,8 @@ Trust the override.
 ### Always flag at review
 
 Every PR is reviewed by `/until-clean` before the merge prompt; its
-reviewers apply this list on top of their own checks. (`/code-review`
-ran after it on every PR until 2026-11-23; it found almost nothing a
-clean pass had not, and is now run by hand when wanted.) Flag:
+reviewers apply this list on top of their own checks. `/code-review`
+is not a required step; run it by hand when wanted. Flag:
 
 - `any` types, `@ts-ignore`, loosened TypeScript strictness
 - Empty catch blocks, swallowed errors, generic error handling that hides failures
