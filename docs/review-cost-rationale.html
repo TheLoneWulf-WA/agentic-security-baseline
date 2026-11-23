@@ -614,12 +614,12 @@
         <table class="limits">
           <thead><tr><th>Limit</th><th>What it does</th></tr></thead>
           <tbody>
-            <tr><td>Pass cap</td><td>3 loop passes, plus a 4th only for an open MEDIUM or HIGH code finding. Wording-only findings (PR body, comments, docs prose) are fixed in one batch and never start a pass by themselves. (Since 2026-11-23, with no code review after the loop to read them, that holds only for wording fixed in the PR body or in Markdown that doesn&rsquo;t steer an agent; and a LOW code finding in pass 3 is filed, not fixed unread.) Still open after the 4th: the verdict is NOT CLEAN and the user is told.</td></tr>
+            <tr><td>Pass cap</td><td>3 loop passes, plus a 4th only for an open MEDIUM or HIGH code finding. Wording-only findings (PR body, comments, docs prose) are fixed in one batch and never start a pass by themselves. (Since 2026-11-23, with no code review after the loop to read them, that holds only for edits to the PR&rsquo;s title or description: every commit is read by a pass, and a LOW finding in pass 3 is filed, not fixed unread.) Still open after the 4th: the verdict is NOT CLEAN and the user is told.</td></tr>
             <tr><td>Models</td><td>The bug reviewer is always Opus on any PR with code; compliance reviewers are always Sonnet. Only a PR of nothing but docs, images or styles gets two Sonnet reviewers. <code>/adversarial-review</code> is unchanged.</td></tr>
             <tr><td><code>/code-review</code> size</td><td>A docs-, images- or styles-only PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the script can&rsquo;t run, gets all 4. Since 2026-11-23 the command is no longer a required step (<a href="#no-second-review">last section</a>); this sizing applies when it is run by hand.</td></tr>
             <tr><td>Layer 0 model</td><td>The in-session security plugin is set to Sonnet 5.5 via <code>SECURITY_REVIEW_MODEL</code> / <code>SG_AGENTIC_MODEL</code> (the installer sets neither). It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
             <tr><td>Adversarial trigger</td><td>The three-role review still runs on auth, uploads, payments, input endpoints and anything an attacker can reach. For the admin it now runs on actions that move money or change accounts or permissions, not on admin wording, layout, help text or read-only display.</td></tr>
-            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass; since 2026-11-23, a second pass only if something other than wording had to be fixed. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane. The light lane decides how many passes a PR gets; the script decides only which models review it.</td></tr>
+            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass; since 2026-11-23, a second pass only if a fix was committed. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane. The light lane decides how many passes a PR gets; the script decides only which models review it.</td></tr>
           </tbody>
         </table>
         </div>
@@ -898,8 +898,8 @@
           <div class="why-label">What went with it</div>
           <div class="why-body">
             <ul>
-              <li><strong>Wording fixes are unread only where they cannot change behaviour.</strong> The final review used to read every wording batch. Now a batch skips the next pass only if it touches the PR body or Markdown that doesn&rsquo;t steer an agent, decided by file name. A wording fix anywhere else is a fix like any other.</li>
-              <li><strong>A LOW code finding in the last pass is filed, not fixed.</strong> It used to be fixed and read by the final review. A fix pushed after the last pass would now be code no reviewer reads.</li>
+              <li><strong>Every commit is read by a pass.</strong> Wording batches used to skip the next pass, because the final review read them. Nothing would now, so the skip is gone: only an edit to the PR&rsquo;s title or description, which is not a commit, needs no pass. An exemption for &ldquo;harmless&rdquo; docs was considered and dropped: any test of which Markdown is harmless leaves some file that steers an agent on the wrong side.</li>
+              <li><strong>A LOW finding in the last pass is filed, not fixed</strong>, in code or in wording. It used to be fixed and read by the final review. A fix pushed after the last pass would now be a commit no reviewer reads.</li>
               <li><strong>Problems the PR didn&rsquo;t introduce are filed as issues</strong> and don&rsquo;t make a pass unclean.</li>
               <li><strong>LOW and wording findings share one batch commit.</strong> A commit each was churn for little.</li>
               <li><strong>The PR&rsquo;s visible record</strong> is now a &ldquo;Review loop&rdquo; comment posted by the skill on every PR.</li>

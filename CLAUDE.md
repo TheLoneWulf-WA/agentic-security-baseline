@@ -133,9 +133,9 @@ A PR qualifies only if it is one of these, and nothing else:
 
 For a light-lane PR:
 - No adversarial review (it never applied) and no critical-flow suites.
-- **One `/until-clean` pass.** If it found only wording, fixed in the
-  PR body or in plain docs, that is all. If anything else had to be
-  fixed, one more pass is the re-check.
+- **One `/until-clean` pass.** If it led to no commit (nothing found,
+  or only the PR's title or description), that is all. If a fix was
+  committed, one more pass is the re-check.
 - Docs-only runs lint and the docs build; look-only keeps the full
   local check (a style change can break the build).
 - Look-only PRs attach before/after screenshots at the project's
@@ -324,12 +324,11 @@ The loop is review → fix → push → re-run on the new state, until a
 pass returns no issues; `/until-clean` runs it.
 
 **Cost limits (2026-11-10, usage was hitting plan limits):**
-- **Pass cap:** at most 3 loop passes. Wording-only findings fixed in
-  the PR body or in plain docs (Markdown that doesn't steer an agent;
-  the skill has the test) never trigger a pass by themselves. In pass 3
-  a LOW code finding is filed as an issue, not fixed unread. Only a
-  MEDIUM or HIGH code finding earns a 4th pass; still open after that →
-  NOT CLEAN, surfaced to the user.
+- **Pass cap:** at most 3 loop passes. **Every commit is read by a
+  pass**: only an edit to the PR's title or description needs none. In
+  pass 3 (or 4) a LOW finding, in code or in wording, is filed as an
+  issue, not fixed unread. Only a MEDIUM or HIGH finding earns a 4th
+  pass; still open after that → NOT CLEAN, surfaced to the user.
 - **No second review on top (2026-11-23):** a clean pass is the last
   review. `/code-review --comment` no longer follows it.
 - **Pre-existing problems** a reviewer finds are filed as issues, not
@@ -404,7 +403,8 @@ review-until-clean converge. Uniform across all projects.
 - **N findings → N fix commits**, for MEDIUM and HIGH. Sequential,
   building between each. Two exceptions: findings whose fixes touch the
   same lines may share a commit, said so in the commit message and the
-  judgment ledger; and LOW and wording findings share one batch commit.
+  judgment ledger; and LOW findings, wording included, share one batch
+  commit.
 - **Sensitive surfaces ride alone.** Strict-gate diffs get their own
   focused PR so review sees the security surface in isolation.
 - **Split across sessions when heavy.** Finish the current PR and stop;

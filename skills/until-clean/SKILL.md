@@ -53,8 +53,8 @@ findings (this has happened in practice).
 
 4. **Branch on the outcome.**
    - **New or unresolved findings** → apply fixes, push, **GOTO 3**. One
-     commit per MEDIUM or HIGH finding; LOW and wording findings share
-     one batch commit. Findings that are the user's to decide (CLAUDE.md
+     commit per MEDIUM or HIGH finding; LOW findings, wording in files
+     included, share one batch commit. Findings that are the user's to decide (CLAUDE.md
      amendments, product/design calls, anything in an always-ask class)
      are surfaced, not auto-fixed — they make the verdict NOT CLEAN
      (awaiting user) until decided.
@@ -63,22 +63,23 @@ findings (this has happened in practice).
      number. They are not fixed in this PR and do not make a pass
      unclean.
    - **All resolved, nothing new** → the pass is clean. Continue.
-   - **Only wording findings, all fixable in the PR's title or body or
-     in plain docs** → fix them in one batch, push, and go straight to
-     step 5. They never trigger another loop pass by themselves. A
-     **plain doc** is a Markdown file (`.md`) that does not steer an
-     agent: not `CLAUDE.md`, `AGENTS.md` or `SKILL.md`, and nothing
-     under `.claude/`, `commands/` or `risk-paths/`. A wording fix in
-     any other file (a code comment, a skill, a page with markup) is a
-     fix like any other: **GOTO 3**. Whether a file is a plain doc is
-     decided by its name, never by how small the edit looks.
+   - **Only findings about the PR's title or description** → edit
+     them (`gh pr edit`) and go straight to step 5. That is not a
+     commit: the reviewed code is unchanged.
+
+   **Every commit is read by a pass.** There is no kind of fix small
+   enough to skip one: a wording fix in a README, a comment or a skill
+   is a fix like any other (**GOTO 3**). Until 2026-11-23 wording
+   batches skipped the next pass and the final code review read them;
+   with that review gone, nothing else would.
 
    **Pass cap** (2026-11-10, to cut usage): at most **3** loop
-   passes. In pass 3 (or 4), LOW code findings are **not fixed**: file them in
-   one issue, record its number, and treat the pass as clean of them. A
-   fix pushed after the last pass would be code no reviewer reads. Only
-   a **MEDIUM or HIGH** code finding earns a 4th pass. If a MEDIUM or
-   HIGH is still open after pass 4, stop: report NOT CLEAN with the open
+   passes. In pass 3 (or 4), a LOW finding is **not fixed**, whether it
+   is in code or in wording in a file: file the LOW findings in one
+   issue, record its number, and treat the pass as clean of them. A fix
+   pushed after the last pass would be a commit no reviewer reads. Only
+   a **MEDIUM or HIGH** finding earns a 4th pass. If a MEDIUM or HIGH
+   is still open after pass 4, stop: report NOT CLEAN with the open
    findings and surface them to the user (or whoever coordinates the
    sessions) instead of looping on. Record the pass count and any cap
    decision in the report.
@@ -120,11 +121,10 @@ findings (this has happened in practice).
 ## Light lane (docs-only or look-only PRs)
 
 When the global CLAUDE.md's light-lane test applies (and only then):
-run step 3 once. If it finds nothing, or only wording fixed in the PR's
-body or in plain docs (step 4), record (step 5) with "light lane"
-stated in the report. If anything else had to be fixed, one more pass
-is the re-check; if that pass finds something, the normal loop and its
-cap apply. State in the report which test made the PR light lane.
+run step 3 once. If it finds nothing, or only something about the PR's
+title or description, record (step 5) with "light lane" stated in the
+report. If a fix was committed, one more pass is the re-check; if that
+pass finds something, the normal loop and its cap apply. State in the report which test made the PR light lane.
 
 ## Stop conditions
 
