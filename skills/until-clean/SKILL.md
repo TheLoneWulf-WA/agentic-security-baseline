@@ -1,101 +1,122 @@
 ---
 name: until-clean
-description: Run the review-until-clean loop on the current branch's PR — re-review the CURRENT state, verify every prior finding is resolved (not reworded), fix-and-loop until a pass returns no findings, then report a single CLEAN / NOT CLEAN verdict. Use when the user asks "is it clean?", "reviewed until clean?", "/until-clean", or after applying review fixes.
+description: Close the review on the current branch's PR — run the one full review (/code-review --comment), see that every finding ever raised is answered (fixed, filed as an issue, or closed with a reason), check the fixes with one targeted agent, then report a single CLEAN / NOT CLEAN verdict and write the marker. Use when the user asks "is it clean?", "reviewed until clean?", "/until-clean", or after applying review fixes.
 ---
 
-# until-clean — close the review loop, mechanically
+# until-clean — one review, every finding answered, the fixes checked
 
-The question this skill answers with one word: **is the current branch
-state verified clean by a re-review that ran AFTER the last fix?**
-"Findings were fixed" is not the same as "a re-run came back clean" —
-this skill exists because fixes themselves can introduce or reveal new
-findings (this has happened in practice).
+The question this skill answers with one word: **has this PR had its
+full review, is every finding answered, and were the fixes checked by
+someone other than their author?**
+
+Until 2026-11-23 this skill looped fresh full reviews until one came
+back empty, then ran `/code-review` on top. Measured on about 30 PRs in
+one project: the first review and the adversarial review found the real
+problems; later passes found what the fixes broke, or wording; and the
+second full review at the same commit found something about once in 30.
+So the fresh passes are gone. What stays is the part that earned its
+keep: **a fix is never trusted until another agent has looked at it.**
 
 ## Procedure
 
 1. **Locate the work.**
    - Branch: `git branch --show-current`; head: `git rev-parse HEAD`.
    - PR: `gh pr view --json number,state,headRefOid,comments` (the PR for
-     the current branch). If no PR exists, the loop runs on the pending
-     diff vs the default branch instead.
+     the current branch). No PR: open one first; the review posts to it.
    - Confirm the local head is pushed (`headRefOid` matches local HEAD);
-     if not, push first — reviewing unpushed state produces a stale verdict.
+     if not, push first. A verdict on unpushed state is stale.
+   - Run `~/.claude/scripts/pr-risk.sh <PR>` and record its output
+     (RISK, SIZE, LINES and REASON lines) in the report. `RISK=` picks
+     the fix-check model in step 5. Never treat a PR as lower risk than
+     the script says.
 
-2. **Collect prior findings.** From, wherever they exist:
-   - earlier review comments on the PR (summary + inline),
-   - the report file in `~/.claude/reports/<project-name>/`,
-   - findings mentioned in the session so far.
-   Build the checklist of every finding ever raised on this branch.
+2. **Collect the findings so far.** From wherever they exist: the
+   `/security-review` and `/adversarial-review` reports in
+   `~/.claude/reports/<project-name>/`, earlier review comments on the
+   PR, and findings mentioned in the session. This is the checklist.
+   Note, for each, the commit it was raised at.
 
-3. **Re-review the CURRENT state.** Launch review agents per the
-   project's convention (project CLAUDE.md may specify a count; default
-   2: one compliance/CLAUDE.md agent and one bug agent). **Models by
-   risk** (2026-11-10, to cut usage; replaces the earlier rule of the
-   most capable model for every reviewer). Decided **mechanically, never
-   by judgment**: run `~/.claude/scripts/pr-risk.sh <PR>` and use its
-   `RISK=` line. It returns normal only when every changed file is docs,
-   images or styles by file type and no added line has a risky word;
-   anything else, or any error, is sensitive. Never treat a PR as lower
-   risk than it says.
-   - **RISK=sensitive (any PR with code):** bug agent **always on opus**,
-     compliance agent on **sonnet**.
-   - **RISK=normal (docs, images or styles only):** both on **sonnet**.
-   - Record the script's output (RISK, SIZE, LINES and REASON lines) in the report.
-   Each agent gets: the full current diff, the prior-findings checklist,
-   and two jobs — (a) verdict per prior finding: RESOLVED / NOT RESOLVED
-   (resolved means actually fixed, not reworded; for security findings the
-   severity must be downgraded/removed), and (b) a fresh high-signal scan
-   of the current diff including the fix commits.
+3. **The one full review.** If the PR has no "Code review" comment yet,
+   invoke `/code-review --comment` (the command itself, never a comment
+   written by hand) at the current head. It runs **once per PR**. A PR
+   that already has one is not reviewed in full again: later commits are
+   the fix check's job (step 5). Add its findings to the checklist.
 
-4. **Branch on the outcome.**
-   - **New or unresolved findings** → apply fixes (one commit per finding,
-     per PR-decomposition rules), push, **GOTO 3**. Findings that are the
-     user's to decide (CLAUDE.md amendments, product/design calls,
-     anything in an always-ask class) are surfaced, not auto-fixed — they
-     make the verdict NOT CLEAN (awaiting user) until decided.
-   - **All resolved, nothing new** → the pass is clean. Continue.
-   - **Only wording findings** (PR body, code comments, docs prose; no
-     change to what the code does) → fix them in one batch, push, and go
-     straight to step 5. They never trigger another loop pass by
-     themselves; the step-5 code review at the new head is their check.
+4. **Answer every finding.** Each one ends in exactly one of:
+   - **Fixed.** Important findings (and HIGH or MEDIUM from the earlier
+     reviews): one commit per finding, building between each. Nits, LOW
+     and wording findings: one batch commit for the lot.
+   - **Filed.** A problem this PR did not introduce becomes an issue
+     (`gh issue create`), not a fix here. Record the issue number.
+   - **Closed with a reason.** A finding that is wrong, or deliberately
+     not acted on, is closed with the reason written down: in the report,
+     and as a reply on the PR where the finding was posted. Closing an
+     Important, HIGH or MEDIUM finding this way is a judgment call: it
+     goes in the judgment ledger, and the fix check is asked whether it
+     agrees.
+   - **Awaiting the user.** Findings that are the user's to decide
+     (CLAUDE.md amendments, product or design calls, anything in an
+     always-ask class) are surfaced with a recommendation, never
+     auto-fixed. The verdict is NOT CLEAN until they are decided.
 
-   **Pass cap** (2026-11-10, to cut usage): at most **3** loop
-   passes. In pass 3, LOW code findings are fixed and go straight to
-   step 5, not a 4th pass. Only a **MEDIUM or HIGH** code finding earns a
-   4th pass. If a MEDIUM or HIGH is still open after pass 4, stop: report
-   NOT CLEAN with the open findings and surface them to the user (or whoever
-   coordinates the sessions) instead of looping on. Record the pass count and any cap
-   decision in the report.
+   Push. If the checklist is empty (the review found nothing and nothing
+   was raised earlier), skip to step 7.
 
-5. **Final gate: the code review, at this exact head.** A clean loop pass
-   is not yet a clean PR: the diff-only code review must describe the
-   same commit. Without changing the head since the clean pass:
-   - Invoke `/code-review --comment` (the skill itself, never a comment
-     written by hand) on the current head.
-   - **It finds anything** → it is a finding like any other: fix (one
-     commit per finding), push, **GOTO 3**. A loop pass and then the code
-     review run again on the new head.
-   - **It's clean** → continue. The PR's "Code review" comment and the
-     loop's clean pass now name the same SHA.
+5. **The fix check.** One fresh-context agent, read-only. **Opus** when
+   `RISK=sensitive` (any PR with code), **Sonnet** when `RISK=normal`.
+   It is given:
+   - the checklist, with how each finding was answered;
+   - the diff from the commit the oldest unchecked finding was raised at
+     to the current head (`git diff <sha>..HEAD`), and the paths to read
+     around it. **Not the whole PR diff again**;
+   - three jobs: (a) a verdict per finding: RESOLVED or NOT RESOLVED
+     (resolved means actually fixed, not reworded; for a security
+     finding the severity must be gone or downgraded), and AGREE or
+     DISAGREE for each one closed with a reason; (b) what did these
+     fix commits break or leave untested? Fixes are where the next bug
+     is; (c) nothing else. It does not re-review code the fixes did not
+     touch, and does not repeat a finding already on the checklist.
+   - never the author's conclusions about the fixes.
 
-6. **Record the clean pass** — only now, and only from inside this skill.
-   - Write the marker consumed by the merge-gate backstop:
+   **A batch that changed only wording** (PR body, code comments, docs
+   prose; no change to what the code does) needs no fix check of its
+   own. If nothing else is unchecked, go to step 7.
+
+6. **Branch on the fix check.**
+   - **Everything resolved, nothing new** → continue to step 7.
+   - **Something not resolved, or something new** → answer it (step 4),
+     push, and run **one more** fix check, given only the new commits
+     and the open items.
+   - **Cap: two fix checks.** If anything Important, HIGH or MEDIUM is
+     still open after the second, stop. Report NOT CLEAN and surface it
+     to the user (or whoever coordinates the sessions) with the
+     question that matters by then: is the approach wrong? A third
+     round of the same fix rarely answers it. LOW or Nit items found by
+     the second check are fixed in one batch and recorded; they do not
+     earn a third check.
+
+7. **Record the clean state** — only now, and only from inside this
+   skill.
+   - Write the marker read by the merge gate:
      `mkdir -p "$(git rev-parse --git-dir)/review-clean" && printf '%s %s\n' "$(git rev-parse HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$(git rev-parse --git-dir)/review-clean/$(git branch --show-current | tr '/' '_')"`
-   - Write the report, the evidence that this loop ran:
+   - Write the report, the evidence that this ran:
      `~/.claude/reports/<project-name>/until-clean-<branch with / as _>-<YYYY-MM-DD>.md`.
-     It records the branch, the PR, every pass run (with its head SHA),
-     every finding ever raised and its outcome, the code review's result,
-     and ends with the verdict line exactly as in step 7, naming the same
-     SHA as the marker. A later run on the same branch and day appends a
-     new dated section; it never overwrites an earlier one.
-   - If the PR had review comments, post a short follow-up comment:
-     re-review clean at `<sha>`, listing each prior finding as resolved.
+     It records the branch, the PR, the `pr-risk.sh` output, the commit
+     the full review ran at, each fix check and the commits it covered,
+     every finding ever raised with how it was answered (commit, issue
+     number or reason), and ends with the verdict line exactly as in
+     step 8, naming the same SHA as the marker. A later run on the same
+     branch and day appends a new dated section; it never overwrites an
+     earlier one.
+   - If there were findings, post a short follow-up comment on the PR:
+     fixes checked at `<sha>`, each finding listed with its answer.
 
-7. **Report the verdict** — always this exact shape, so it's scannable
-   across projects:
+8. **Report the verdict** — always one of these shapes, so it is
+   scannable across projects:
 
    ```
-   Review loop: CLEAN (re-run after fixes at <sha>)
+   Review loop: CLEAN (reviewed at <sha>, no findings)
+   Review loop: CLEAN (reviewed at <sha>, fixes checked at <sha>)
    ```
    or
    ```
@@ -103,31 +124,48 @@ findings (this has happened in practice).
    1. <finding> (<awaiting fix | awaiting user decision>)
    ```
 
+## When main moves under the PR
+
+Merge main in, then decide mechanically what the merge needs:
+
+- `git diff --name-only <head before the merge>..HEAD` lists what the
+  merge brought in. If **none** of those files is one the PR changes
+  (`gh pr diff --name-only`), no review is needed: run this skill's
+  step 7 to re-stamp the marker at the new head, and say in the report
+  that the merge did not overlap.
+- If they overlap only in docs, a decision log or a changelog (files
+  `pr-risk.sh` would call safe), the same: re-stamp, and say so.
+- Otherwise: **one fix check** (step 5) on the merge's changes to the
+  overlapping files. Not a fresh full review, and no new adversarial
+  round: nothing that was reviewed changed, only what it sits on.
+
 ## Light lane (docs-only or look-only PRs)
 
-When the global CLAUDE.md's light-lane test applies (and only then):
-run step 3 once; fix any findings (one commit each); then go straight
-to step 5's code review at the final commit. If the code review is
-clean, record (step 6) with "light lane" stated in the report. If it
-finds anything, fix and run step 5 again, not a new loop round. State
-in the report which test made the PR light lane.
+When the global CLAUDE.md's light-lane test applies (and only then),
+the procedure is the same and simply costs less: `/code-review` runs
+its two Sonnet agents, most findings are wording and need no fix
+check, and a fix check that is needed runs on Sonnet. State in the
+report which test made the PR light lane.
 
 ## Stop conditions
 
-- A clean pass and a clean code review at the same head (step 6 reached).
-- The user says "ship it" / "good enough" — record verdict as
+- The marker is written (step 7 reached).
+- The user says "ship it" / "good enough": record the verdict as
   `OVERRIDDEN by user` instead of CLEAN; do not write the marker.
-- A finding awaiting a user decision — report NOT CLEAN and stop looping
-  until the decision lands.
+- A finding awaiting a user decision, or the fix-check cap: report NOT
+  CLEAN and stop until the decision lands.
 
 ## Rules
 
-- Never mark a finding resolved without an agent verifying it on the
-  pushed state. Self-assessment does not count.
-- The marker is per-branch, local-only (lives under `<git-dir>/review-clean/`,
-  worktree-accurate), and is invalidated by any new commit — the merge
-  gate reports a stale marker as an explicit WARNING, distinct from a
-  missing one.
+- Never mark a finding resolved without the fix check verifying it on
+  the pushed state. Self-assessment does not count. The one exception
+  is a wording-only batch (step 5).
+- The session that wrote a fix never checks it, and a reviewer that
+  raised a finding is never asked to check its own fix.
+- The marker is per-branch, local-only (lives under
+  `<git-dir>/review-clean/`, worktree-accurate), and is invalidated by
+  any new commit. The merge gate reports a stale marker as an explicit
+  WARNING, distinct from a missing one.
 - The marker, the report and the "Code review" comment are written only
   by this skill and `/code-review`. Never write a marker, a report or a
   code-review comment by hand, and never run a home-made set of review
@@ -136,7 +174,7 @@ in the report which test made the PR light lane.
   head, so a status check that looks for the report catches it (the
   merge gate itself reads only the marker). Found 2026-11-05: markers
   and comments written by hand on more than ten PRs.
-- Any commit after the clean pass, other than bringing main in, makes
-  the verdict stale: run the skill again.
+- Any commit after the marker makes the verdict stale: run the skill
+  again. It will not repeat the full review; it checks the new commits.
 - CLAUDE.md findings follow the carve-out: they are amendments to
-  discuss, never auto-fixes, and never block silently — surface them.
+  discuss, never auto-fixes, and never block silently. Surface them.

@@ -3,9 +3,10 @@ allowed-tools: Bash(~/.claude/scripts/pr-risk.sh:*), Bash(__USER_HOME__/.claude/
 description: Code review a pull request
 # Modified from the code-review command in Anthropic's official code-review plugin
 # (github.com/anthropics/claude-code, plugins/code-review), Apache License 2.0;
-# see LICENSE-code-review next to this file. Changes: re-reviews each new head
-# commit and no longer skips PRs judged trivial, a "Reviewed at <sha>" summary comment, and review size set by
-# ~/.claude/scripts/pr-risk.sh. install.sh replaces __USER_HOME__ with your home path.
+# see LICENSE-code-review next to this file. Changes: can review a new head
+# commit and no longer skips PRs judged trivial, a "Reviewed at <sha>" summary comment, two review
+# agents whose models are set by ~/.claude/scripts/pr-risk.sh, and findings tagged Important, Nit or
+# Pre-existing. install.sh replaces __USER_HOME__ with your home path.
 ---
 
 Provide a code review for the given pull request.
@@ -19,7 +20,7 @@ To do this, follow these steps precisely:
 1. Launch a haiku agent to check if any of the following are true:
    - The pull request is closed
    - The pull request is a draft
-   - A code review already exists for the PR's CURRENT head commit: a comment headed "Code review" that says "Reviewed at `<sha>`" with that exact head SHA (get the head with `gh pr view <PR> --json headRefOid`). Other Claude comments on the PR, and code reviews of earlier commits, do NOT stop the review. A new commit means a new review. (Changed 2026-11-05: the old rule stopped on any earlier Claude comment, which blocked every re-review that /until-clean now requires.)
+   - A code review already exists for the PR's CURRENT head commit: a comment headed "Code review" that says "Reviewed at `<sha>`" with that exact head SHA (get the head with `gh pr view <PR> --json headRefOid`). Other Claude comments on the PR, and code reviews of earlier commits, do NOT stop the review. Run on demand, a new commit can be reviewed again. (Changed 2026-11-05: the old rule stopped on any earlier Claude comment. Since 2026-11-23 `/until-clean` invokes this command once per PR and checks later commits with its own fix check; that limit lives in the skill, not here.)
 
    If any condition is true, stop and do not proceed.
 
@@ -31,21 +32,17 @@ Note: Still review Claude generated PR's.
 
 3. Launch a sonnet agent to view the pull request and return a summary of the changes
 
-4. **Size the review by risk** (2026-11-10, to cut usage). Decide it **mechanically, never by judgment**: run `~/.claude/scripts/pr-risk.sh <PR>` (Bash). It prints `RISK=sensitive|normal` (normal only when every changed file is docs, images or styles by file type and no added line has a risky word; anything else, or any error, is sensitive) and `SIZE=small|large` (150 changed lines or fewer is small). Never treat a PR as lower risk than the script says.
-   - **RISK=normal AND SIZE=small:** launch only **2** agents in parallel, both **sonnet**: one CLAUDE.md compliance agent (as agents 1+2 below) and one bug agent (as agents 3+4 below, combined). In step 5, validate with **sonnet** agents.
-   - **Anything else:** run the full set of 4 below, unchanged.
-   - If the script can't run, run the full set of 4.
+4. **Two review agents; models by risk.** (Two since 2026-11-23: this is the one full review a PR gets, and a second pair of agents on the same diff was finding almost nothing the first had not.) Decide the models **mechanically, never by judgment**: run `~/.claude/scripts/pr-risk.sh <PR>` (Bash). It prints `RISK=sensitive|normal` (normal only when every changed file is docs, images or styles by file type and no added line has a risky word; anything else, or any error, is sensitive). Never treat a PR as lower risk than the script says.
+   - **RISK=sensitive (any PR with code), or the script can't run:** the bug agent on **opus**, the compliance agent on **sonnet**. In step 5, validate bugs with opus and CLAUDE.md issues with sonnet.
+   - **RISK=normal (docs, images or styles only):** both on **sonnet**. In step 5, validate with **sonnet** agents.
 
-   Launch the agents in parallel to independently review the changes. Each agent should return the list of issues, where each issue includes a description and the reason it was flagged (e.g. "CLAUDE.md adherence", "bug"). The agents should do the following:
+   Launch the two agents in parallel to independently review the changes. Each agent should return the list of issues, where each issue includes a description, the reason it was flagged (e.g. "CLAUDE.md adherence", "bug") and a tag: **Important** (wrong behaviour, or a clear rule broken), **Nit** (real but minor), or **Pre-existing** (a significant bug in code this PR did not introduce). Where the same mistake appears more than once, the agent reports it once as a class and lists every place, so one fix covers them all. The agents should do the following:
 
-   Agents 1 + 2: CLAUDE.md compliance sonnet agents
-   Audit changes for CLAUDE.md compliance in parallel. Note: When evaluating CLAUDE.md compliance for a file, you should only consider CLAUDE.md files that share a file path with the file or parents.
+   Compliance agent
+   Audit changes for CLAUDE.md compliance. Note: When evaluating CLAUDE.md compliance for a file, you should only consider CLAUDE.md files that share a file path with the file or parents.
 
-   Agent 3: Opus bug agent (parallel subagent with agent 4)
-   Scan for obvious bugs. Focus only on the diff itself without reading extra context. Flag only significant bugs; ignore nitpicks and likely false positives. Do not flag issues that you cannot validate without looking at context outside of the git diff.
-
-   Agent 4: Opus bug agent (parallel subagent with agent 3)
-   Look for problems that exist in the introduced code. This could be security issues, incorrect logic, etc. Only look for issues that fall within the changed code.
+   Bug agent
+   First scan the diff itself for obvious bugs, flagging only significant ones you can validate from the diff. Then look for problems in the introduced code: security issues, incorrect logic, a test that cannot fail. Only look for issues that fall within the changed code.
 
    **CRITICAL: We only want HIGH SIGNAL issues.** Flag issues where:
    - The code will fail to compile or parse (syntax errors, type errors, missing imports, unresolved references)
@@ -61,7 +58,7 @@ Note: Still review Claude generated PR's.
 
    In addition to the above, each subagent should be told the PR title and description. This will help provide context regarding the author's intent.
 
-5. For each issue found in the previous step by agents 3 and 4, launch parallel subagents to validate the issue. These subagents should get the PR title and description along with a description of the issue. The agent's job is to review the issue to validate that the stated issue is truly an issue with high confidence. For example, if an issue such as "variable is not defined" was flagged, the subagent's job would be to validate that is actually true in the code. Another example would be CLAUDE.md issues. The agent should validate that the CLAUDE.md rule that was violated is scoped for this file and is actually violated. Use Opus subagents for bugs and logic issues, and sonnet agents for CLAUDE.md violations.
+5. For each issue found in the previous step, launch parallel subagents to validate the issue. These subagents should get the PR title and description along with a description of the issue. The agent's job is to review the issue to validate that the stated issue is truly an issue with high confidence. For example, if an issue such as "variable is not defined" was flagged, the subagent's job would be to validate that is actually true in the code. Another example would be CLAUDE.md issues. The agent should validate that the CLAUDE.md rule that was violated is scoped for this file and is actually violated. Use Opus subagents for bugs and logic issues, and sonnet agents for CLAUDE.md violations.
 
 6. Filter out any issues that were not validated in step 5. This step will give us our list of high signal issues for our review.
 
@@ -77,7 +74,7 @@ Note: Still review Claude generated PR's.
 
 8. Create a list of all comments that you plan on leaving. This is only for you to make sure you are comfortable with the comments. Do not post this list anywhere.
 
-9. Post a short summary comment headed "## Code review" with the line "Reviewed at `<full head SHA>`." and the number of issues found, then post inline comments for each issue using `mcp__github_inline_comment__create_inline_comment` with `confirmed: true`. For each comment:
+9. Post a short summary comment headed "## Code review" with the line "Reviewed at `<full head SHA>`." and the number of issues found by tag (Important, Nit, Pre-existing). List any Pre-existing issues in that summary only, marked "file as an issue, not for this PR"; they get no inline comment. Then post inline comments for each Important and Nit issue, each starting with its tag, using `mcp__github_inline_comment__create_inline_comment` with `confirmed: true`. For each comment:
    - Provide a brief description of the issue
    - For small, self-contained fixes, include a committable suggestion block
    - For larger fixes (6+ lines, structural changes, or changes spanning multiple locations), describe the issue and suggested fix without a suggestion block
@@ -87,7 +84,7 @@ Note: Still review Claude generated PR's.
 
 Use this list when evaluating issues in Steps 4 and 5 (these are false positives, do NOT flag):
 
-- Pre-existing issues
+- Pre-existing issues that are minor (a significant one is reported once, tagged Pre-existing, for an issue; never as this PR's fault)
 - Something that appears to be a bug but is actually correct
 - Pedantic nitpicks that a senior engineer would not flag
 - Issues that a linter will catch (do not run the linter to verify)
