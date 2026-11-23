@@ -133,8 +133,9 @@ A PR qualifies only if it is one of these, and nothing else:
 
 For a light-lane PR:
 - No adversarial review (it never applied) and no critical-flow suites.
-- **`/until-clean` as for any PR**, at its cheapest: two Sonnet
-  reviewers, and wording-only fixes need no fix check.
+- **`/until-clean` as for any PR.** Wording-only fixes need no
+  check. Models are whatever `pr-risk.sh` says: usually Sonnet, but
+  Opus when the docs touched steer the agent (a `CLAUDE.md`, a skill).
 - Docs-only runs lint and the docs build; look-only keeps the full
   local check (a style change can break the build).
 - Look-only PRs attach before/after screenshots at the project's
