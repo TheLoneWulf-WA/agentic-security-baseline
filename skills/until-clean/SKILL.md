@@ -68,7 +68,9 @@ findings (this has happened in practice).
      never by the session running the loop) → file an issue (`gh issue create`) and record its
      number. They are not fixed in this PR and do not make a pass
      unclean.
-   - **All resolved, nothing new** → the pass is clean. Continue.
+   - **All resolved, and nothing new other than findings filed as
+     issues** (Pre-existing, or LOW at the pass cap) → the pass is
+     clean. Go to step 5.
    - **Only findings about the PR's title or description** → edit
      them (`gh pr edit`) and go straight to step 5. That is not a
      commit: the reviewed code is unchanged. Record each as "PR text
@@ -130,8 +132,9 @@ findings (this has happened in practice).
 ## Light lane (docs-only or look-only PRs)
 
 When the global CLAUDE.md's light-lane test applies (and only then):
-run step 3 once. If it finds nothing, or only something about the PR's
-title or description, record (step 5) with "light lane" stated in the
+run step 3 once. If it leads to no commit (nothing found, only
+findings filed as issues, or only something about the PR's title or
+description), record (step 5) with "light lane" stated in the
 report. If a fix was committed, one more pass is the re-check; if that
 pass finds something, the normal loop and its cap apply. State in the report which test made the PR light lane.
 
