@@ -302,8 +302,9 @@ wider rule wins. For a change that is none of these, say in one line
 that it is skipped.
 
 - Fix every finding, LOW included: one commit per MEDIUM or HIGH, one
-  batch commit for LOW. A problem this change didn't create becomes an
-  issue, not a fix here. What is the user's to decide (always-ask
+  batch commit for LOW. A problem a reviewer reports as pre-existing
+  (defined under the cost limits below) becomes an issue, not a fix
+  here. What is the user's to decide (always-ask
   classes) is surfaced with a recommendation, not fixed.
 - It finds and fixes; it never gives the verdict. **`/until-clean`
   follows it** and verifies the fixes on the pushed state.
@@ -331,8 +332,8 @@ pass returns no issues; `/until-clean` runs it.
 - **No second review on top (2026-11-23):** a clean pass is the last
   review. `/code-review --comment` no longer follows it.
 - **Pre-existing problems** (equally true on the default branch, not
-  made worse by the PR, and tagged so by a reviewer, never by the
-  author) are filed as issues, not
+  made worse by the change, and tagged so by a reviewer, never by the
+  session that made the change) are filed as issues, not
   fixed in the PR, and do not make a pass unclean.
 - **Models:** the bug reviewer is **always Opus** on any PR with code;
   compliance reviewers are always Sonnet. Only a PR that changes nothing

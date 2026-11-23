@@ -51,9 +51,9 @@ findings (this has happened in practice).
    severity must be downgraded/removed), and (b) a fresh high-signal scan
    of the current diff including the fix commits. Each new finding is
    tagged HIGH, MEDIUM or LOW, and marked **Pre-existing** when it is
-   equally true on the default branch and this PR does not make it
-   worse. Only a reviewer applies that tag; the session running the
-   loop never does, and never re-tags a finding. The compliance agent also
+   equally true on the default branch and not made worse by the change.
+   Only a reviewer applies that tag; the session that made the change
+   never does, and never re-tags a finding. The compliance agent also
    applies the "Always flag at review" list in the global CLAUDE.md,
    and the bug agent reads test changes before source.
 
@@ -65,7 +65,7 @@ findings (this has happened in practice).
      are surfaced, not auto-fixed — they make the verdict NOT CLEAN
      (awaiting user) until decided.
    - **Pre-existing findings** (tagged so by a reviewer in step 3,
-     never by the session running the loop) → file an issue (`gh issue create`) and record its
+     never by the session that made the change) → file an issue (`gh issue create`) and record its
      number. They are not fixed in this PR and do not make a pass
      unclean.
    - **All resolved, and nothing new other than findings filed as
