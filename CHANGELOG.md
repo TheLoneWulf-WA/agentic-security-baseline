@@ -38,6 +38,10 @@ another way for it to call a PR clean when it wasn't. That part is to
 be rebuilt as a small script with tests. Reasoning and limits:
 `docs/review-cost-rationale.html`, last section.
 
+Updating an install: take `CLAUDE.md` and the `until-clean` skill
+together. The skill points at the "Always flag at review" list by name,
+and an older `CLAUDE.md` still says `/code-review --comment` runs last.
+
 ## 2026-11-10
 
 Trimmed `CLAUDE.md`, which loads into every session, without changing a
