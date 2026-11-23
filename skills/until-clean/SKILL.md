@@ -70,15 +70,14 @@ findings (this has happened in practice).
      never by the session that made the change) → file an issue (`gh issue create`) and record its
      number. They are not fixed in this PR and do not make a pass
      unclean.
-   - **All resolved, and nothing new other than findings filed as
-     issues** (Pre-existing, or LOW at the pass cap) → the pass is
-     clean. Go to step 5.
-   - **Only findings about the PR's title or description** → edit
-     them (`gh pr edit`) and go straight to step 5. That is not a
-     commit: the reviewed code is unchanged. Record each as "PR text
-     edited, not re-reviewed". On a public repo the new text still goes
-     through the sanitization scan the global CLAUDE.md requires for PR
-     bodies.
+   - **All resolved, and nothing new that needs a commit** → the pass
+     is clean. Go to step 5. Two kinds of new finding need no commit,
+     alone or together: those filed as issues (Pre-existing, or LOW at
+     the pass cap), and those about the PR's title or description.
+     Edit the latter with `gh pr edit` and record each as "PR text
+     edited, not re-reviewed": the reviewed code is unchanged. On a
+     public repo the new text still goes through the sanitization scan
+     the global CLAUDE.md requires for PR bodies.
 
    **Every commit is read by a pass.** There is no kind of fix small
    enough to skip one: a wording fix in a README, a comment or a skill
