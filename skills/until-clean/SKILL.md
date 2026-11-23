@@ -30,8 +30,11 @@ findings (this has happened in practice).
    LOW filed at the pass cap) stays on the list with its issue number
    and is marked **filed**: reviewers are told not to judge it again,
    and it never counts as unresolved or makes a pass unclean. The same
-   goes for a finding the user has decided on: it stays on the list
-   with the decision, marked **decided**, and is not judged again.
+   goes for a finding the user has decided to leave as it is: it stays
+   on the list with the decision, marked **decided**, and is not judged
+   again. A finding the user decided should be changed is not exempt:
+   it stays on the checklist with the decision written beside it, and
+   reviewers judge it RESOLVED / NOT RESOLVED against that decision.
 
 3. **Re-review the CURRENT state.** Launch review agents per the
    project's convention (project CLAUDE.md may specify a count; default
@@ -110,7 +113,8 @@ findings (this has happened in practice).
      `~/.claude/reports/<project-name>/until-clean-<branch with / as _>-<YYYY-MM-DD>.md`.
      It records the branch, the PR, every pass run (with its head SHA),
      every finding ever raised and its outcome (fix commit, issue
-     number, "PR text edited", or the user's decision), and ends with the verdict line exactly as in step 6,
+     number, "PR text edited", or the user's decision to leave it as it is), and
+     ends with the verdict line exactly as in step 6,
      naming the same SHA as the marker. A later run on the same branch and day appends a
      new dated section; it never overwrites an earlier one.
    - When there is a PR, post a comment on it headed `## Review loop`:
