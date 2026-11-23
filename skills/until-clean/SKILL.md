@@ -64,7 +64,11 @@ findings (this has happened in practice).
    Only a reviewer applies that tag; the session that made the change
    never does, never re-tags a finding, and never calls one a re-report. The compliance agent also
    applies the "Always flag at review" list in the global CLAUDE.md,
-   and the bug agent reads test changes before source.
+   and the bug agent reads test changes before source. The bug agent
+   is also asked one question on every pass: **where does this change
+   let something go unchecked?** A guard that can be stepped around, a
+   rule the party it binds gets to apply to itself, a classification
+   that takes a thing out of review, a test that cannot fail.
 
 4. **Branch on the outcome.**
    - **New or unresolved findings** → apply fixes, push, **GOTO 3**. One

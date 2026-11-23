@@ -28,6 +28,12 @@ What went with it, all in `skills/until-clean/SKILL.md` and `CLAUDE.md`:
   included, share one batch commit. The same in `/adversarial-review`.
 - **The PR's visible record** is a "Review loop" comment the skill posts
   on every PR.
+- **The loop's bug reviewer is asked one more question on every pass:**
+  where does this change let something go unchecked? In this change's
+  own review, the final code review caught two real holes the loop
+  passes had missed. Both came from the one reviewer given that
+  question, and neither from having a second review as such, so the
+  question moves into the loop.
 - **Light lane:** one pass; a second only if a fix was committed.
 - The "Always — `/code-review --comment` on every PR" section of
   `CLAUDE.md` is now "Always flag at review": the same list, applied by

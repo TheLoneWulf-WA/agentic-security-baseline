@@ -912,7 +912,7 @@
         <h3>What this gives up, and what was deliberately left alone</h3>
         <div class="rule-body">
           <ul>
-            <li><strong>The second lens is gone.</strong> The diff-only review did catch one thing in about 30 PRs (a test that could not fail). The loop&rsquo;s bug reviewer is now told to read test changes first.</li>
+            <li><strong>The second lens is gone.</strong> The diff-only review caught one thing in about 30 PRs (a test that could not fail). And in the review of this very change it caught two real holes the loop passes had missed, both in rule text, where a loose sentence is a loophole. Both came from the one reviewer asked how a session could avoid review of its own change. So the loop&rsquo;s bug reviewer is now told to read test changes first and is asked, on every pass, where the change lets something go unchecked. Whether that keeps the benefit is not yet measured.</li>
             <li><strong>The evidence is one project and three days.</strong> Other projects are assumed to behave the same way until their reports say otherwise.</li>
             <li><strong>Nothing else about the loop changed.</strong> Passes still re-read the whole diff, and a merge of main still costs a fresh pass. A larger redesign (one review, then checks of only the fix commits) was drafted and parked: its bookkeeping between runs was prose for a model to interpret, and seven review rounds each found another way for it to call a PR clean when it wasn&rsquo;t. That part is to be rebuilt as a small script with tests.</li>
           </ul>
