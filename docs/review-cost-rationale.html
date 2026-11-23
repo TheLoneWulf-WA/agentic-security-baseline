@@ -901,7 +901,7 @@
               <li><strong>Every commit is read by a pass.</strong> Wording batches used to skip the next pass, because the final review read them. Nothing would now, so the skip is gone: only an edit to the PR&rsquo;s title or description, which is not a commit, needs no pass. An exemption for &ldquo;harmless&rdquo; docs was considered and dropped: any test of which Markdown is harmless leaves some file that steers an agent on the wrong side.</li>
               <li><strong>A LOW finding in pass 3 or 4 is filed, not fixed</strong>, in code or in wording. It used to be fixed and read by the final review. A fix pushed after the last pass would now be a commit no reviewer reads.</li>
               <li><strong>Pre-existing problems are filed as issues</strong> and don&rsquo;t make a pass unclean. Pre-existing means equally true on the default branch and not made worse by the change, and only a reviewer may tag a finding that way, never the session that made the change: otherwise a session could file its own bug as someone else&rsquo;s.</li>
-              <li><strong>LOW and wording findings share one batch commit.</strong> A commit each was churn for little.</li>
+              <li><strong>LOW findings, wording included, share one batch commit.</strong> A commit each was churn for little.</li>
               <li><strong>The PR&rsquo;s visible record</strong> is now a &ldquo;Review loop&rdquo; comment posted by the skill on every PR.</li>
             </ul>
           </div>

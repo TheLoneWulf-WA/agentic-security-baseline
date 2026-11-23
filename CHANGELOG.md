@@ -24,8 +24,8 @@ What went with it, all in `skills/until-clean/SKILL.md` and `CLAUDE.md`:
   made worse by the change) are filed as issues and don't make a pass
   unclean. Only a reviewer may tag a finding that way, never the
   session that made the change.
-- **Fix commits:** one each for MEDIUM and HIGH; LOW and wording share
-  one batch commit. The same in `/adversarial-review`.
+- **Fix commits:** one each for MEDIUM and HIGH; LOW findings, wording
+  included, share one batch commit. The same in `/adversarial-review`.
 - **The PR's visible record** is a "Review loop" comment the skill posts
   on every PR.
 - **Light lane:** one pass; a second only if a fix was committed.
