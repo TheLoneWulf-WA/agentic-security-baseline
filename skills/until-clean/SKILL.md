@@ -35,6 +35,8 @@ findings (this has happened in practice).
    again. A finding the user decided should be changed is not exempt:
    it stays on the checklist with the decision written beside it, and
    reviewers judge it RESOLVED / NOT RESOLVED against that decision.
+   Reviewers are given the filed and decided findings so they do not
+   raise them again: a re-report of one is not a new finding.
 
 3. **Re-review the CURRENT state.** Launch review agents per the
    project's convention (project CLAUDE.md may specify a count; default
@@ -73,8 +75,8 @@ findings (this has happened in practice).
      never by the session that made the change) → file an issue (`gh issue create`) and record its
      number. They are not fixed in this PR and do not make a pass
      unclean.
-   - **All resolved, and nothing new that needs a commit** → the pass
-     is clean. Go to step 5. Two kinds of new finding need no commit,
+   - **All resolved, nothing awaiting the user's decision, and nothing
+     new that needs a commit** → the pass is clean. Go to step 5. Two kinds of new finding need no commit,
      alone or together: those filed as issues (Pre-existing, or LOW at
      the pass cap), and those about the PR's title or description.
      Edit the latter with `gh pr edit` and record each as "PR text
