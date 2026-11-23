@@ -95,7 +95,7 @@ A CLEAN verdict is never given from this skill alone.
    - A finding that is the user's to decide (wording a person reads, a
      product or design call, what survives a delete, a change in someone
      else's area, a canonical document) is surfaced with a recommendation,
-     not fixed. If it was not created by this change, file it as an issue.
+     not fixed.
    - Where behaviour matters, check it for real after the fix: a
      production build, a real run, real inputs sent the way a user or an
      attacker would send them. Say what was run.
