@@ -301,12 +301,13 @@
     white-space: nowrap;
   }
 
-  .rule-body ul, .rule-body ol {
+  .rule-body ul, .rule-body ol, .why-body ul {
     margin: 12px 0 12px 20px;
     color: var(--text-2);
   }
 
-  .rule-body li { margin-bottom: 6px; line-height: 1.55; }
+  .rule-body li, .why-body li { margin-bottom: 6px; line-height: 1.55; }
+  main .rule a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--border-accent); }
 
   /* why callout */
   .why {
@@ -532,10 +533,12 @@
       review, and cheaper reviewers for docs-only PRs. This page explains why,
       how &ldquo;docs-only&rdquo; is decided without judgment, the file
       classifier that was tried and dropped, and what still stands
-      between a PR and the money and data it could touch.
+      between a PR and the money and data it could touch. On 2026-11-23 the
+      loop itself was replaced by one full review and a check of the fixes;
+      the last section says why.
     </p>
     <div class="meta">
-      <span><i></i>Companion to the &ldquo;Cost limits&rdquo; block in <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">CLAUDE.md</code></span>
+      <span><i></i>Companion to &ldquo;One review, every finding answered&rdquo; in <code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">CLAUDE.md</code></span>
       <span><i></i>Self-contained &middot; no build step</span>
     </div>
   </div>
@@ -554,6 +557,7 @@
       <li><a href="#content-words">The content-word backstop</a></li>
       <li><a href="#still-protects">What still protects money and data</a></li>
       <li><a href="#weaknesses">Known weaknesses</a></li>
+      <li><a href="#one-review">One review, not a loop</a></li>
     </ol>
   </nav>
 
@@ -612,12 +616,12 @@
         <table class="limits">
           <thead><tr><th>Limit</th><th>What it does</th></tr></thead>
           <tbody>
-            <tr><td>Pass cap</td><td>3 loop passes, plus a 4th only for an open MEDIUM or HIGH code finding. Wording-only findings (PR body, comments, docs prose) are fixed in one batch and never start a pass by themselves; the final code review checks them. Still open after the 4th: the verdict is NOT CLEAN and the user is told.</td></tr>
+            <tr><td>Pass cap</td><td>From 2026-11-10: 3 loop passes, plus a 4th only for an open MEDIUM or HIGH code finding, and wording-only findings never started a pass. <strong>Replaced 2026-11-23</strong> (<a href="#one-review">last section</a>): one full review per PR, then at most two checks of the commits made since. Wording-only fixes still need no check. Still open after the second check: the verdict is NOT CLEAN and the user is told.</td></tr>
             <tr><td>Models</td><td>The bug reviewer is always Opus on any PR with code; compliance reviewers are always Sonnet. Only a PR of nothing but docs, images or styles gets two Sonnet reviewers. <code>/adversarial-review</code> is unchanged.</td></tr>
-            <tr><td><code>/code-review</code> size</td><td>A docs-, images- or styles-only PR of 150 changed lines or fewer gets 2 Sonnet agents instead of 4. Any other PR, or any PR where the script can&rsquo;t run, gets all 4.</td></tr>
+            <tr><td><code>/code-review</code> size</td><td>From 2026-11-10: 2 Sonnet agents for a small docs-, images- or styles-only PR, 4 agents for anything else. <strong>Since 2026-11-23</strong> every PR gets 2: an Opus bug reviewer and a Sonnet compliance reviewer on any PR with code (or where the script can&rsquo;t run), two Sonnet reviewers on a docs-, images- or styles-only PR.</td></tr>
             <tr><td>Layer 0 model</td><td>The in-session security plugin is set to Sonnet 5.5 via <code>SECURITY_REVIEW_MODEL</code> / <code>SG_AGENTIC_MODEL</code> (the installer sets neither). It fires every turn, so its model sets a per-turn cost, not a per-PR one. It is an early net; the gates behind it decide.</td></tr>
             <tr><td>Adversarial trigger</td><td>The three-role review still runs on auth, uploads, payments, input endpoints and anything an attacker can reach. For the admin it now runs on actions that move money or change accounts or permissions, not on admin wording, layout, help text or read-only display.</td></tr>
-            <tr><td>Light lane</td><td>Docs-only and look-only PRs get one loop pass and the final code review. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane. The light lane decides how many passes a PR gets; the script decides only which models review it.</td></tr>
+            <tr><td>Light lane</td><td>Docs-only and look-only PRs skip the three-role review and the critical-flow tests, and since 2026-11-23 get the same single review as any PR. Their models are whatever the script says: usually Sonnet, but Opus when the docs touched are ones that steer the agent. Anything touching payments, sign-in, sessions, customer data, the admin, uploads or a critical flow is never light lane. The light lane decides which steps a PR skips; the script decides only which models review it.</td></tr>
           </tbody>
         </table>
         </div>
@@ -733,7 +737,7 @@
             <li>it fails in any other way, or Python can&rsquo;t run it at all.</li>
           </ul>
           <p>
-            And <code>/code-review</code> runs its full set of four agents if the
+            And <code>/code-review</code> puts its bug reviewer on Opus if the
             script can&rsquo;t run.
           </p>
         </div>
@@ -810,10 +814,10 @@
         <h3>Five layers no limit reaches</h3>
         <div class="rule-body">
           <ul class="surfaces">
-            <li><span class="surface-name">The Opus bug reviewer</span><span class="surface-why">Every PR with code gets an Opus bug reviewer in every loop pass, and the full four-agent code review.</span></li>
+            <li><span class="surface-name">The Opus bug reviewer</span><span class="surface-why">Every PR with code gets an Opus bug reviewer in its full review, and an Opus agent checks every fix that changes what the code does (wording-only fixes need no check).</span></li>
             <li><span class="surface-name"><code>/security-review</code></span><span class="surface-why">Still runs before the first push on any Strict Gate surface (payments, auth, secrets, input endpoints and the rest), and still blocks on HIGH.</span></li>
             <li><span class="surface-name">The three-role review</span><span class="surface-why"><code>/adversarial-review</code> still runs on auth, sessions, uploads, payments, admin actions that move money or change access, input endpoints, and scripts that run with access rules off or delete records. On those PRs it is the step that finds the most.</span></li>
-            <li><span class="surface-name">The code review</span><span class="surface-why"><code>/code-review --comment</code> still runs on every PR, at the clean head. Only a docs-, images- or styles-only PR of 150 lines or fewer gets the smaller version.</span></li>
+            <li><span class="surface-name">The code review</span><span class="surface-why"><code>/code-review --comment</code> still runs on every PR. Since 2026-11-23 it runs once, as the PR&rsquo;s one full review, with two agents.</span></li>
             <li><span class="surface-name">The runtime tests</span><span class="surface-why">The local checks and the real run of the thing (a production build, real requests) come first in the review order, and a project&rsquo;s tests for its critical flows still run. The light lane skips those flow tests only on PRs that are docs or styling outside those flows.</span></li>
           </ul>
         </div>
@@ -844,7 +848,7 @@
           <ul>
             <li><strong>The word list is only as good as its words.</strong> A docs or styles PR that adds something risky using no listed word (a stylesheet that loads from elsewhere, an SVG trick) comes out normal and gets Sonnet reviewers.</li>
             <li><strong>Content words only look at added lines.</strong> A docs PR that deletes a warning or a step from a runbook isn&rsquo;t flagged; the reviewers still read it.</li>
-            <li><strong>Size is lines, not meaning.</strong> It only decides the code review&rsquo;s agent count, and only on PRs already judged docs-only.</li>
+            <li><strong>Size is lines, not meaning.</strong> The script still prints it, but since 2026-11-23 nothing is decided by it.</li>
           </ul>
         </div>
         <div class="why why-danger">
@@ -860,6 +864,111 @@
       </div>
     </section>
 
+    <section id="one-review">
+      <span class="section-num">Section 10 &middot; 2026-11-23</span>
+      <h2>One review, not a loop</h2>
+      <p class="section-blurb">
+        The caps limited how many times the loop ran. This change removes the
+        loop: one full review, every finding answered, the fixes checked.
+      </p>
+      <div class="rule rule-accent">
+        <span class="rule-label">The problem</span>
+        <h3>Several reviewers were reading the same diff from scratch</h3>
+        <div class="rule-body">
+          <p>
+            After the caps, a PR with code still got a loop pass (two agents
+            re-reading the whole diff), another pass after each round of fixes,
+            and then a four-agent code review of the same commit the last pass
+            had just called clean. A sensitive PR had the three-role review in
+            front of all that. Each of these started from nothing.
+          </p>
+          <p>
+            Two posts from the Claude Code team describe the opposite
+            arrangement:
+            <a href="https://claude.dev/blog/solving-code-review-at-anthropic/">how they do code review</a>
+            and
+            <a href="https://claude.dev/blog/how-the-claude-code-team-thinks-about-verification/">how they think about verification</a>.
+            They tune one reviewer and do not stack a second on top of it; later
+            rounds look only at what changed and never repeat a finding; a bug
+            the change did not introduce is tagged as such and does not hold up
+            the change; and every finding is answered, by a fix or by a reason,
+            where this protocol had been waiting for a fresh reviewer to find
+            nothing.
+          </p>
+        </div>
+        <div class="why">
+          <div class="why-label">What was measured here</div>
+          <div class="why-body">
+            <p>
+              About 30 PRs in one project over three days, from the sessions&rsquo;
+              own review reports:
+            </p>
+            <ul>
+              <li>The three-role review found the most real problems by far.</li>
+              <li>The first loop pass found a MEDIUM about as often as not, mostly bugs the fixes had introduced and tests that didn&rsquo;t cover them.</li>
+              <li>Second and third passes found more of the same, or wording. A third pass was usually wording or a test nit.</li>
+              <li>The final code review, run after a clean pass at the same commit, found something real about once in 30.</li>
+              <li>Fresh passes after main moved under a PR were a large share of the loop&rsquo;s cost (an impression, not a count), mostly triggered by shared docs.</li>
+              <li>Under load, sessions sometimes skipped steps or wrote the clean marker by hand. A gate too heavy to carry gets forged.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule">
+        <span class="rule-label">The change</span>
+        <h3>What a PR gets now</h3>
+        <div class="table-wrap">
+        <table class="limits">
+          <thead><tr><th>Step</th><th>What it is</th></tr></thead>
+          <tbody>
+            <tr><td>One full review</td><td><code>/code-review --comment</code>, once per PR, with two agents (the pair that was finding things at pass 1). Each finding is validated before it is posted and tagged Important, Nit or Pre-existing.</td></tr>
+            <tr><td>Every finding answered</td><td>Fixed (one commit each for what matters; one batch commit for nits, LOW and wording), filed as an issue when the PR didn&rsquo;t introduce it, or closed with a written reason. Closing an Important finding without fixing it goes in the judgment ledger, and the fix check is asked whether it agrees.</td></tr>
+            <tr><td>The check</td><td>One fresh agent (Opus on any PR with code) is given the findings and only the commits made since the last one a reviewer read. It says whether each finding is resolved and what those commits broke. Fixes introducing bugs was the most common later finding, so this step is the one that was kept. Wording-only commits need no check; no commit that changes what the code does reaches CLEAN unread, and new work added after the review gets a full review again.</td></tr>
+            <tr><td>Cap</td><td>Two checks. Something still open after the second goes to the user as a question about the approach, not a third round. Nits the second check finds are filed as an issue, not fixed unchecked.</td></tr>
+            <tr><td>When main moves</td><td>A file-overlap test. No overlap with the PR&rsquo;s files, or overlap only in Markdown other than the files that steer the agent: no check. Otherwise one check of the files both sides changed.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="why">
+          <div class="why-label">What did not change</div>
+          <div class="why-body">
+            <p>
+              <code>/security-review</code> before the first push, the three-role
+              review on sensitive PRs, the local checks and runtime tests, the
+              marker tied to one commit, the merge gate, and the user&rsquo;s
+              &ldquo;merge it&rdquo;. Two were measured as worth their cost
+              (the three-role review and the runtime tests); the rest were not
+              measured well enough to touch.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule">
+        <span class="rule-label">Honest limits</span>
+        <h3>What this gives up, and what the evidence doesn&rsquo;t cover</h3>
+        <div class="rule-body">
+          <ul>
+            <li><strong>No fresh reviewer confirms silence.</strong> CLEAN now means reviewed once, every finding answered, fixes checked. A bug a fix introduces far from the lines it touched can get past a check that reads only the fix commits.</li>
+            <li><strong>Two agents, not four, read the full diff.</strong> The second pair was rarely finding anything after a loop pass; whether it would have found more as the only review was not measured.</li>
+            <li><strong>The evidence is one project and three days.</strong> It supports the change there. Other projects are assumed to behave the same way until their reports say otherwise.</li>
+            <li><strong>Old bugs wait in issues.</strong> They are no longer fixed in the PR that happened to surface them.</li>
+          </ul>
+        </div>
+        <div class="why why-danger">
+          <div class="why-label">What to watch</div>
+          <div class="why-body">
+            <p>
+              Reverts, and bugs found after merge that a review should have
+              caught. If either rises, the first thing to restore is a second
+              bug reviewer in the full review, not the loop.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
   </div>
 
@@ -868,7 +977,7 @@
       <div>
         <h4>Maintenance discipline</h4>
         <p>
-          This page explains the &ldquo;Cost limits&rdquo; block of
+          This page explains the &ldquo;One review, every finding answered&rdquo; section of
           <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">CLAUDE.md</code>,
           the skills, and <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);">scripts/pr-risk.py</code>.
           When one of those changes, update this page in the same commit.

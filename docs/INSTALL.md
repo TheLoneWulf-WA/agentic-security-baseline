@@ -85,7 +85,7 @@ cp risk-paths/_default-safe.txt risk-paths/_default-content.txt ~/.claude/risk-p
 
 ### Step 2e — Install the /code-review command
 
-A modified copy of the official `code-review` plugin's command (Apache License 2.0, license file alongside): it re-reviews each new head commit, posts a "Reviewed at `<sha>`" summary, and sizes the review with `pr-risk.sh`. Its `allowed-tools` line names the script by absolute path, so substitute your home directory:
+A modified copy of the official `code-review` plugin's command (Apache License 2.0, license file alongside): it can review a new head commit, posts a "Reviewed at `<sha>`" summary, runs two agents whose models are set by `pr-risk.sh`, and tags findings Important, Nit or Pre-existing. Its `allowed-tools` line names the script by absolute path, so substitute your home directory:
 
 ```bash
 mkdir -p ~/.claude/commands

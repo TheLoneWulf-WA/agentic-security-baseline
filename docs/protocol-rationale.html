@@ -552,7 +552,7 @@
           <li><a href="#reminder-gate">Reminder Gate</a></li>
           <li><a href="#skip-clauses">Skip Clauses</a></li>
           <li><a href="#code-review">/code-review on every PR</a></li>
-          <li><a href="#review-until-clean">Review-until-clean</a></li>
+          <li><a href="#review-until-clean">One review, fixes checked</a></li>
           <li><a href="#docs-same-bar">Docs: same bar on public repos</a></li>
           <li><a href="#review-output">Review output format</a></li>
         </ol>
@@ -745,7 +745,7 @@
         production. No single layer catches everything; each catches
         what the next can&rsquo;t. The strict gate blocks; the reminder
         gate flags; <code>/code-review</code> runs on every PR; and
-        review-until-clean ensures a fix doesn&rsquo;t silently
+        a check of every fix ensures it doesn&rsquo;t silently
         introduce its own bugs.
       </p>
 
@@ -795,9 +795,9 @@
           <g>
             <rect x="780" y="40" width="160" height="130" rx="8" fill="#131313" stroke="#2a2a2a"/>
             <text x="798" y="62" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#6a6a6a" letter-spacing="1.5">LAYER D</text>
-            <text x="798" y="83" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">Review</text>
-            <text x="798" y="99" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">until clean</text>
-            <text x="798" y="124" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Re-run after each</text>
+            <text x="798" y="83" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">Fixes</text>
+            <text x="798" y="99" font-family="Inter, sans-serif" font-size="14" fill="#ededed" font-weight="600">checked</text>
+            <text x="798" y="124" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">Checked after each</text>
             <text x="798" y="139" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">fix. A fix is not</text>
             <text x="798" y="155" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">a verified fix.</text>
           </g>
@@ -1139,8 +1139,9 @@
         <h3>Always &mdash; <code>/code-review --comment</code> on every PR</h3>
         <div class="rule-body">
           <p>
-            Before requesting human review on any PR, run
-            <code>/code-review --comment</code>.
+            Every PR gets <code>/code-review --comment</code> once,
+            before the merge prompt; <code>/until-clean</code> invokes
+            it.
           </p>
           <p>In addition to what <code>/code-review</code> already checks, also flag:</p>
           <ul>
@@ -1182,24 +1183,25 @@
 
       <!-- 2.5 REVIEW UNTIL CLEAN -->
       <div class="rule rule-accent" id="review-until-clean">
-        <span class="rule-label">Rule 2.5 &middot; mandatory loop</span>
-        <h3>Review-until-clean &mdash; do NOT assume a fix worked</h3>
+        <span class="rule-label">Rule 2.5 &middot; mandatory check</span>
+        <h3>One review, every finding answered &mdash; do NOT assume a fix worked</h3>
         <div class="rule-body">
           <p>
-            Applies to <code>/security-review</code>,
-            <code>/code-review</code>, and any ad-hoc review-agent
-            invocation. After applying a fix, <strong>re-run the
-            review on the updated code</strong>. A passing TypeScript
-            check is not a verified fix.
+            Applies to findings from <code>/security-review</code>,
+            <code>/adversarial-review</code>, <code>/code-review</code>
+            and any ad-hoc reviewer. A fix is not verified by its
+            author, nor by a passing typecheck: <strong>another agent
+            checks it on the pushed state</strong>.
           </p>
-          <p><strong>The loop:</strong></p>
+          <p><strong>The procedure</strong> (since 2026-11-23; before
+            that, fresh full reviews looped until one came back empty):</p>
           <ol>
-            <li>Run the review</li>
-            <li>Apply fixes for any findings</li>
+            <li>Run the one full review, once per PR</li>
+            <li>Answer every finding: fix it, file it as an issue if the PR didn&rsquo;t introduce it, or close it with a written reason</li>
             <li>Commit + push the fixes</li>
-            <li><strong>Re-run the same review on the new state</strong></li>
-            <li>If new findings &mdash; repeat from step 2</li>
-            <li>Stop only when a pass returns "no issues found"</li>
+            <li><strong>One fresh agent checks the fix commits</strong>: is each finding resolved, and what did the fixes break?</li>
+            <li>If it finds something &mdash; answer it, and one more check of the new commits only</li>
+            <li>Still open after the second check: stop, NOT CLEAN, ask the user whether the approach is wrong</li>
           </ol>
         </div>
 
@@ -1210,8 +1212,8 @@
             <g>
               <rect x="50" y="100" width="140" height="80" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.5"/>
               <text x="120" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#c9b896" letter-spacing="1.5">STEP 1</text>
-              <text x="120" y="151" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" fill="#ededed" font-weight="600">Run review</text>
-              <text x="120" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" fill="#8a8a8a">on current state</text>
+              <text x="120" y="151" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" fill="#ededed" font-weight="600">Review, then check</text>
+              <text x="120" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" fill="#8a8a8a">later: fixes only</text>
             </g>
             <!-- arrow -->
             <line x1="190" y1="140" x2="225" y2="140" stroke="#4a4a4a" stroke-width="1.5"/>
@@ -1235,7 +1237,7 @@
             <!-- loop arrow back up to step 1 -->
             <path d="M 230 250 Q 90 250 90 180" fill="none" stroke="#c9b896" stroke-opacity="0.55" stroke-width="1.5"/>
             <polygon points="86,180 90,170 94,180" fill="#c9b896" fill-opacity="0.75"/>
-            <text x="105" y="246" font-family="JetBrains Mono, monospace" font-size="10" fill="#c9b896" letter-spacing="1.5">LOOP</text>
+            <text x="105" y="246" font-family="JetBrains Mono, monospace" font-size="10" fill="#c9b896" letter-spacing="1.5">MAX 2 CHECKS</text>
             <!-- branch: no goes right to stop -->
             <line x1="380" y1="140" x2="540" y2="140" stroke="#4a4a4a" stroke-width="1.5"/>
             <polygon points="546,140 538,136 538,144" fill="#4a4a4a"/>
@@ -1245,28 +1247,27 @@
               <rect x="540" y="100" width="170" height="80" rx="8" fill="#161513" stroke="#c9b896" stroke-opacity="0.55"/>
               <text x="625" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#c9b896" letter-spacing="1.5">DONE</text>
               <text x="625" y="151" text-anchor="middle" font-family="Inter, sans-serif" font-size="13.5" fill="#ededed" font-weight="600">Stop</text>
-              <text x="625" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">a clean pass &mdash; the bar</text>
+              <text x="625" y="168" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#8a8a8a">every finding answered</text>
             </g>
           </svg>
-          <div class="diagram-caption">Figure 2.5 &middot; review-until-clean loop &mdash; the only exit is a clean pass</div>
+          <div class="diagram-caption">Figure 2.5 &middot; one full review, then checks of the fix commits only &mdash; at most two</div>
         </div>
 
         <div class="why">
           <div class="why-label">Why this exists</div>
           <div class="why-body">
             <p>
-              The failure mode is stopping after pass 1 because the fix
-              "looks obvious." It often isn&rsquo;t. A fix can introduce
-              its own bugs. The reviewer&rsquo;s fresh context on the
-              updated code surfaces things the original pass missed,
-              including issues in related files the fix touched
-              implicitly.
+              The failure mode is stopping after the review because the
+              fix "looks obvious." It often isn&rsquo;t. A fix can
+              introduce its own bugs: measured, that was the most common
+              thing later passes found. A fresh agent reading the fix
+              commits catches them without re-reading the whole change.
             </p>
             <p>
               <strong>For security findings the bar is higher:</strong>
               checking the severity-review label after the fix confirms
               the finding was downgraded or removed, not just reworded.
-              A re-run that comes back with the same finding at the same
+              A check that comes back with the same finding at the same
               severity is not a fix.
             </p>
             <p>
@@ -1278,14 +1279,15 @@
         </div>
 
         <div class="why">
-          <div class="why-label">Cost limits (2026-11-10)</div>
+          <div class="why-label">Cost limits (2026-11-10, 2026-11-23)</div>
           <div class="why-body">
             <p>
-              The loop has limits now: 3 passes, plus a 4th only for an
-              open MEDIUM or HIGH code finding, and wording-only findings
-              never start one. The bug reviewer stays on Opus for every PR
-              with code; only a PR of docs, images or styles gets Sonnet
-              reviewers and a smaller <code>/code-review</code>. That test
+              First the loop got limits (3 passes, a 4th only for an
+              open MEDIUM or HIGH). Then the loop itself went: one
+              two-agent review per PR and at most two checks of the
+              fixes, and wording-only fixes need no check. The bug
+              reviewer stays on Opus for every PR with code; only a PR of
+              docs, images or styles gets Sonnet reviewers. That test
               is mechanical, done by <code>scripts/pr-risk.py</code>, never
               the session&rsquo;s judgment. Docs-only and
               look-only PRs take the light lane. The reasons, and what
@@ -1306,7 +1308,7 @@
               code fix. Discuss, decide, then apply or reject.
             </p>
             <p>
-              Mechanically re-running review-until-clean on the
+              Mechanically fixing review findings on the
               rulebook is the wrong loop &mdash; it can silently reword
               obligations and drift the protocol without deliberation.
               When <code>/code-review</code> fires on a
@@ -1326,7 +1328,7 @@
             Prose pushed to a <strong>public</strong> repo &mdash; READMEs,
             protocol docs, changelogs &mdash; gets a clean-context review
             pass before the push: accuracy, tone, no sensitive leakage.
-            Review-until-clean applies (excepting <code>CLAUDE.md</code>
+            Its fixes are checked like any others (excepting <code>CLAUDE.md</code>
             itself, per the carve-out in Rule 2.5). Trivial one-liners are
             a judgment call.
           </p>
@@ -1351,7 +1353,7 @@
             scans never look. Docs also carry their own risk class on a
             public repo: an inaccurate README or a leaked detail publishes
             instantly and permanently, so prose earns the same
-            review-until-clean loop as logic.
+            review and fix check as logic.
           </div>
         </div>
       </div>
@@ -1409,7 +1411,7 @@
             <li>Create a new feature branch from the current branch</li>
             <li>Push the branch to origin</li>
             <li>Open a PR via <code>gh pr create</code></li>
-            <li>Run <code>/code-review --comment</code> on the PR</li>
+            <li>Run the review order; <code>/until-clean</code> runs <code>/code-review --comment</code></li>
             <li>Stop and prompt the user to merge</li>
           </ol>
           <p>The strict gate runs before the push, exactly as specified in Rule 2.1.</p>
@@ -1459,7 +1461,7 @@
               <rect x="650" y="70" width="120" height="60" rx="8" fill="#131313" stroke="#2a2a2a"/>
               <text x="710" y="92" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="#6a6a6a" letter-spacing="1.5">4</text>
               <text x="710" y="111" text-anchor="middle" font-family="Inter, sans-serif" font-size="12.5" fill="#ededed">Review</text>
-              <text x="710" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#8a8a8a">/code-review</text>
+              <text x="710" y="124" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#8a8a8a">/until-clean</text>
             </g>
             <line x1="770" y1="100" x2="795" y2="100" stroke="#4a4a4a" stroke-width="1.5"/>
             <polygon points="800,100 792,96 792,104" fill="#4a4a4a"/>

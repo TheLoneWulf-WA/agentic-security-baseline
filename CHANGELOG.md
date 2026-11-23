@@ -2,6 +2,54 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-11-23
+
+One review, not a loop. The 2026-11-10 caps limited how many times the
+review loop ran; this change removes the loop. A PR now gets one full
+review, every finding is answered, and one agent checks the fixes.
+
+Why: several reviewers were each reading the same diff from scratch.
+Measured on about 30 PRs in one project over three days, the three-role
+review and the first pass found the real problems; later passes found
+what the fixes broke, or wording; and the four-agent code review run
+after a clean pass at the same commit found something real about once
+in 30. Two posts from the Claude Code team
+([code review](https://claude.dev/blog/solving-code-review-at-anthropic/),
+[verification](https://claude.dev/blog/how-the-claude-code-team-thinks-about-verification/))
+describe the arrangement adopted here: one tuned reviewer, later rounds
+that look only at what changed, and every finding answered.
+
+- **`/until-clean`** no longer loops fresh full passes. It runs
+  `/code-review --comment` once per PR, sees every finding answered
+  (fixed, filed as an issue, or closed with a written reason), and has
+  one fresh agent check the commits made since: is each finding
+  resolved, and what did those commits break? At most two such checks;
+  still open after that is NOT CLEAN, surfaced as a question about the
+  approach. Wording-only commits need no check; no commit that changes
+  what the code does reaches CLEAN unread, and new work after the review
+  gets a full review again.
+- **`/code-review`** runs two agents instead of four: an Opus bug
+  reviewer and a Sonnet compliance reviewer on any PR with code, two
+  Sonnet reviewers on a docs-, images- or styles-only PR. Findings are
+  tagged Important, Nit or Pre-existing; a repeated mistake is reported
+  once as a class.
+- **Pre-existing problems** are filed as issues, not fixed in the PR
+  that surfaced them.
+- **Fix commits:** one each for Important, HIGH and MEDIUM findings; one
+  batch commit for Nit, LOW and wording.
+- **When main moves under a PR:** a file-overlap test, then either no
+  check (no overlap, or overlap only in Markdown other than the files
+  that steer the agent) or one check of the files both sides changed.
+  No fresh full review.
+- **The verdict line** now names the head the marker is written at:
+  `Review loop: CLEAN at <head> (reviewed at <sha>, no findings)` or
+  `Review loop: CLEAN at <head> (reviewed at <sha>, checked at <sha>)`. The marker file, its path and the merge gate are unchanged.
+
+Unchanged: `/security-review` before the first push, the three-role
+review on sensitive PRs, the local checks and runtime tests, the merge
+gate. What this gives up, and the limits of the evidence, are in the
+new last section of `docs/review-cost-rationale.html`.
+
 ## 2026-11-10
 
 Trimmed `CLAUDE.md`, which loads into every session, without changing a
