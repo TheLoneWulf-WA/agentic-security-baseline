@@ -317,9 +317,11 @@ The skill (`skills/adversarial-review/SKILL.md`, installed to
 
 ### Review-until-clean — do NOT assume a fix worked
 
-Applies to `/security-review`, `/adversarial-review`, and any ad-hoc
-review agent invocation. After applying a fix, **re-run the same review on
-the updated code**. A passing TypeScript check is not a verified fix.
+Applies to fixes for findings from any review: `/security-review`,
+`/adversarial-review`, an ad-hoc review agent. After applying a fix,
+**the updated code is reviewed again**. That re-review is the
+`/until-clean` loop, not another run of the review that raised the
+finding. A passing TypeScript check is not a verified fix.
 
 The loop is review → fix → push → re-run on the new state, until a
 pass returns no issues; `/until-clean` runs it.
