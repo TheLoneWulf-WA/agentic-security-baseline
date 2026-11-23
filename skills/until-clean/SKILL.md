@@ -45,53 +45,67 @@ findings (this has happened in practice).
    and two jobs — (a) verdict per prior finding: RESOLVED / NOT RESOLVED
    (resolved means actually fixed, not reworded; for security findings the
    severity must be downgraded/removed), and (b) a fresh high-signal scan
-   of the current diff including the fix commits.
+   of the current diff including the fix commits. Each new finding is
+   tagged HIGH, MEDIUM or LOW, and marked **Pre-existing** when it is a
+   real problem this PR did not introduce. The compliance agent also
+   applies the "Always flag at review" list in the global CLAUDE.md,
+   and the bug agent reads test changes before source.
 
 4. **Branch on the outcome.**
-   - **New or unresolved findings** → apply fixes (one commit per finding,
-     per PR-decomposition rules), push, **GOTO 3**. Findings that are the
-     user's to decide (CLAUDE.md amendments, product/design calls,
-     anything in an always-ask class) are surfaced, not auto-fixed — they
-     make the verdict NOT CLEAN (awaiting user) until decided.
+   - **New or unresolved findings** → apply fixes, push, **GOTO 3**. One
+     commit per MEDIUM or HIGH finding; LOW and wording findings share
+     one batch commit. Findings that are the user's to decide (CLAUDE.md
+     amendments, product/design calls, anything in an always-ask class)
+     are surfaced, not auto-fixed — they make the verdict NOT CLEAN
+     (awaiting user) until decided.
+   - **Pre-existing findings** (a real problem this PR did not
+     introduce) → file an issue (`gh issue create`) and record its
+     number. They are not fixed in this PR and do not make a pass
+     unclean.
    - **All resolved, nothing new** → the pass is clean. Continue.
-   - **Only wording findings** (PR body, code comments, docs prose; no
-     change to what the code does) → fix them in one batch, push, and go
-     straight to step 5. They never trigger another loop pass by
-     themselves; the step-5 code review at the new head is their check.
+   - **Only wording findings, all fixable in the PR's title or body or
+     in plain docs** → fix them in one batch, push, and go straight to
+     step 5. They never trigger another loop pass by themselves. A
+     **plain doc** is a Markdown file (`.md`) that does not steer an
+     agent: not `CLAUDE.md`, `AGENTS.md` or `SKILL.md`, and nothing
+     under `.claude/`, `commands/` or `risk-paths/`. A wording fix in
+     any other file (a code comment, a skill, a page with markup) is a
+     fix like any other: **GOTO 3**. Whether a file is a plain doc is
+     decided by its name, never by how small the edit looks.
 
    **Pass cap** (2026-11-10, to cut usage): at most **3** loop
-   passes. In pass 3, LOW code findings are fixed and go straight to
-   step 5, not a 4th pass. Only a **MEDIUM or HIGH** code finding earns a
-   4th pass. If a MEDIUM or HIGH is still open after pass 4, stop: report
-   NOT CLEAN with the open findings and surface them to the user (or whoever
-   coordinates the sessions) instead of looping on. Record the pass count and any cap
+   passes. In pass 3 (or 4), LOW code findings are **not fixed**: file them in
+   one issue, record its number, and treat the pass as clean of them. A
+   fix pushed after the last pass would be code no reviewer reads. Only
+   a **MEDIUM or HIGH** code finding earns a 4th pass. If a MEDIUM or
+   HIGH is still open after pass 4, stop: report NOT CLEAN with the open
+   findings and surface them to the user (or whoever coordinates the
+   sessions) instead of looping on. Record the pass count and any cap
    decision in the report.
 
-5. **Final gate: the code review, at this exact head.** A clean loop pass
-   is not yet a clean PR: the diff-only code review must describe the
-   same commit. Without changing the head since the clean pass:
-   - Invoke `/code-review --comment` (the skill itself, never a comment
-     written by hand) on the current head.
-   - **It finds anything** → it is a finding like any other: fix (one
-     commit per finding), push, **GOTO 3**. A loop pass and then the code
-     review run again on the new head.
-   - **It's clean** → continue. The PR's "Code review" comment and the
-     loop's clean pass now name the same SHA.
+   **No second review on top** (2026-11-23, to cut usage). Until then a
+   clean pass was followed by `/code-review --comment` at the same
+   commit, four more agents re-reading a diff two had just passed.
+   Measured on about 30 PRs in one project, it found something real
+   about once. The clean pass is now the last review. `/code-review`
+   is still there to run by hand; it is not part of this procedure.
 
-6. **Record the clean pass** — only now, and only from inside this skill.
+5. **Record the clean pass** — only now, and only from inside this skill.
    - Write the marker consumed by the merge-gate backstop:
      `mkdir -p "$(git rev-parse --git-dir)/review-clean" && printf '%s %s\n' "$(git rev-parse HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$(git rev-parse --git-dir)/review-clean/$(git branch --show-current | tr '/' '_')"`
    - Write the report, the evidence that this loop ran:
      `~/.claude/reports/<project-name>/until-clean-<branch with / as _>-<YYYY-MM-DD>.md`.
      It records the branch, the PR, every pass run (with its head SHA),
-     every finding ever raised and its outcome, the code review's result,
-     and ends with the verdict line exactly as in step 7, naming the same
-     SHA as the marker. A later run on the same branch and day appends a
+     every finding ever raised and its outcome (fix commit or issue
+     number), and ends with the verdict line exactly as in step 6,
+     naming the same SHA as the marker. A later run on the same branch and day appends a
      new dated section; it never overwrites an earlier one.
-   - If the PR had review comments, post a short follow-up comment:
-     re-review clean at `<sha>`, listing each prior finding as resolved.
+   - When there is a PR, post a comment on it headed `## Review loop`:
+     the verdict line, the passes run, and each finding with its
+     outcome. It is the PR's visible record of the review, on every PR,
+     findings or not.
 
-7. **Report the verdict** — always this exact shape, so it's scannable
+6. **Report the verdict** — always this exact shape, so it's scannable
    across projects:
 
    ```
@@ -106,15 +120,15 @@ findings (this has happened in practice).
 ## Light lane (docs-only or look-only PRs)
 
 When the global CLAUDE.md's light-lane test applies (and only then):
-run step 3 once; fix any findings (one commit each); then go straight
-to step 5's code review at the final commit. If the code review is
-clean, record (step 6) with "light lane" stated in the report. If it
-finds anything, fix and run step 5 again, not a new loop round. State
-in the report which test made the PR light lane.
+run step 3 once. If it finds nothing, or only wording fixed in the PR's
+body or in plain docs (step 4), record (step 5) with "light lane"
+stated in the report. If anything else had to be fixed, one more pass
+is the re-check; if that pass finds something, the normal loop and its
+cap apply. State in the report which test made the PR light lane.
 
 ## Stop conditions
 
-- A clean pass and a clean code review at the same head (step 6 reached).
+- A clean pass (step 5 reached).
 - The user says "ship it" / "good enough" — record verdict as
   `OVERRIDDEN by user` instead of CLEAN; do not write the marker.
 - A finding awaiting a user decision — report NOT CLEAN and stop looping
@@ -128,9 +142,8 @@ in the report which test made the PR light lane.
   worktree-accurate), and is invalidated by any new commit — the merge
   gate reports a stale marker as an explicit WARNING, distinct from a
   missing one.
-- The marker, the report and the "Code review" comment are written only
-  by this skill and `/code-review`. Never write a marker, a report or a
-  code-review comment by hand, and never run a home-made set of review
+- The marker, the report and the "Review loop" comment are written only
+  by this skill. Never write any of them by hand, and never run a home-made set of review
   agents in place of this skill and call the result CLEAN. A
   hand-written marker has no report behind it whose verdict names the
   head, so a status check that looks for the report catches it (the

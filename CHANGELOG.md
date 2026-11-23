@@ -2,6 +2,44 @@
 
 Dated events in this protocol's lifecycle. Newest first.
 
+## 2026-11-23
+
+No second review on top of a clean pass. Until now `/until-clean` ended
+with `/code-review --comment` at the clean head: four agents, plus one
+per finding, re-reading a diff two reviewers had just passed. Measured
+on about 30 PRs in one project over three days, it found something real
+about once. The clean pass is now the last review. `/code-review` stays
+in the repo, unchanged, to run by hand.
+
+What went with it, all in `skills/until-clean/SKILL.md` and `CLAUDE.md`:
+
+- **Wording fixes** skip the next pass only when they touch the PR body
+  or Markdown that doesn't steer an agent (not `CLAUDE.md`, `AGENTS.md`,
+  `SKILL.md`, nor anything under `.claude/`, `commands/` or
+  `risk-paths/`), decided by file name. The final review used to read
+  every wording batch; nothing does now, so only text that cannot
+  change behaviour goes unread.
+- **A LOW code finding in pass 3** is filed as an issue, not fixed: a
+  fix pushed after the last pass would be code no reviewer reads.
+- **Problems a PR didn't introduce** are filed as issues and don't make
+  a pass unclean.
+- **Fix commits:** one each for MEDIUM and HIGH; LOW and wording share
+  one batch commit. The same in `/adversarial-review`.
+- **The PR's visible record** is a "Review loop" comment the skill posts
+  on every PR.
+- **Light lane:** one pass; a second only if something other than
+  wording had to be fixed.
+- The "Always — `/code-review --comment` on every PR" section of
+  `CLAUDE.md` is now "Always flag at review": the same list, applied by
+  the loop's reviewers.
+
+A larger redesign was drafted first (one review, then checks of only
+the fix commits) and parked in PR #15: its bookkeeping between runs was
+prose for a model to interpret, and seven review rounds each found
+another way for it to call a PR clean when it wasn't. That part is to
+be rebuilt as a small script with tests. Reasoning and limits:
+`docs/review-cost-rationale.html`, last section.
+
 ## 2026-11-10
 
 Trimmed `CLAUDE.md`, which loads into every session, without changing a
