@@ -69,7 +69,10 @@ findings (this has happened in practice).
    - **All resolved, nothing new** → the pass is clean. Continue.
    - **Only findings about the PR's title or description** → edit
      them (`gh pr edit`) and go straight to step 5. That is not a
-     commit: the reviewed code is unchanged.
+     commit: the reviewed code is unchanged. Record each as "PR text
+     edited, not re-reviewed". On a public repo the new text still goes
+     through the sanitization scan the global CLAUDE.md requires for PR
+     bodies.
 
    **Every commit is read by a pass.** There is no kind of fix small
    enough to skip one: a wording fix in a README, a comment or a skill
@@ -101,8 +104,8 @@ findings (this has happened in practice).
    - Write the report, the evidence that this loop ran:
      `~/.claude/reports/<project-name>/until-clean-<branch with / as _>-<YYYY-MM-DD>.md`.
      It records the branch, the PR, every pass run (with its head SHA),
-     every finding ever raised and its outcome (fix commit or issue
-     number), and ends with the verdict line exactly as in step 6,
+     every finding ever raised and its outcome (fix commit, issue
+     number, or "PR text edited"), and ends with the verdict line exactly as in step 6,
      naming the same SHA as the marker. A later run on the same branch and day appends a
      new dated section; it never overwrites an earlier one.
    - When there is a PR, post a comment on it headed `## Review loop`:
@@ -141,7 +144,9 @@ pass finds something, the normal loop and its cap apply. State in the report whi
 ## Rules
 
 - Never mark a finding resolved without an agent verifying it on the
-  pushed state. Self-assessment does not count.
+  pushed state. Self-assessment does not count. The one exception is an
+  edit to the PR's title or description (step 4): it changes no file,
+  and is recorded as edited, not as verified.
 - The marker is per-branch, local-only (lives under `<git-dir>/review-clean/`,
   worktree-accurate), and is invalidated by any new commit — the merge
   gate reports a stale marker as an explicit WARNING, distinct from a
