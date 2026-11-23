@@ -109,7 +109,7 @@ findings (this has happened in practice).
      `~/.claude/reports/<project-name>/until-clean-<branch with / as _>-<YYYY-MM-DD>.md`.
      It records the branch, the PR, every pass run (with its head SHA),
      every finding ever raised and its outcome (fix commit, issue
-     number, or "PR text edited"), and ends with the verdict line exactly as in step 6,
+     number, "PR text edited", or the user's decision), and ends with the verdict line exactly as in step 6,
      naming the same SHA as the marker. A later run on the same branch and day appends a
      new dated section; it never overwrites an earlier one.
    - When there is a PR, post a comment on it headed `## Review loop`:
