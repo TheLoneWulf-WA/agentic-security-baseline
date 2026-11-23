@@ -36,7 +36,9 @@ findings (this has happened in practice).
    it stays on the checklist with the decision written beside it, and
    reviewers judge it RESOLVED / NOT RESOLVED against that decision.
    Reviewers are given the filed and decided findings so they do not
-   raise them again: a re-report of one is not a new finding.
+   raise them again. Only a reviewer can call a finding a re-report of
+   one, by naming it; anything else, including a filed or decided
+   finding the change has made worse, is a new finding.
 
 3. **Re-review the CURRENT state.** Launch review agents per the
    project's convention (project CLAUDE.md may specify a count; default
@@ -60,7 +62,7 @@ findings (this has happened in practice).
    tagged HIGH, MEDIUM or LOW, and marked **Pre-existing** when it is
    equally true on the default branch and not made worse by the change.
    Only a reviewer applies that tag; the session that made the change
-   never does, and never re-tags a finding. The compliance agent also
+   never does, never re-tags a finding, and never calls one a re-report. The compliance agent also
    applies the "Always flag at review" list in the global CLAUDE.md,
    and the bug agent reads test changes before source.
 
