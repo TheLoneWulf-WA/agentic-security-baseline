@@ -5,8 +5,8 @@ Prints RISK=normal only when EVERY changed file (old and new names) is docs, ima
 (~/.claude/risk-paths/_default-safe.txt) AND no added line contains a risky word (_default-content.txt: scripts,
 iframes, database access, secrets and so on). Everything else is RISK=sensitive. Also prints SIZE and LINES.
 
-Used to pick reviewers: sensitive means the normal review (Opus bug reviewer, Sonnet compliance, four-agent
-/code-review); normal means two Sonnet reviewers. It fails SAFE: any error gives RISK=sensitive.
+Used to pick reviewers: sensitive means the normal review (Opus bug reviewer and fix check, Sonnet
+compliance); normal means Sonnet throughout. It fails SAFE: any error gives RISK=sensitive.
 """
 import json, os, re, subprocess, sys
 

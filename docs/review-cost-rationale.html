@@ -737,7 +737,7 @@
             <li>it fails in any other way, or Python can&rsquo;t run it at all.</li>
           </ul>
           <p>
-            And <code>/code-review</code> runs its full set of four agents if the
+            And <code>/code-review</code> puts its bug reviewer on Opus if the
             script can&rsquo;t run.
           </p>
         </div>
@@ -814,7 +814,7 @@
         <h3>Five layers no limit reaches</h3>
         <div class="rule-body">
           <ul class="surfaces">
-            <li><span class="surface-name">The Opus bug reviewer</span><span class="surface-why">Every PR with code gets an Opus bug reviewer in its full review, and an Opus agent checks every fix.</span></li>
+            <li><span class="surface-name">The Opus bug reviewer</span><span class="surface-why">Every PR with code gets an Opus bug reviewer in its full review, and an Opus agent checks every fix that changes what the code does (wording-only fixes need no check).</span></li>
             <li><span class="surface-name"><code>/security-review</code></span><span class="surface-why">Still runs before the first push on any Strict Gate surface (payments, auth, secrets, input endpoints and the rest), and still blocks on HIGH.</span></li>
             <li><span class="surface-name">The three-role review</span><span class="surface-why"><code>/adversarial-review</code> still runs on auth, sessions, uploads, payments, admin actions that move money or change access, input endpoints, and scripts that run with access rules off or delete records. On those PRs it is the step that finds the most.</span></li>
             <li><span class="surface-name">The code review</span><span class="surface-why"><code>/code-review --comment</code> still runs on every PR. Since 2026-11-23 it runs once, as the PR&rsquo;s one full review, with two agents.</span></li>
