@@ -50,8 +50,10 @@ findings (this has happened in practice).
    (resolved means actually fixed, not reworded; for security findings the
    severity must be downgraded/removed), and (b) a fresh high-signal scan
    of the current diff including the fix commits. Each new finding is
-   tagged HIGH, MEDIUM or LOW, and marked **Pre-existing** when it is a
-   real problem this PR did not introduce. The compliance agent also
+   tagged HIGH, MEDIUM or LOW, and marked **Pre-existing** when it is
+   equally true on the default branch and this PR does not make it
+   worse. Only a reviewer applies that tag; the session running the
+   loop never does, and never re-tags a finding. The compliance agent also
    applies the "Always flag at review" list in the global CLAUDE.md,
    and the bug agent reads test changes before source.
 
@@ -62,8 +64,8 @@ findings (this has happened in practice).
      amendments, product/design calls, anything in an always-ask class)
      are surfaced, not auto-fixed — they make the verdict NOT CLEAN
      (awaiting user) until decided.
-   - **Pre-existing findings** (a real problem this PR did not
-     introduce) → file an issue (`gh issue create`) and record its
+   - **Pre-existing findings** (tagged so by a reviewer in step 3,
+     never by the session running the loop) → file an issue (`gh issue create`) and record its
      number. They are not fixed in this PR and do not make a pass
      unclean.
    - **All resolved, nothing new** → the pass is clean. Continue.

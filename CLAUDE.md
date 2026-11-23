@@ -330,7 +330,9 @@ pass returns no issues; `/until-clean` runs it.
   pass; still open after that → NOT CLEAN, surfaced to the user.
 - **No second review on top (2026-11-23):** a clean pass is the last
   review. `/code-review --comment` no longer follows it.
-- **Pre-existing problems** a reviewer finds are filed as issues, not
+- **Pre-existing problems** (equally true on the default branch, not
+  made worse by the PR, and tagged so by a reviewer, never by the
+  author) are filed as issues, not
   fixed in the PR, and do not make a pass unclean.
 - **Models:** the bug reviewer is **always Opus** on any PR with code;
   compliance reviewers are always Sonnet. Only a PR that changes nothing

@@ -89,7 +89,8 @@ A CLEAN verdict is never given from this skill alone.
    - LOW findings are fixed too, in one batch commit (since 2026-11-23;
      a commit each was churn for little), or stated plainly as not fixed
      with the reason. Never folded into "clean".
-   - A problem this change did not create is filed as an issue, not
+   - A problem the reviewer reported as pre-existing (equally true
+     before this change, and not made worse by it) is filed as an issue, not
      fixed here.
    - A finding that is the user's to decide (wording a person reads, a
      product or design call, what survives a delete, a change in someone
